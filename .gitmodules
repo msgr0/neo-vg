@@ -91,7 +91,7 @@
 	url = https://github.com/nemequ/simde-no-tests
 [submodule "doc/wiki"]
 	path = doc/wiki
-	url = https://github.com/vgteam/vg.wiki.git
+	url = https://github.com/msgr0/neo-vg.wiki.git
 [submodule "deps/mio"]
 	path = deps/mio
 	url = https://github.com/mandreyel/mio.git
