@@ -6,8 +6,11 @@
 
 #include <string>
 #include <functional>
-
-#include "progress_bar.hpp"
+#include <iostream>
+// These used to come in transitively via progress_bar.hpp; keep them for
+// downstream code that relied on that.
+#include <iomanip>
+#include <cstring>
 
 namespace vg {
 
@@ -32,6 +35,13 @@ public:
      * show_progress.
      */
     static void with_progress(bool show_progress, const std::string& task, const std::function<void(const std::function<void(size_t, size_t)>& progress)>& callback);
+
+    /**
+     * Draw a one-line progress bar, ending in a carriage return, showing that
+     * done out of total items are complete. The bar is sized to the terminal.
+     * Call it again to redraw; print a newline when finished.
+     */
+    static void draw_progress_bar(const string& description, size_t done, size_t total, ostream& out = cerr);
 
     // Should progress bars be shown when the progress methods are called?
     bool show_progress = false;
@@ -89,8 +99,8 @@ private:
     // What's the last progress value we've actually seen, either through an
     // explicit update or an increment?
     long progress_seen;
-    // What's the actual progress bar renderer we're using?
-    ProgressBar* progress = nullptr;
+    // Is a progress bar currently displayed?
+    bool progress = false;
 };
 
 }

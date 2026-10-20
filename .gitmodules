@@ -7,24 +7,15 @@
 [submodule "bash-tap"]
 	path = deps/bash-tap
 	url = https://github.com/illusori/bash-tap.git
-[submodule "progress_bar"]
-	path = deps/progress_bar
-	url = https://github.com/vgteam/cpp_progress_bar.git
 [submodule "lru_cache"]
 	path = deps/lru_cache
 	url = https://github.com/ekg/lru_cache.git
-[submodule "sha1"]
-	path = deps/sha1
-	url = https://github.com/vog/sha1.git
 [submodule "gcsa2"]
 	path = deps/gcsa2
 	url = https://github.com/jltsiren/gcsa2.git
 [submodule "sdsl-lite"]
 	path = deps/sdsl-lite
     url = https://github.com/vgteam/sdsl-lite.git
-[submodule "deps/sparsehash"]
-	path = deps/sparsehash
-	url = https://github.com/sparsehash/sparsehash.git
 [submodule "deps/pinchesAndCacti"]
 	path = deps/pinchesAndCacti
 	url = https://github.com/benedictpaten/pinchesAndCacti.git
@@ -34,9 +25,6 @@
 [submodule "deps/gbwt"]
 	path = deps/gbwt
 	url = https://github.com/jltsiren/gbwt.git
-[submodule "deps/sublinear-Li-Stephens"]
-	path = deps/sublinear-Li-Stephens
-	url = https://github.com/yoheirosen/sublinear-Li-Stephens.git
 [submodule "deps/backward-cpp"]
 	path = deps/backward-cpp
 	url = https://github.com/adamnovak/backward-cpp.git
@@ -65,9 +53,6 @@
 	path = deps/sglib
 	url = https://github.com/vgteam/sglib.git
 	branch = master
-[submodule "deps/FlameGraph"]
-	path = deps/FlameGraph
-	url = https://github.com/brendangregg/FlameGraph
 [submodule "deps/libbdsg"]
 	path = deps/libbdsg
 	url = https://github.com/vgteam/libbdsg.git
@@ -109,9 +94,6 @@
 [submodule "deps/kff-cpp-api"]
 	path = deps/kff-cpp-api
 	url = https://github.com/Kmer-File-Format/kff-cpp-api.git
-[submodule "deps/mimalloc"]
-	path = deps/mimalloc
-	url = https://github.com/microsoft/mimalloc.git
 [submodule "deps/GFAz"]
 	path = deps/GFAz
 	url = https://github.com/babyplutokurt/GFAz.git

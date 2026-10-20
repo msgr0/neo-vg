@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_minimizer.hpp"
 
 #include <gbwtgraph/minimizer.h>
 
@@ -12,6 +11,7 @@ namespace vg {
 
 namespace io {
 
+using namespace std;
 using namespace vg::io;
 
 void register_loader_saver_minimizer() {

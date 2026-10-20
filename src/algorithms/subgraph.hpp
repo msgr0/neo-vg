@@ -13,14 +13,8 @@ using namespace std;
 /// expand the subgraph iteratively for this many steps
 void expand_subgraph_by_steps(const HandleGraph& source, MutableHandleGraph& subgraph, const uint64_t& steps, bool forward_only = false);
 
-/// expand the subgraph iteratively until its node count is at least node_count
-void expand_subgraph_to_node_count(const HandleGraph& source, MutableHandleGraph& subgraph, const uint64_t& node_count, bool forward_only = false);
-
 /// expand the subgraph iteratively to include at least length new sequence
 void expand_subgraph_by_length(const HandleGraph& source, MutableHandleGraph& subgraph, const uint64_t& length, bool forward_only = false);
-
-/// expand the subgraph iterativel until its total sequence length is greater than length
-void expand_subgraph_to_length(const HandleGraph& source, MutableHandleGraph& subgraph, const uint64_t& length, bool forward_only = false);
 
 /// expand the context around a single handle position
 void extract_context(const HandleGraph& source, MutableHandleGraph& subgraph, const handle_t& handle, const uint64_t& offset, const uint64_t& length, bool go_fwd = true, bool go_rev = true);

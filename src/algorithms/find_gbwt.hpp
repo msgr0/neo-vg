@@ -2,9 +2,9 @@
 #define VG_ALGORITHMS_FIND_GBWT_HPP_INCLUDED
 
 /**
- * \file find_gbwtgraph.hpp
+ * \file find_gbwt.hpp
  *
- * Defines an algorithm for finding the GBWTGraph associated with a handle graph, if any.
+ * Defines an algorithm for finding the GBWT associated with a handle graph, if any.
  */
 
 #include "../handle.hpp"

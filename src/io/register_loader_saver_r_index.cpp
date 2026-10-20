@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_r_index.hpp"
 
 #include <gbwt/fast_locate.h>
 

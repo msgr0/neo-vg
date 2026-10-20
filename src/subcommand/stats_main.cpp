@@ -15,8 +15,7 @@
 #include <vg/io/stream.hpp>
 
 #include "subcommand.hpp"
-#include "../algorithms/distance_to_head.hpp"
-#include "../algorithms/distance_to_tail.hpp"
+#include "../algorithms/distance_to_end.hpp"
 #include "../handle.hpp"
 #include "../integrated_snarl_finder.hpp"
 #include "../annotation.hpp"
@@ -464,7 +463,7 @@ int main_stats(int argc, char** argv) {
         for (auto id : ids) {
             auto n = graph->get_handle(id, false);
             cout << id << " to head:\t"
-                 << distance_to_head(n, 1000, graph) << endl;
+                 << distance_to_end(n, 1000, true, graph) << endl;
         }
     }
 
@@ -473,7 +472,7 @@ int main_stats(int argc, char** argv) {
         for (auto id : ids) {
             auto n = graph->get_handle(id, false);
             cout << id << " to tail:\t"
-                << distance_to_tail(n, 1000, graph) << endl;
+                << distance_to_end(n, 1000, false, graph) << endl;
         }
     }
 

@@ -11,10 +11,7 @@
 
 #include <gbwt/gbwt.h>
 #include <gbwt/dynamic_gbwt.h>
-#include <sublinearLS/reference.hpp>
-#include <sublinearLS/penalty_set.hpp>
-#include <sublinearLS/input_haplotype.hpp>
-#include <sublinearLS/probability.hpp>
+#include <string>
 
 
 using namespace std;
@@ -249,67 +246,6 @@ public:
   static haplo_score_type score(const gbwt_thread_t& thread, GBWTType& graph, haploMath::RRMemo& memo);
 };
 
-//------------------------------------------------------------------------------
-
-struct linear_haplo_structure{
-private:
-
-  siteIndex* index = nullptr;
-  haplotypeCohort* cohort = nullptr;
-  penaltySet* penalties = nullptr;
-  const vg::PathPositionHandleGraph& graph;
-  vg::path_handle_t ref_path_handle;
-public:
-  typedef enum nodeType{
-    ref_span,
-    snv,
-    invalid
-  } nodeType;
-  
-  class linearUnrepresentable : public runtime_error {
-    using runtime_error::runtime_error;
-  };
-  
-  struct SNVvector{
-  private:
-    // Positions of SNVs
-    vector<size_t> ref_positions;
-    // Allele values at those positions
-    vector<alleleValue> alleles;
-  public:
-    void push_back(alleleValue allele, size_t ref_pos, bool deletion);
-    size_t ref_position(size_t i) const;
-    alleleValue allele(size_t i) const;
-    size_t size() const;
-  };
-  
-  /// Make a new linear_haplo_structure with the given indexes, mutation and recombination scoring parameters, and reference path in the graph.
-  /// Penalties *must* be negative, and ought to be something like -9*2.3 mutation and -6*2.3 recombination.
-  linear_haplo_structure(istream& slls_index, double log_mut_penalty, double log_recomb_penalty,
-                         const vg::PathPositionHandleGraph& graph, vg::path_handle_t ref_path_handle);
-  ~linear_haplo_structure();
-  haplo_score_type score(const vg::Path& path) const;
-  
-  inputHaplotype* path_to_input_haplotype(const vg::Path& path) const;
-  
-  // Get the position of a node in the reference path, assuming the reference
-  // path is acyclic. Enforces the constraint that all the nodes in the path
-  // are locally forward.
-  size_t position_assuming_acyclic(int64_t node_id) const;
-  nodeType get_type(int64_t node_id) const;
-  // Get the node ID of the node at the given mapping index in the path.
-  int64_t path_mapping_node_id(const vg::Path& path, size_t i) const;
-  // Get the offset of the path in the node at the given mapping index in the path.
-  size_t path_mapping_offset(const vg::Path& path, size_t i) const;
-  int64_t get_SNP_ref_position(size_t node_id) const;
-  SNVvector SNVs(const vg::Path& path) const;
-  bool is_snv(int64_t node_id) const;
-  bool is_solitary_ref(int64_t node_id) const;
-  bool sn_deletion_between_ref(int64_t left, int64_t right) const;
-  int64_t get_ref_following(int64_t node_id) const;
-  alleleValue get_SNV_allele(int64_t node_id) const;
-};
-
 
 /// Incremental haplotype search range type used for ScoreProvider's
 /// incremental search API. Default constructed, represents an empty or
@@ -322,7 +258,7 @@ public:
 using IncrementalSearchState = gbwt::SearchState;
 
 /// Interface abstracting over the various ways of generating haplotype scores.
-/// You probably want the implementations: GBWTScoreProvider, LinearScoreProvider
+/// You probably want the implementation: GBWTScoreProvider
 /// TODO: Const-ify the indexes used
 class ScoreProvider {
 public:
@@ -367,15 +303,6 @@ public:
   IncrementalSearchState incremental_extend(const IncrementalSearchState& state, const vg::Position& pos) const;
 private:
   GBWTType& index;
-};
-
-/// Score haplotypes using a linear_haplo_structure
-class LinearScoreProvider : public ScoreProvider {
-public:
-  LinearScoreProvider(const linear_haplo_structure& index);
-  pair<double, bool> score(const vg::Path&, haploMath::RRMemo& memo);
-private:
-  const linear_haplo_structure& index;
 };
 
 

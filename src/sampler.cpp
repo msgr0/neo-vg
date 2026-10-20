@@ -6,7 +6,6 @@
 #include "alignment.hpp"
 #include "algorithms/path_string.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
-#include "algorithms/next_pos_chars.hpp"
 
 #include <sstream>
 
@@ -15,6 +14,23 @@
 using namespace vg::io;
 
 namespace vg {
+
+/// Get the positions (and their bases) that immediately follow pos in the graph.
+static map<pos_t, char> next_pos_chars_in_graph(const HandleGraph& graph, pos_t pos) {
+    map<pos_t, char> nexts;
+    handle_t handle = graph.get_handle(id(pos), is_rev(pos));
+    if (offset(pos) < graph.get_length(handle)-1) {
+        ++get_offset(pos);
+        char c = graph.get_base(handle, offset(pos));
+        nexts[pos] = c;
+    } else {
+        graph.follow_edges(handle, false, [&](const handle_t& next) {
+                char c = graph.get_base(next, 0);
+                nexts[make_pos_t(graph.get_id(next), graph.get_is_reverse(next), 0)] = c;
+            });
+    }
+    return nexts;
+}
 
 void AbstractReadSampler::annotate_with_path_positions(Alignment& aln) {
     // We need to annotate the alignment with the right kind of path positions
@@ -580,7 +596,7 @@ char Sampler::pos_char(pos_t pos) {
 }
 
 map<pos_t, char> Sampler::next_pos_chars(pos_t pos) {
-    return algorithms::next_pos_chars(graph, pos);
+    return next_pos_chars_in_graph(graph, pos);
 }
 
 bool Sampler::is_valid(const Alignment& aln) {
@@ -1368,7 +1384,7 @@ bool NGSSimulator::advance(int64_t& offset, bool& is_reverse, pos_t& pos, char& 
 bool NGSSimulator::advance_on_graph(pos_t& pos, char& graph_char) {
     
     // choose a next position at random
-    map<pos_t, char> next_pos_chars = algorithms::next_pos_chars(graph, pos);
+    map<pos_t, char> next_pos_chars = next_pos_chars_in_graph(graph, pos);
     if (next_pos_chars.empty()) {
         return true;
     }

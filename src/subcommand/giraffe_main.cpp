@@ -636,7 +636,7 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
 // Try stripping all suffixes in the vector, one at a time, and return on failure.
 std::string strip_suffixes(std::string filename, const std::vector<std::string>& suffixes) {
     for (const std::string& suffix : suffixes) {
-        if (filename.length() > suffix.length() && filename.substr(filename.length() - suffix.length()) == suffix) {
+        if (filename.length() > suffix.length() && filename.ends_with(suffix)) {
             filename = filename.substr(0, filename.length() - suffix.length());
         } else {
             break;

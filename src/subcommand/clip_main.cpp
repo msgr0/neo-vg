@@ -310,7 +310,7 @@ int main_clip(int argc, char** argv) {
                 // And get their base path names
                 path_name = Paths::strip_subrange(path_name, &subrange);
                 for (const string& ref_prefix : ref_prefixes) {
-                    if (path_name.compare(0, ref_prefix.length(), ref_prefix) == 0) {
+                    if (path_name.starts_with(ref_prefix)) {
                         // And make sure they're indexed if they match the prefix.
                         position_path_names.insert(path_name);
                         // And remember them to then index all of

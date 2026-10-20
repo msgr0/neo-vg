@@ -856,25 +856,6 @@ ChainsResult find_best_chains(const VectorView<Anchor>& to_chain,
     return result;
 }
 
-pair<int, vector<size_t>> find_best_chain(const VectorView<Anchor>& to_chain,
-                                          const SnarlDistanceIndex& distance_index,
-                                          const HandleGraph& graph,
-                                          const transition_iterator& for_each_transition,
-                                          const ChainScoringScheme& scheme,
-                                          size_t max_indel_bases) {
-                                                                 
-    ChainsResult cr = find_best_chains(
-        to_chain,
-        distance_index,
-        graph,
-        for_each_transition,
-        scheme,
-        1,
-        max_indel_bases
-    );
-    return cr.chains.front().scored_chain;
-}
-
 //#define skip_zipcodes
 //#define debug
 //#define double_check_distances

@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_gbzgraph.hpp"
 
 #include <gbwtgraph/gbz.h>
 #include "../gbzgraph.hpp"

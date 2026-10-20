@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_gbwt.hpp"
 
 #include <gbwt/gbwt.h>
 #include <gbwt/dynamic_gbwt.h>

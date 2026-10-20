@@ -15,7 +15,7 @@
  * You can use chain_items_traceback() to get a traceback of the chain's items
  * in order.
  *
- * Helper entry points are find_best_chain() and score_best_chain() which set
+ * Helper entry point is find_best_chains() which sets
  * up the DP for you and do the traceback if appropriate.
  */
  
@@ -38,7 +38,6 @@ using namespace std;
 // Make sure all of vg's print operators are available.
 using vg::operator<<;
 using path_flags_t = uint64_t;
-static constexpr int MAX_PATHS = 64;
 //#define debug_chaining
 
 /**
@@ -147,67 +146,6 @@ public:
     }
     
     // Paths information
-
-    inline void clear_paths() {
-        start_paths = 0;
-        end_paths = 0;
-    }
-
-    /// Set the haplotypes supported by this anchor
-    /// Maximum number limited to 64 for now
-    
-
-    inline void set_paths(const path_flags_t anchor_paths) {
-        start_paths = anchor_paths;
-        end_paths = anchor_paths;
-    }
-
-    inline void set_paths(size_t anchor_start_paths, size_t anchor_end_paths) {
-        start_paths = anchor_start_paths;
-        end_paths = anchor_end_paths;
-    }
-
-    inline void set_paths(const std::vector<size_t>& anchor_paths) {
-        clear_paths();
-        for (size_t path : anchor_paths) {
-            add_path(path);
-        }
-    }
-    
-    /// Add new paths to the supported haplotypes
-    inline void add_paths(const std::vector<size_t>& anchor_paths) {
-        for (size_t path : anchor_paths) {
-            add_path(path);
-        }
-    }
-
-    inline void add_path(size_t path) {
-        crash_unless(path < MAX_PATHS);
-        start_paths |= (1UL << path);
-        end_paths |= (1UL << path);
-    }
-
-    /// Update the paths supported by an anchor
-    inline void update_paths(const path_flags_t& new_paths) {
-        update_start_paths(new_paths);
-        update_end_paths(new_paths);
-    }
-
-    inline void update_start_paths(const path_flags_t& new_paths) {
-        start_paths &= new_paths;
-    }
-
-    inline void update_end_paths(const path_flags_t& new_paths) {
-        end_paths &= new_paths;
-    }
-
-    inline void update_paths(const std::vector<size_t>& haplotypes) {
-        path_flags_t new_paths = 0;
-        for (size_t haplotype : haplotypes) {
-            new_paths |= (1UL << haplotype);
-        }
-        update_paths(new_paths);
-    }
 
     /// Get the supported paths, as a 64 bit integer, where each bit is set to 1 if the respective path is supported
     inline const std::pair<path_flags_t, path_flags_t> anchor_paths() const {
@@ -572,22 +510,6 @@ ChainsResult find_best_chains(const VectorView<Anchor>& to_chain,
                               size_t max_chains = 1,
                               size_t max_indel_bases = 100,
                               bool show_work = false);
-
-/**
- * Chain up the given group of items. Determines the best score and
- * traceback that can be obtained by chaining items together.
- *
- * Input items must be sorted by start position in the read.
- *
- * Returns the score and the list of indexes of items visited to achieve
- * that score, in order.
- */
-pair<int, vector<size_t>> find_best_chain(const VectorView<Anchor>& to_chain,
-                                          const SnarlDistanceIndex& distance_index,
-                                          const HandleGraph& graph,
-                                          const transition_iterator& for_each_transition,
-                                          const ChainScoringScheme& scheme = ChainScoringScheme(),
-                                          size_t max_indel_bases = 100);
 
 /// Score a chaining gap using the Minimap2 method. See
 /// <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6137996/> near equation 2.

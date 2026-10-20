@@ -1,6 +1,7 @@
 #include "stream_index.hpp"
 
 #include <iostream>
+#include <bit>
 #include <queue>
 #include "algorithms/sorted_id_ranges.hpp"
 
@@ -83,8 +84,8 @@ auto BitString::operator!=(const BitString& other) const -> bool {
 auto BitString::common_prefix_length(const BitString& other) const -> size_t {
    // Make a mask where identical bits are 0
    auto mask = bits ^ other.bits;
-   // Count the identical bits (count unset leading bits) with a compiler builtin
-   size_t identical_bits = __builtin_clzll(mask);
+   // Count the identical bits (count unset leading bits)
+   size_t identical_bits = std::countl_zero(mask);
    // Return the number of matching bits before the first mismatch, or the length of the shorter BitString
    return min(min(identical_bits, (size_t) bit_length), (size_t) other.bit_length);
 }
@@ -159,7 +160,7 @@ auto StreamIndexBase::bin_to_prefix(bin_t bin) -> BitString {
     // fewer bits than the number.
     
     // Count the leading 0 bits
-    size_t leading_zeros = __builtin_clzll(bin);
+    size_t leading_zeros = std::countl_zero(static_cast<uint64_t>(bin));
     
 #ifdef debug
     cerr << "The bin number has " << leading_zeros << " leading zeros" << endl;

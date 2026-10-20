@@ -2,7 +2,9 @@
 
 #include <vg/io/stream.hpp>
 #include <iostream>
+#include <iomanip>
 #include <chrono>
+#include <sys/ioctl.h>
 
 namespace vg {
 
@@ -36,6 +38,32 @@ void Progressive::with_progress(bool show_progress, const std::string& task, con
     }
 }
 
+void Progressive::draw_progress_bar(const string& description, size_t done, size_t total, ostream& out) {
+    // Work out how wide the terminal is.
+    int console_width = 80;
+    struct winsize win;
+    if (ioctl(0, TIOCGWINSZ, &win) != -1) {
+        console_width = win.ws_col;
+    }
+
+    if (done > total) {
+        // Clear the line and complain.
+        out << string(console_width, ' ') << "\r" << flush;
+        cerr << "PROGRESS_BAR_EXCEPTION: _idx (" << done << ") went out of bounds, greater than n (" << total << ")." << endl << flush;
+        return;
+    }
+
+    // Leave room for the description and the percentage.
+    int bar_size = (int) ((console_width - (int) description.size() - 4) / 2.);
+    double percent = total == 0 ? 100.0 : done * 100.0 / total;
+    double percent_per_unit = 100.0 / bar_size;
+
+    out << " " << description << " [";
+    for (int i = 0; i < bar_size; i++) {
+        out << (i * percent_per_unit < percent ? '=' : ' ');
+    }
+    out << "]" << setw(5) << setprecision(1) << fixed << percent << "%\r" << flush;
+}
 
 void Progressive::create_progress(const string& message, long count) {
     if (show_progress) {
@@ -49,13 +77,9 @@ void Progressive::create_progress(long count) {
         progress_count = count;
         last_progress = 0;
         progress_seen = 0;
-        if (progress) {
-            // Get rid of the old one.
-            delete progress;
-        }
         progress_message.resize(30, ' ');
-        progress = new ProgressBar(progress_count, progress_message.c_str());
-        progress->Progressed(0);
+        progress = true;
+        draw_progress_bar(progress_message, 0, progress_count);
     }
 }
 
@@ -69,9 +93,8 @@ void Progressive::ensure_progress(long count) {
 
 void Progressive::preload_progress(const string& message) {
     if (show_progress && !progress) {
-        // Set the message. We can't change it if a progress bar exists
-        // currently because that progress bar has a pointer to the old
-        // message's data.
+        // Set the message. We don't change it while a progress bar is
+        // displayed.
         progress_message = message;
     }
 }
@@ -83,7 +106,7 @@ void Progressive::update_progress(long i) {
             || i == progress_count) {
 #pragma omp critical (progress)
             {
-                progress->Progressed(i);
+                draw_progress_bar(progress_message, i, progress_count);
                 last_progress = i;
             }
         }
@@ -128,10 +151,7 @@ void Progressive::destroy_progress(void) {
         progress_message = "progress";
         progress_count = 0;
     }
-    if (progress) {
-        delete progress;
-        progress = nullptr;
-    }
+    progress = false;
 }
 
 }

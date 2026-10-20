@@ -85,7 +85,7 @@ void PrimerFinder::load_primers(ifstream& file_handle) {
             template_feature = "";
             template_position = std::numeric_limits<size_t>::max();
             has_path = false;
-        } else if (startswith(line, "SEQUENCE_ID")) {
+        } else if (line.starts_with("SEQUENCE_ID")) {
             //Get the path, path offset, and features from the sequence_id of the primer pair
             //This will be the same for all primer pairs up to the next "="
             vector<string> cur_fields = std::move(split(split(line,'=')[1], '|'));
@@ -108,7 +108,7 @@ void PrimerFinder::load_primers(ifstream& file_handle) {
             cerr << "FIND PRIMERS FOR INPUT " << line << ": " << chromosome_name << ", " << template_feature << ", " << template_position << endl;
 #endif
 
-        } else if (startswith(line, "SEQUENCE_TEMPLATE") && !has_path) {
+        } else if (line.starts_with("SEQUENCE_TEMPLATE") && !has_path) {
             //If the path from the sequence id isn't in the graph, then get the path and path offset by mapping the sequence
             string seq = split(line,'=')[1];
             if (giraffe_mapper == nullptr) {
@@ -116,7 +116,7 @@ void PrimerFinder::load_primers(ifstream& file_handle) {
             }
             std::tie(chromosome_name, template_position) = get_graph_coordinates_from_sequence(seq);
 
-        } else if (startswith(line, "PRIMER_PAIR_NUM_RETURNED")) {
+        } else if (line.starts_with("PRIMER_PAIR_NUM_RETURNED")) {
             //How many primer pairs for this sequence template?
 
             size_t primer_pair_count = stoi(split(line,'=')[1]);
@@ -514,17 +514,6 @@ void PrimerFinder::update_variation(PrimerPair& primer_pair, const string& path_
 
 }
 
-vector<string> PrimerFinder::split(const string& str) {
-    istringstream iss(str);
-    string field;
-    vector<string> fields;
-
-    while (iss >> field) {
-        fields.push_back(field);
-    }
-    return fields;
-}
-
 vector<string> PrimerFinder::split(const string& str, const char& delim) {
     istringstream iss(str);
     string field;
@@ -537,9 +526,5 @@ vector<string> PrimerFinder::split(const string& str, const char& delim) {
     return fields;
 }
 
-
-bool PrimerFinder::startswith(const string& str, const string& prefix) {
-    return str.compare(0, prefix.length(), prefix) == 0;
-}
 
 }

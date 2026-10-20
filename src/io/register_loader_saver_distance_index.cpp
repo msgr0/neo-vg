@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_distance_index.hpp"
 
 #include "../snarl_distance_index.hpp"
 

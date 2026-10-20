@@ -34,10 +34,7 @@
 #include "Variant.h"
 #include "Fasta.h"
 
-#include "swap_remove.hpp"
 
-#include "pictographs.hpp"
-#include "colors.hpp"
 
 #include "types.hpp"
 

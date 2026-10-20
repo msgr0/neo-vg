@@ -3,7 +3,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_gfa.hpp"
 #include "algorithms/gfa_to_handle.hpp"
 #include "gfa.hpp"
 

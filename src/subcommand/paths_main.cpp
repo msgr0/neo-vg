@@ -501,7 +501,7 @@ int main_paths(int argc, char** argv) {
             if (GrefCover::is_gref_derived(path_name)) {
                 return;
             }
-            if (path_name.compare(0, path_prefix.size(), path_prefix) == 0) {
+            if (path_name.starts_with(path_prefix)) {
                 if (!exclude_sample.empty() &&
                     graph->get_sample_name(ph) == exclude_sample) {
                     return;

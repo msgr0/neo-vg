@@ -18,7 +18,6 @@
 #include <unistd.h>
 #include <vg/vg.pb.h>
 #include "types.hpp"
-#include "sha1.hpp"
 #include "Variant.h"
 #include "log.hpp"
 
@@ -60,11 +59,6 @@ std::vector<std::string>& split_delims(const std::string &s, const std::string& 
 std::vector<std::string> split_delims(const std::string &s, const std::string& delims,
                                       size_t max_cuts = numeric_limits<size_t>::max());
 
-/// Check if a string starts with another string
-bool starts_with(const std::string& value, const std::string& prefix);
-/// Check if a string ends with another string
-bool ends_with(const std::string& value, const std::string& suffix);
-
 const std::string sha1sum(const std::string& data);
 const std::string sha1head(const std::string& data, size_t head);
 
@@ -80,27 +74,6 @@ void toUppercaseInPlace(string& s);
 
 // write a fasta sqeuence
 void write_fasta_sequence(const std::string& name, const std::string& sequence, ostream& os, size_t width=80);
-
-/**
- * Compute the sum of the values in a collection. Values must be default-
- * constructable (like numbers are).
- */
-template<typename Collection>
-typename Collection::value_type sum(const Collection& collection) {
-
-    // Set up an alias
-    using Item = typename Collection::value_type;
-
-    // Make a new zero-valued item to hold the sum
-    auto total = Item();
-    for(auto& to_sum : collection) {
-        total += to_sum;
-    }
-
-    return total;
-
-}
-
 
 /**
  * Temporary files and directories. Create with create() or create_directory()

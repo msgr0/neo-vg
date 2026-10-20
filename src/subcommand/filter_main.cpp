@@ -555,10 +555,10 @@ int main_filter(int argc, char** argv) {
     // Make sure that this is the right file type
     std::string gam_file = get_input_file_name(optind, argc, argv);
     if (gam_file != "-") {
-        if (input_gam && !ends_with(gam_file, ".gam")) {
+        if (input_gam && !gam_file.ends_with(".gam")) {
             logger.error() << "Input alignment file " << gam_file 
                            << " does not appear to be a GAM" << std::endl;
-        } else if (!input_gam && !ends_with(gam_file, ".gamp")) {
+        } else if (!input_gam && !gam_file.ends_with(".gamp")) {
             logger.error() << "Input alignment file " << gam_file 
                            << " does not appear to be a GAMP" << std::endl;
         }

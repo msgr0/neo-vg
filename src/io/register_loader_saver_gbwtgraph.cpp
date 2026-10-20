@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_gbwtgraph.hpp"
 
 #include <gbwtgraph/gbwtgraph.h>
 

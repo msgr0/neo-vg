@@ -1127,7 +1127,7 @@ void IntegratedSnarlFinder::traverse_decomposition(const function<void(handle_t)
 #endif
     // Buffer merges until the algorithm is done.
     vector<pair<handle_t, handle_t>> merge_list;
-    algorithms::three_edge_connected_component_merges<handle_t>([&](const function<void(handle_t)>& emit_node) {
+    algorithms::three_edge_connected_component_merges([&](const function<void(handle_t)>& emit_node) {
         // Feed all the handles that head adjacency components into the algorithm
         cactus.for_each_head([&](handle_t head) {
 #ifdef debug

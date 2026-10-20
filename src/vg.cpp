@@ -3,7 +3,7 @@
 #include "aligner.hpp"
 // We need to use ultrabubbles for dot output
 #include "genotypekit.hpp"
-#include "algorithms/id_sort.hpp"
+#include "pictographs.hpp"
 #include "algorithms/simplify_siblings.hpp"
 #include "cactus_snarl_finder.hpp"
 #include "augment.hpp"
@@ -19,6 +19,28 @@ namespace vg {
 
 using namespace std;
 using namespace handlegraph;
+
+/// Remove one copy of e from v by swapping it with the last element and
+/// popping. Returns true if e was found.
+template<typename T>
+static bool swap_remove(std::vector<T>& v, const T& e) {
+    for (auto i = v.begin(); i != v.end(); ++i) {
+        if (e == *i) {
+            std::swap(*i, v.back());
+            v.pop_back();
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Pick a GraphViz color for a string, deterministically by hash.
+/// Used for colorizing paths in visualizations.
+static string hashed_color(const string& str) {
+    static const vector<string> colors = { "/dark28/1", "/dark28/2", "/dark28/3", "/dark28/4", "/dark28/5", "/dark28/6", "/dark28/7", "/dark28/8" };
+    return colors[std::hash<std::string>()(str) % colors.size()];
+}
+
 
 // construct from a stream of protobufs
 VG::VG(istream& in, bool showp, bool warn_on_duplicates) {
@@ -1690,10 +1712,6 @@ void VG::build_node_indexes_no_init_size(void) {
 }
 
 void VG::build_node_indexes(void) {
-#ifdef USE_DENSE_HASH
-    node_by_id.resize(graph.node_size());
-    node_index.resize(graph.node_size());
-#endif
     build_node_indexes_no_init_size();
 }
 
@@ -1706,11 +1724,6 @@ void VG::build_edge_indexes_no_init_size(void) {
 }
 
 void VG::build_edge_indexes(void) {
-#ifdef USE_DENSE_HASH
-    edges_on_start.resize(graph.node_size());
-    edges_on_end.resize(graph.node_size());
-    edge_by_sides.resize(graph.edge_size());
-#endif
     build_edge_indexes_no_init_size();
 }
     
@@ -1730,12 +1743,7 @@ void VG::clear_node_indexes(void) {
 }
 
 void VG::clear_node_indexes_no_resize(void) {
-#ifdef USE_DENSE_HASH
-    node_index.clear_no_resize();
-    node_by_id.clear_no_resize();
-#else
     clear_node_indexes();
-#endif
 }
 
 void VG::clear_edge_indexes(void) {
@@ -1746,14 +1754,7 @@ void VG::clear_edge_indexes(void) {
 }
 
 void VG::clear_edge_indexes_no_resize(void) {
-#ifdef USE_DENSE_HASH
-    edge_by_sides.clear_no_resize();
-    edge_index.clear_no_resize();
-    edges_on_start.clear_no_resize();
-    edges_on_end.clear_no_resize();
-#else
     clear_edge_indexes();
-#endif
 }
 
 void VG::clear_indexes(void) {
@@ -1762,12 +1763,7 @@ void VG::clear_indexes(void) {
 }
 
 void VG::clear_indexes_no_resize(void) {
-#ifdef USE_DENSE_HASH
-    clear_node_indexes_no_resize();
-    clear_edge_indexes_no_resize();
-#else
     clear_indexes();
-#endif
 }
 
 void VG::rebuild_indexes(void) {
@@ -2121,7 +2117,15 @@ void VG::id_sort() {
         return;
     }
     
-    apply_ordering(algorithms::id_order(this));
+    // Order all the handles in ID order. All orientations are forward.
+    vector<handle_t> order;
+    for_each_handle([&](const handle_t& handle) {
+        order.push_back(handle);
+    });
+    std::sort(order.begin(), order.end(), [&](const handle_t& a, const handle_t& b) {
+        return get_id(a) < get_id(b);
+    });
+    apply_ordering(order);
 }
         
 bool VG::apply_ordering(const vector<handle_t>& ordering, bool compact_ids) {
@@ -3742,7 +3746,6 @@ void VG::to_dot(ostream& out,
     map<nid_t, set<pair<string, string>>> symbols_for_node;
     if (ultrabubble_labeling) {
         Pictographs picts(random_seed);
-        Colors colors(random_seed);
         
         // Go get the snarls.
         SnarlManager snarl_manager = CactusSnarlFinder(*this).find_snarls();
@@ -3768,7 +3771,7 @@ void VG::to_dot(ostream& out,
             
             // Compute a label for the bubble
             string emoji = ascii_labels ? picts.hashed_char(repr) : picts.hashed(repr);
-            string color = colors.hashed(repr);
+            string color = hashed_color(repr);
             auto label = make_pair(color, emoji);
             for (nid_t node_id : contents) {
                 Node* node = get_node(node_id);
@@ -3851,12 +3854,11 @@ void VG::to_dot(ostream& out,
     if(annotate_paths) {
         // We're going to annotate the paths, so we need to give them symbols and colors.
         Pictographs picts(random_seed);
-        Colors colors(random_seed);
         // Work out what path symbols belong on what edges
-        function<void(const Path&)> lambda = [this, &picts, &colors, &symbols_for_edge, &ascii_labels](const Path& path) {
+        function<void(const Path&)> lambda = [this, &picts, &symbols_for_edge, &ascii_labels](const Path& path) {
             // Make up the path's label
             string path_label = ascii_labels ? picts.hashed_char(Paths::strip_subrange(path.name())) : picts.hashed(Paths::strip_subrange(path.name()));
-            string color = colors.hashed(Paths::strip_subrange(path.name()));
+            string color = hashed_color(Paths::strip_subrange(path.name()));
             for (int i = 0; i < path.mapping_size(); ++i) {
                 const Mapping& m1 = path.mapping(i);
                 if (i < path.mapping_size()-1) {
@@ -4049,11 +4051,10 @@ void VG::to_dot(ostream& out,
     int locusid = alnid;
     {
         Pictographs picts(random_seed);
-        Colors colors(random_seed);
         for (auto& locus : loci) {
             // get the paths of the alleles
             string path_label = ascii_labels ? picts.hashed_char(locus.name()) : picts.hashed(locus.name());
-            string color = colors.hashed(locus.name());
+            string color = hashed_color(locus.name());
             for (int j = 0; j < locus.allele_size(); ++j) {
                 auto& path = locus.allele(j);
                 for (int i = 0; i < path.mapping_size(); ++i) {
@@ -4082,13 +4083,12 @@ void VG::to_dot(ostream& out,
     if (show_paths || walk_paths) {
         int pathid = locusid;
         Pictographs picts(random_seed);
-        Colors colors(random_seed);
         map<string, int> path_starts;
         function<void(const Path&)> lambda =
-            [this,&pathid,&out,&picts,&colors,show_paths,walk_paths,show_mappings,&path_starts,&ascii_labels]
+            [this,&pathid,&out,&picts,show_paths,walk_paths,show_mappings,&path_starts,&ascii_labels]
             (const Path& path) {
             string path_label = ascii_labels ? picts.hashed_char(Paths::strip_subrange(path.name())) : picts.hashed(Paths::strip_subrange(path.name()));
-            string color = colors.hashed(Paths::strip_subrange(path.name()));
+            string color = hashed_color(Paths::strip_subrange(path.name()));
             path_starts[path.name()] = pathid;
             if (show_paths) {
                 for (int i = 0; i < path.mapping_size(); ++i) {

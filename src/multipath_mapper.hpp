@@ -657,8 +657,6 @@ namespace vg {
         
         string read_1_adapter = "";
         string read_2_adapter = "";
-        vector<size_t> read_1_adapter_lps;
-        vector<size_t> read_2_adapter_lps;
         
         int64_t min_softclip_length_for_splice = 20;
         int64_t min_softclipped_score_for_splice = 25;

@@ -167,8 +167,17 @@ if [[ ! -z "${REAL_FASTQ}" ]] ; then
         
         ${NUMA_PREFIX} perf record -F 100 --call-graph dwarf -o "${WORK}/perf.data"  nvg giraffe "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/perf.gam"
         perf script -i "${WORK}/perf.data" >"${WORK}/out.perf"
-        deps/FlameGraph/stackcollapse-perf.pl "${WORK}/out.perf" >"${WORK}/out.folded"
-        deps/FlameGraph/flamegraph.pl "${WORK}/out.folded" > "${WORK}/profile.svg"
+        # Use FLAMEGRAPH_DIR if set, otherwise fetch FlameGraph into a cache directory on demand.
+        FLAMEGRAPH_DIR="${FLAMEGRAPH_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/FlameGraph}"
+        if [[ ! -x "${FLAMEGRAPH_DIR}/flamegraph.pl" ]] ; then
+            git clone --depth 1 https://github.com/brendangregg/FlameGraph "${FLAMEGRAPH_DIR}" || true
+        fi
+        if [[ -x "${FLAMEGRAPH_DIR}/flamegraph.pl" ]] ; then
+            "${FLAMEGRAPH_DIR}/stackcollapse-perf.pl" "${WORK}/out.perf" >"${WORK}/out.folded"
+            "${FLAMEGRAPH_DIR}/flamegraph.pl" "${WORK}/out.folded" > "${WORK}/profile.svg"
+        else
+            echo "warning: FlameGraph not available (set FLAMEGRAPH_DIR); skipping flame graph" 1>&2
+        fi
     fi
 fi
 

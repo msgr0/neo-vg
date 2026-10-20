@@ -518,9 +518,7 @@ gbwtgraph::DefaultMinimizerIndex build_minimizer_index(
             // Look at the name of each sample
             std::string sample_name = gbz.graph.index->metadata.sample(i);
             // See if it starts with the path cover prefix.
-            // TODO: Use C++20 starts_with when available
-            // See <https://stackoverflow.com/a/40441240>
-            if (sample_name.rfind(gbwtgraph::COVER_PATH_SAMPLE_PREFIX, 0) == 0) {
+            if (sample_name.starts_with(gbwtgraph::COVER_PATH_SAMPLE_PREFIX)) {
                 has_path_cover = true;
                 break;
             }

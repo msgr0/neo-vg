@@ -34,16 +34,9 @@ void help_primers(char** argv) {
          << "  -h, --help                       print this help message to stderr and exit" << endl;
 }
 
-size_t difference(const size_t& a, const size_t& b) {
-    size_t diff;
-    if (a == b) {
-        diff = 0;
-    } else if (a > b) {
-        diff = a - b;
-    } else {
-        diff = b - a;
-    }
-    return diff;
+// ponytail: not std::abs; sizes are unsigned and may be SIZE_MAX, so a signed cast could overflow.
+size_t difference(size_t a, size_t b) {
+    return a > b ? a - b : b - a;
 }
 
 void print_tabular(const string& genome_name, const PrimerPair& primer_pair) {

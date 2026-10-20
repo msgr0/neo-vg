@@ -27,17 +27,6 @@
 namespace vg {
 
     /**
-     * The abstract interface that any Aligner should implement.
-     */
-    class BaseAligner {
-    public:
-
-        /// Store optimal local alignment against a graph in the Alignment object.
-        /// Gives the full length bonus separately on each end of the alignment.
-        virtual void align(Alignment& alignment, const HandleGraph& g, bool traceback_aln) const = 0;
-    };
-
-    /**
      * The basic GSSW-based core aligner implementation, which can then be
      * quality-adjusted or not. Owns its scorer and MAPQ calculator; all
      * scoring and MAPQ work goes through those, not through the aligner.
@@ -45,7 +34,7 @@ namespace vg {
      * You aren't meant to instantiate this directly; you should have an
      * Aligner or a QualAdjAligner as the concrete class instead.
      */
-    class GSSWAligner : public BaseAligner {
+    class GSSWAligner {
     
     protected:
         /// Build a GSSWAligner around a MatrixAlignmentScorer.
@@ -85,6 +74,10 @@ namespace vg {
         string graph_cigar(gssw_graph_mapping* gm) const;
 
     public:
+        /// Store optimal local alignment against a graph in the Alignment object.
+        /// Gives the full length bonus separately on each end of the alignment.
+        virtual void align(Alignment& alignment, const HandleGraph& g, bool traceback_aln) const = 0;
+
         /// store optimal alignment against a graph in the Alignment object with one end of the sequence
         /// guaranteed to align to a source/sink node. if xdrop is selected, use the xdrop heuristic, which
         /// does not guarantee an optimal alignment.

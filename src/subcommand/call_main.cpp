@@ -635,7 +635,7 @@ int main_call(int argc, char** argv) {
                 return;
             }
             for (auto& prefix : ref_path_prefixes) {
-                if (path_name.compare(0, prefix.size(), prefix) == 0) {
+                if (path_name.starts_with(prefix)) {
                     ref_paths.push_back(path_name);
                     break;
                 }

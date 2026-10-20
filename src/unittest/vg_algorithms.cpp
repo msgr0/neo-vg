@@ -13,8 +13,7 @@
 #include "../algorithms/extract_connecting_graph.hpp"
 #include "../algorithms/extract_containing_graph.hpp"
 #include "../algorithms/extract_extending_graph.hpp"
-#include "../algorithms/distance_to_head.hpp"
-#include "../algorithms/distance_to_tail.hpp"
+#include "../algorithms/distance_to_end.hpp"
 #include "../algorithms/jump_along_path.hpp"
 #include "../algorithms/expand_context.hpp"
 #include "../algorithms/simplify_siblings.hpp"
@@ -2688,7 +2687,6 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
     Node* n1 = vg.create_node("ACTGA");
     Node* n2 = vg.create_node("AG");
     Node* n3 = vg.create_node("ATC");
-    unordered_set<handle_t> trav;
     handle_t n;
 
     SECTION("distance_to_head() using HandleGraph works when node is at head") {
@@ -2696,7 +2694,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 0);
     }
@@ -2708,7 +2706,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 9);
     }
@@ -2720,7 +2718,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 4;
 
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2732,7 +2730,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 6;
 
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2742,7 +2740,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n1->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2759,7 +2757,7 @@ TEST_CASE("distance_to_head() using HandleGraph produces expected results", "[vg
         n = vg.get_handle(n1->id(),false);
         int32_t limit = 100;
         // if there are 2 previous nodes, gets the distance of previous node that was made first
-        int32_t check = algorithms::distance_to_head(n, limit, 0, trav, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 9);
     }
@@ -2778,7 +2776,7 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 0);
     }
@@ -2790,7 +2788,7 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 9);
     }
@@ -2802,7 +2800,7 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 4;
 
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2814,7 +2812,7 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 6;
 
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2824,7 +2822,7 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n1->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2842,99 +2840,12 @@ TEST_CASE("Simplified distance_to_head() using HandleGraph produces expected res
         n = vg.get_handle(n1->id(),false);
         int32_t limit = 100;
         // if there are 2 previous nodes, gets the distance of previous node that was made first
-        int32_t check = algorithms::distance_to_head(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, true, &vg);
                 
         REQUIRE(check == 6);
     }
 }
 
-TEST_CASE("distance_to_tail() using HandleGraph produces expected results", "[vg]") {
-    VG vg;
-    Node* n0 = vg.create_node("AA");
-    Node* n1 = vg.create_node("ACTGA");
-    Node* n2 = vg.create_node("AG");
-    Node* n3 = vg.create_node("ATC");
-    unordered_set<handle_t> trav;
-    handle_t n;
-
-    SECTION("distance_to_tail() using HandleGraph works when node is at tail") {
-        // Set handle to head node
-        n = vg.get_handle(n0->id(),false);
-        int32_t limit = 100;
-
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == 0);
-    }
-    SECTION("distance_to_tail() using HandleGraph works when node is not at tail") {
-        vg.create_edge(n0, n1);
-        vg.create_edge(n1, n2);
-        vg.create_edge(n2, n3);
-        // Set handle to the node you are currently on
-        n = vg.get_handle(n0->id(),false);
-        int32_t limit = 100;
-
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == 10);
-    }
-    SECTION("distance_to_tail() using HandleGraph works when limit is less than the distance") {
-        vg.create_edge(n0, n1);
-        vg.create_edge(n1, n2);
-        vg.create_edge(n2, n3);
-        // Set handle to the node you are currently on
-        n = vg.get_handle(n0->id(),false);
-        int32_t limit = 4;
-
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == -1);
-    }
-    SECTION("distance_to_tail() using HandleGraph works when limit is equal to the distance") {
-        vg.create_edge(n0, n1);
-        vg.create_edge(n1, n2);
-        vg.create_edge(n2, n3);
-        // Set handle to the node you are currently on
-        n = vg.get_handle(n3->id(),false);
-        int32_t limit = 6;
-
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == 0);
-    }
-    SECTION("distance_to_tail() using HandleGraph works when there is no tail") {
-        vg.create_edge(n0, n1, false, true);
-        // Set handle to the node you are currently on
-        n = vg.get_handle(n1->id(),false);
-        int32_t limit = 100;
-
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == -1);
-    }
-    SECTION("distance_to_tail() using HandleGraph works when there are 3 next nodes") {
-        Node* n4 = vg.create_node("AG");
-        Node* n5 = vg.create_node("AT");
-        Node* n6 = vg.create_node("GATTACA");
-        Node* n7 = vg.create_node("ATG");
-        vg.create_edge(n0, n6); 
-        vg.create_edge(n6, n1); 
-        vg.create_edge(n0, n2); 
-        vg.create_edge(n2, n7);
-        vg.create_edge(n7, n1); 
-        vg.create_edge(n0, n4);
-        vg.create_edge(n4, n5);
-        vg.create_edge(n5, n1); 
-                
-        // Set handle to the node you are currently on
-        n = vg.get_handle(n0->id(),false);
-        int32_t limit = 100;
-        // if there are 3 next nodes, gets the distance of next node that was made first
-        int32_t check = algorithms::distance_to_tail(n, limit, 0, trav, &vg);
-                
-        REQUIRE(check == 12);
-    }
-}
 TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected results", "[vg]") {
     VG vg;
     Node* n0 = vg.create_node("AA");
@@ -2949,7 +2860,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == 0);
     }
@@ -2961,7 +2872,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == 10);
     }
@@ -2973,7 +2884,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 4;
 
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -2985,7 +2896,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n3->id(),false);
         int32_t limit = 6;
 
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == 0);
     }
@@ -2995,7 +2906,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n1->id(),false);
         int32_t limit = 100;
 
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == -1);
     }
@@ -3017,7 +2928,7 @@ TEST_CASE("Simplified distance_to_tail() using HandleGraph produces expected res
         n = vg.get_handle(n0->id(),false);
         int32_t limit = 100;
         // if there are 3 next nodes, gets the distance of next node that was made first
-        int32_t check = algorithms::distance_to_tail(n, limit, &vg);
+        int32_t check = algorithms::distance_to_end(n, limit, false, &vg);
                 
         REQUIRE(check == 12);
     }
@@ -4274,7 +4185,7 @@ TEST_CASE("expand_context behaves as expected","[algorithms][subgraph][expand_co
         
     SECTION("expand_context can do 0 step extraction") {
             
-        algorithms::expand_context_with_paths(&graph, &subgraph, 0, true, true, true);
+        algorithms::expand_context_with_paths(&graph, &subgraph, 0, true, true);
             
         bdsg::HashGraph compare;
         handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
@@ -4287,7 +4198,7 @@ TEST_CASE("expand_context behaves as expected","[algorithms][subgraph][expand_co
         
     SECTION("expand_context can do 1 step extraction") {
             
-        algorithms::expand_context_with_paths(&graph, &subgraph, 1, true, true, true);
+        algorithms::expand_context_with_paths(&graph, &subgraph, 1, true, true);
             
         bdsg::HashGraph compare;
         handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));
@@ -4311,7 +4222,7 @@ TEST_CASE("expand_context behaves as expected","[algorithms][subgraph][expand_co
         
     SECTION("expand_context can do 2 step extraction") {
             
-        algorithms::expand_context_with_paths(&graph, &subgraph, 2, true, true, true);
+        algorithms::expand_context_with_paths(&graph, &subgraph, 2, true, true);
             
         bdsg::HashGraph compare;
         handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));
@@ -4340,7 +4251,7 @@ TEST_CASE("expand_context behaves as expected","[algorithms][subgraph][expand_co
         
     SECTION("expand_context expand by steps only forward") {
             
-        algorithms::expand_context_with_paths(&graph, &subgraph, 1, true, true, false);
+        algorithms::expand_context_with_paths(&graph, &subgraph, 1, true, false);
             
         bdsg::HashGraph compare;
         handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
@@ -4359,112 +4270,7 @@ TEST_CASE("expand_context behaves as expected","[algorithms][subgraph][expand_co
         
     SECTION("expand_context expand by steps only backward") {
             
-        algorithms::expand_context_with_paths(&graph, &subgraph, 1, true, false, true);
-            
-        bdsg::HashGraph compare;
-        handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));
-        handle_t c2 = compare.create_handle(graph.get_sequence(h2), graph.get_id(h2));
-        handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
-            
-        compare.create_edge(c1, c3);
-        compare.create_edge(c2, c3);
-            
-        path_handle_t q = compare.create_path_handle(path_name);
-        compare.append_step(q, c1);
-        compare.append_step(q, c3);
-            
-        REQUIRE(handlealgs::are_equivalent_with_paths(&subgraph, &compare));
-    }
-        
-    SECTION("expand_context can do null length-based extraction") {
-            
-        algorithms::expand_context_with_paths(&graph, &subgraph, -1, false, true, true);
-            
-        bdsg::HashGraph compare;
-        handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
-            
-        path_handle_t q = compare.create_path_handle(path_name);
-        compare.append_step(q, c3);
-            
-        REQUIRE(handlealgs::are_equivalent_with_paths(&subgraph, &compare));
-    }
-        
-    SECTION("expand_context can get neighbors by length") {
-            
-        algorithms::expand_context_with_paths(&graph, &subgraph, 0, false, true, true);
-            
-        bdsg::HashGraph compare;
-        handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));
-        handle_t c2 = compare.create_handle(graph.get_sequence(h2), graph.get_id(h2));
-        handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
-        handle_t c4 = compare.create_handle(graph.get_sequence(h4), graph.get_id(h4));
-        handle_t c5 = compare.create_handle(graph.get_sequence(h5), graph.get_id(h5));
-            
-        compare.create_edge(c1, c3);
-        compare.create_edge(c2, c3);
-        compare.create_edge(c3, c4);
-        compare.create_edge(c3, c5);
-            
-        path_handle_t q = compare.create_path_handle(path_name);
-        compare.append_step(q, c1);
-        compare.append_step(q, c3);
-        compare.append_step(q, c5);
-            
-        REQUIRE(handlealgs::are_equivalent_with_paths(&subgraph, &compare));
-    }
-        
-    SECTION("expand_context can get selected neighbors by length") {
-            
-        algorithms::expand_context_with_paths(&graph, &subgraph, 3, false, true, true);
-            
-        bdsg::HashGraph compare;
-        handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));
-        handle_t c2 = compare.create_handle(graph.get_sequence(h2), graph.get_id(h2));
-        handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
-        handle_t c4 = compare.create_handle(graph.get_sequence(h4), graph.get_id(h4));
-        handle_t c5 = compare.create_handle(graph.get_sequence(h5), graph.get_id(h5));
-        handle_t c6 = compare.create_handle(graph.get_sequence(h6), graph.get_id(h6));
-            
-        compare.create_edge(c1, c3);
-        compare.create_edge(c2, c3);
-        compare.create_edge(c3, c4);
-        compare.create_edge(c3, c5);
-        compare.create_edge(c5, c6);
-            
-        path_handle_t q = compare.create_path_handle(path_name);
-        compare.append_step(q, c1);
-        compare.append_step(q, c3);
-        compare.append_step(q, c5);
-        compare.append_step(q, c6);
-            
-        REQUIRE(handlealgs::are_equivalent_with_paths(&subgraph, &compare));
-    }
-        
-    SECTION("expand_context can expand by length going only forward") {
-            
-        algorithms::expand_context_with_paths(&graph, &subgraph, 3, false, true, false);
-            
-        bdsg::HashGraph compare;
-        handle_t c3 = compare.create_handle(graph.get_sequence(h3), graph.get_id(h3));
-        handle_t c4 = compare.create_handle(graph.get_sequence(h4), graph.get_id(h4));
-        handle_t c5 = compare.create_handle(graph.get_sequence(h5), graph.get_id(h5));
-        handle_t c6 = compare.create_handle(graph.get_sequence(h6), graph.get_id(h6));
-            
-        compare.create_edge(c3, c4);
-        compare.create_edge(c3, c5);
-        compare.create_edge(c5, c6);
-            
-        path_handle_t q = compare.create_path_handle(path_name);
-        compare.append_step(q, c3);
-        compare.append_step(q, c5);
-        compare.append_step(q, c6);
-            
-        REQUIRE(handlealgs::are_equivalent_with_paths(&subgraph, &compare));
-    }
-        
-    SECTION("expand_context can expand by length going only backward") {
-            
-        algorithms::expand_context_with_paths(&graph, &subgraph, 3, false, false, true);
+        algorithms::expand_context_with_paths(&graph, &subgraph, 1, false, true);
             
         bdsg::HashGraph compare;
         handle_t c1 = compare.create_handle(graph.get_sequence(h1), graph.get_id(h1));

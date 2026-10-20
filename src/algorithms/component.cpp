@@ -23,7 +23,7 @@ namespace algorithms {
 using namespace std;
 
 // internal generic BFS implementation
-void traverse_components(const HandleGraph& graph,
+static void traverse_components(const HandleGraph& graph,
                          function<void(void)>& on_new_comp,
                          function<void(handle_t)>& on_node) {
     // we will use this as a bit-flag for when a node id has already been
@@ -82,17 +82,6 @@ void traverse_components(const HandleGraph& graph,
         }
     });
 }
-
-size_t num_components(const HandleGraph& graph) {
-    size_t num_comps = 0;
-    function<void(void)> on_new_comp = [&]() {
-        ++num_comps;
-    };
-    function<void(handle_t)> on_node = [&](const handle_t here) { };
-    traverse_components(graph, on_new_comp, on_node);
-    return num_comps;
-}
-
 
 vector<size_t> component_sizes(const HandleGraph& graph) {
     

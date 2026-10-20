@@ -4,6 +4,8 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
+#include <vector>
 
 //#define debug
 
@@ -684,6 +686,35 @@ void three_edge_connected_component_merges_dense(size_t node_count, size_t first
     
     // When we run out of unvisited nodes and the stack is empty, we've
     // completed out search through all connected components of the graph.
+}
+
+
+void three_edge_connected_component_merges(const function<void(const function<void(handle_t)>&)>& for_each_node,
+    const function<void(handle_t, const function<void(handle_t)>&)>& for_each_connected_node,
+    const function<void(handle_t, handle_t)>& same_component) {
+    
+    // Convert to small positive integers
+    vector<handle_t> rank_to_node;
+    unordered_map<handle_t, size_t> node_to_rank;
+    
+    for_each_node([&](handle_t node) {
+        // Populate the rank/node translation.
+        // TODO: can we condense this?
+        node_to_rank[node] = rank_to_node.size();
+        rank_to_node.push_back(node);
+    });
+    
+    three_edge_connected_component_merges_dense(rank_to_node.size(), 0, [&](size_t rank, const function<void(size_t)> visit_connected) {
+        // Translate the rank we are asked about into a node
+        for_each_connected_node(rank_to_node[rank], [&](handle_t connected) {
+            // And translate the node back into a rank
+            visit_connected(node_to_rank[connected]);
+        });
+    }, [&](size_t a, size_t b) {
+        // When we find out two nodes should be in the same component
+        // Call our merge callback
+        same_component(rank_to_node[a], rank_to_node[b]);
+    });
 }
 
 }

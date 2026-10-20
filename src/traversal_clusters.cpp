@@ -4,7 +4,7 @@
 #include "snarl_distance_index.hpp"
 #include "snarls.hpp"
 #include "clip.hpp"
-#include "algorithms/dfs.hpp"
+#include <handlegraph/algorithms/internal/dfs.hpp>
 
 //#define debug
 
@@ -601,13 +601,13 @@ static bool simplify_snarl_using_traversals(MutablePathMutableHandleGraph* graph
     // todo: the old snarl manager had functions for all this (deep_contents). should implement
     // something similar in distance index.
     unordered_set<nid_t> snarl_nodes;
-    algorithms::dfs(*graph,
-                    [&](const handle_t& h) {
-                        snarl_nodes.insert(graph->get_id(h));
-                    },
-                    [&](const handle_t& h) {},
-                    {start_handle},
-                    {end_handle, graph->flip(start_handle)});
+    handlegraph::algorithms::internal::dfs(*graph,
+        [&](const handle_t& h) {
+            snarl_nodes.insert(graph->get_id(h));
+        },
+        [&](const handle_t& h) {},
+        {start_handle},
+        {end_handle, graph->flip(start_handle)});
     unordered_set<edge_t> snarl_edges;
     for (nid_t node_id : snarl_nodes) {
         handle_t handle = graph->get_handle(node_id);

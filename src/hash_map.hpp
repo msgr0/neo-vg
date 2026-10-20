@@ -7,16 +7,7 @@
 
 #include "wang_hash.hpp"
 
-// Comment out to use sparse_hash_map and sparse_hash_set instead of
-// dense_hash_map and dense_hash_set.
-//#define USE_DENSE_HASH
-
-#ifdef USE_DENSE_HASH
-#include <sparsehash/dense_hash_map>
-#include <sparsehash/dense_hash_set>
-#else
 #include <sparsepp/spp.h>
-#endif
 
 
 // http://stackoverflow.com/questions/4870437/pairint-int-pair-as-key-of-unordered-map-issue#comment5439557_4870467
@@ -127,127 +118,28 @@ struct wang_hash<std::pair<A, B>> {
 // Replacements for std::unordered_map.
 
 template<typename K, typename V>
-#ifdef USE_DENSE_HASH
-class hash_map : public google::dense_hash_map<K, V, wang_hash<K>>
-#else
-class hash_map : public spp::sparse_hash_map<K, V, wang_hash<K>>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    hash_map() {
-        this->set_empty_key(-1);
-    }
-#endif
-};
+class hash_map : public spp::sparse_hash_map<K, V, wang_hash<K>> {};
 
 template<typename K, typename V>
-#ifdef USE_DENSE_HASH
-class string_hash_map : public google::dense_hash_map<K, V>
-#else
-class string_hash_map : public spp::sparse_hash_map<K, V>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    string_hash_map() {
-        this->set_empty_key(" ");
-    }
-#endif
-};
+class string_hash_map : public spp::sparse_hash_map<K, V> {};
 
 template<typename K, typename V>
-#ifdef USE_DENSE_HASH
-class pair_hash_map : public google::dense_hash_map<K, V, wang_hash<K>>
-#else
-class pair_hash_map : public spp::sparse_hash_map<K, V, wang_hash<K>>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    pair_hash_map() {
-        this->set_empty_key(K(-1, -1));
-    }
-#endif
-};
+class pair_hash_map : public spp::sparse_hash_map<K, V, wang_hash<K>> {};
 
 template<typename K, typename V>
-#ifdef USE_DENSE_HASH
-class hash_map<K*, V> : public google::dense_hash_map<K*, V, wang_hash<K*>>
-#else
-class hash_map<K*, V> : public spp::sparse_hash_map<K*, V, wang_hash<K*>>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    hash_map() {
-        this->set_empty_key((K*)(~0));
-    }
-#endif
-};
+class hash_map<K*, V> : public spp::sparse_hash_map<K*, V, wang_hash<K*>> {};
 
 
 // Replacements for std::unordered_set.
 
 template<typename K>
-#ifdef USE_DENSE_HASH
-class hash_set : public google::dense_hash_set<K, wang_hash<K>>
-#else
-class hash_set : public spp::sparse_hash_set<K, wang_hash<K>>
-#endif
-    {
-#ifdef USE_DENSE_HASH
-public:
-    hash_set() {
-        this->set_empty_key(-1);
-    }
-#endif
-};
+class hash_set : public spp::sparse_hash_set<K, wang_hash<K>> {};
 
 template<typename K>
-#ifdef USE_DENSE_HASH
-class string_hash_set : public google::dense_hash_set<K>
-#else
-class string_hash_set : public spp::sparse_hash_set<K>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    string_hash_set() {
-        this->set_empty_key(" ");
-    }
-#endif
-};
+class pair_hash_set : public spp::sparse_hash_set<K, wang_hash<K>> {};
 
 template<typename K>
-#ifdef USE_DENSE_HASH
-class pair_hash_set : public google::dense_hash_set<K, wang_hash<K>>
-#else
-class pair_hash_set : public spp::sparse_hash_set<K, wang_hash<K>>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    pair_hash_set() {
-        this->set_empty_key(K(-1, -1));
-    }
-#endif
-};
-
-template<typename K>
-#ifdef USE_DENSE_HASH
-class hash_set<K*> : public google::dense_hash_set<K*, wang_hash<K*>>
-#else
-class hash_set<K*> : public spp::sparse_hash_set<K*, wang_hash<K*>>
-#endif
-{
-#ifdef USE_DENSE_HASH
-public:
-    hash_set() {
-        this->set_empty_key((K*)(~0));
-    }
-#endif
-};
+class hash_set<K*> : public spp::sparse_hash_set<K*, wang_hash<K*>> {};
 
 
 }   // namespace vg

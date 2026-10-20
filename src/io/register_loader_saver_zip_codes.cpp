@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_zip_codes.hpp"
 
 #include "../zip_code.hpp"
 

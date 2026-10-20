@@ -596,7 +596,7 @@ void validate_haplotypes(const Logger& logger,
 
 std::string get_name(const std::string& graph_name, const std::string& extension) {
     size_t length = graph_name.length();
-    if (ends_with(graph_name, gbwtgraph::GBZ::EXTENSION)) {
+    if (graph_name.ends_with(gbwtgraph::GBZ::EXTENSION)) {
         length -= gbwtgraph::GBZ::EXTENSION.length();
     }
     return graph_name.substr(0, length) + extension;

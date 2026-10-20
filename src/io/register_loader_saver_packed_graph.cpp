@@ -4,7 +4,6 @@
  */
 #include <arpa/inet.h>
 #include <vg/io/registry.hpp>
-#include "register_loader_saver_packed_graph.hpp"
 
 #include "handle.hpp"
 #include "bdsg/packed_graph.hpp"

@@ -81,7 +81,7 @@ INCLUDE_FLAGS :=-I$(CWD)/$(INC_DIR) -I$(CWD)/$(INC_DIR)/GFAz -I. -I$(CWD)/$(SRC_
 # These need to come before library search paths from LDFLAGS or we won't
 # prefer linking vg-installed dependencies over system ones.
 LD_LIB_DIR_FLAGS := -L$(CWD)/$(LIB_DIR)
-LD_LIB_FLAGS := -lvcflib -lwfa2 -ltabixpp -lgssw -lsublinearLS -lpthread -lncurses -lgcsa2 -lgbwtgraph -lgbwt -lkff -ldivsufsort -ldivsufsort64 -lpinchesandcacti -l3edgeconnected -lsonlib -lstructures -lbdsg -lxg -lsdsl -lhandlegraph -lgfaz_compress -lgfaz_core -lzstd
+LD_LIB_FLAGS := -lvcflib -lwfa2 -ltabixpp -lgssw -lpthread -lncurses -lgcsa2 -lgbwtgraph -lgbwt -lkff -ldivsufsort -ldivsufsort64 -lpinchesandcacti -l3edgeconnected -lsonlib -lstructures -lbdsg -lxg -lsdsl -lhandlegraph -lgfaz_compress -lgfaz_core -lzstd
 # We omit Cairo for now because its transitive dependencies can't be determined until after it's built. Set them lazily
 # We omit Boost Program Options for now; we find it in a platform-dependent way.
 # By default it has no suffix
@@ -283,17 +283,10 @@ ifeq ($(asan),on)
 	CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer
 endif
 
-# Control variable for mimalloc allocator
-# On the command line, you can `make mimalloc=on` if you want mimalloc.
-mimalloc = off
-
 # Control variable for jemalloc allocator
 # On the command line, you can `make jemalloc=off` if you definitely don't want jemalloc.
 # Or you can `make jemalloc=debug` to use a version that tries to find memory errors.
 jemalloc = on
-ifeq ($(mimalloc),on)
-	jemalloc = off
-endif
 ifeq ($(shell uname -s),Darwin)
 	jemalloc = off
 endif
@@ -305,21 +298,11 @@ ifneq ($(asan),on)
 		unused := $(error "Error: asan must be on or off, not $(asan)")
 	endif
 endif
-ifneq ($(mimalloc),on)
-	ifneq ($(mimalloc),off)
-		unused := $(error "Error: mimalloc must be on or off, not $(mimalloc)")
-	endif
-endif
 ifneq ($(jemalloc),on)
 	ifneq ($(jemalloc),off)
 		ifneq ($(jemalloc),debug)
 			unused := $(error "Error: jemalloc must be on, off, or debug, not $(jemalloc)")
 		endif
-	endif
-endif
-ifeq ($(mimalloc),on)
-	ifneq ($(jemalloc),off)
-		unused := $(error "Error: mimalloc and jemalloc cannot be used together")
 	endif
 endif
 
@@ -411,21 +394,16 @@ UNITTEST_EXE = $(patsubst $(UNITTEST_SRC_DIR)/%.cpp,$(UNITTEST_BIN_DIR)/%,$(UNIT
 
 ELFUTILS_DIR:=deps/elfutils
 JEMALLOC_DIR:=deps/jemalloc
-MIMALLOC_DIR:=deps/mimalloc
 SDSL_DIR:=deps/sdsl-lite
 GCSA2_DIR:=deps/gcsa2
 GBWT_DIR:=deps/gbwt
 GBWTGRAPH_DIR=deps/gbwtgraph
 KFF_DIR=deps/kff-cpp-api
-PROGRESS_BAR_DIR:=deps/progress_bar
 VCFLIB_DIR:=deps/vcflib
 TABIXPP_DIR:=deps/tabixpp
 HTSLIB_DIR:=deps/htslib
 GSSW_DIR:=deps/gssw
-SPARSEHASH_DIR:=deps/sparsehash
 SPARSEPP_DIR:=deps/sparsepp
-SHA1_DIR:=deps/sha1
-LINLS_DIR:=deps/sublinear-Li-Stephens
 STRUCTURES_DIR:=deps/structures
 BACKWARD_CPP_DIR:=deps/backward-cpp
 DOZEU_DIR:=deps/dozeu
@@ -444,8 +422,6 @@ GFAz_DIR=deps/GFAz
 # Dependencies that go into libvg's archive
 # These go in libvg but come from dependencies
 DEP_OBJ =
-DEP_OBJ += $(OBJ_DIR)/progress_bar.o
-DEP_OBJ += $(OBJ_DIR)/sha1.o
 DEP_SHARED_OBJ = $(patsubst $(OBJ_DIR)/%.o,$(SHARED_OBJ_DIR)/%.o,$(DEP_OBJ))
 
 # These are libraries that we need to build before we link vg.
@@ -464,7 +440,6 @@ LIB_DEPS += $(LIB_DIR)/libvcflib.a
 LIB_DEPS += $(LIB_DIR)/libgssw.a
 LIB_DEPS += $(LIB_DIR)/libsonlib.a
 LIB_DEPS += $(LIB_DIR)/libpinchesandcacti.a
-LIB_DEPS += $(LIB_DIR)/libsublinearLS.a
 LIB_DEPS += $(LIB_DIR)/libstructures.a
 LIB_DEPS += $(LIB_DIR)/libdeflate.a
 LIB_DEPS += $(LIB_DIR)/libvgio.a
@@ -492,12 +467,7 @@ LINK_DEPS =
 # before all other files.
 PRE_LINK_DEPS =
 
-ifeq ($(mimalloc),on)
-	# Use mimalloc at link time
-	PRE_LINK_DEPS += $(LIB_DIR)/mimalloc.o
-	# Use the config object for mimalloc
-	CONFIG_OBJ += $(CONFIG_OBJ_DIR)/allocator_config_mimalloc.o
-else ifeq ($(jemalloc),on)
+ifeq ($(jemalloc),on)
 	# Use jemalloc at link time
 	LINK_DEPS += $(LIB_DIR)/libjemalloc.a
 	# We have to use it statically or we can't get at its secret symbols.
@@ -523,10 +493,7 @@ DEPS += $(INC_DIR)/gbwt/dynamic_gbwt.h
 DEPS += $(INC_DIR)/gbwtgraph/gbwtgraph.h
 DEPS += $(INC_DIR)/kff_io.hpp
 DEPS += $(INC_DIR)/lru_cache.h
-DEPS += $(INC_DIR)/sparsehash/sparse_hash_map
 DEPS += $(INC_DIR)/sparsepp/spp.h
-DEPS += $(INC_DIR)/sha1.hpp
-DEPS += $(INC_DIR)/progress_bar.hpp
 DEPS += $(INC_DIR)/backward.hpp
 DEPS += $(INC_DIR)/dozeu/dozeu.h
 DEPS += $(INC_DIR)/mmmultimap.hpp
@@ -648,12 +615,6 @@ test/build_graph: test/build_graph.o $(LIB_DIR)/libvg.a
 	# Hope we can do this before enpoint security notices.
 	strip test/build_graph
 
-$(LIB_DIR)/mimalloc.o: $(MIMALLOC_DIR)/src/*.c $(MIMALLOC_DIR)/src/*/*.c $(MIMALLOC_DIR)/src/*/*/*.c $(MIMALLOC_DIR)/include/*.h $(MIMALLOC_DIR)/include/*/*.h $(MIMALLOC_DIR)/CMakeLists.txt
-	rm -f $(LIB_DIR)/mimalloc.o && rm -Rf $(INC_DIR)/mimalloc $(INC_DIR)/mimalloc*.h && rm -Rf $(MIMALLOC_DIR)/build
-	cd $(MIMALLOC_DIR) && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" ..
-	cd $(MIMALLOC_DIR)/build && $(MAKE) $(FILTER)
-	cd $(MIMALLOC_DIR)/build && cp -r ../include/* $(CWD)/$(INC_DIR)/ && cp mimalloc.o $(CWD)/$(LIB_DIR)/
-
 # TODO: The normal and debug jemalloc builds can't safely be run at the same time.
 $(LIB_DIR)/libjemalloc.a: $(JEMALLOC_DIR)/src/*.c
 	rm -f $(LIB_DIR)/libjemalloc*.* && rm -Rf $(CWD)/$(INC_DIR)/jemalloc
@@ -734,14 +695,6 @@ endif
 
 $(INC_DIR)/BooPHF.h: $(BBHASH_DIR)/BooPHF.h
 	cp $(BBHASH_DIR)/BooPHF.h $(CWD)/$(INC_DIR)
-
-$(INC_DIR)/progress_bar.hpp: $(PROGRESS_BAR_DIR)/progress_bar.hpp
-	cp $(PROGRESS_BAR_DIR)/progress_bar.hpp $(CWD)/$(INC_DIR)
-
-$(OBJ_DIR)/progress_bar.o: $(PROGRESS_BAR_DIR)/progress_bar.cpp $(PROGRESS_BAR_DIR)/*.hpp
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -c -o $@ $<
-$(SHARED_OBJ_DIR)/progress_bar.o: $(PROGRESS_BAR_DIR)/progress_bar.cpp $(PROGRESS_BAR_DIR)/*.hpp
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -fPIC -c -o $@ $<
 
 # We have this target to clean up the old Protobuf we used to have.
 # We can remove it after we no longer care about building properly on a dirty
@@ -869,10 +822,6 @@ $(LIB_DIR)/libgssw.a: $(GSSW_DIR)/src/gssw.c $(GSSW_DIR)/src/gssw.h
 $(INC_DIR)/lru_cache.h: $(DEP_DIR)/lru_cache/*.h $(DEP_DIR)/lru_cache/*.cc
 	cd $(DEP_DIR)/lru_cache && cp *.h* $(CWD)/$(INC_DIR)/
 
-$(INC_DIR)/sparsehash/sparse_hash_map: $(wildcard $(SPARSEHASH_DIR)/**/*.cc) $(wildcard $(SPARSEHASH_DIR)/**/*.h)
-	cd $(SPARSEHASH_DIR) && ./autogen.sh && LDFLAGS="$(LD_LIB_DIR_FLAGS) $(LDFLAGS)" ./configure --prefix=$(CWD) $(FILTER)
-	cd $(SPARSEHASH_DIR) && $(MAKE) $(AUTOMAKE_MAKEFLAGS) src/sparsehash/internal/sparseconfig.h $(FILTER) && $(MAKE) $(AUTOMAKE_MAKEFLAGS) install-data $(FILTER)
-
 $(INC_DIR)/sparsepp/spp.h: $(wildcard $(SPARSEPP_DIR)/sparsepp/*.h)
 	cp -r $(SPARSEPP_DIR)/sparsepp $(INC_DIR)/
 
@@ -887,9 +836,6 @@ $(LIB_DIR)/libpinchesandcacti.a: $(LIB_DIR)/libsonlib.a $(CWD)/$(DEP_DIR)/pinche
 $(LIB_DIR)/libstructures.a: $(STRUCTURES_DIR)/src/include/structures/*.hpp $(STRUCTURES_DIR)/src/*.cpp $(STRUCTURES_DIR)/Makefile
 	cd $(STRUCTURES_DIR) && $(MAKE) clean && $(MAKE) lib/libstructures.a $(FILTER)
 	cd $(STRUCTURES_DIR) && cp lib/libstructures.a $(CWD)/$(LIB_DIR)/ && cp -r src/include/structures $(CWD)/$(INC_DIR)/
-
-$(INC_DIR)/sha1.hpp: $(SHA1_DIR)/sha1.hpp
-	cp $(SHA1_DIR)/*.h* $(CWD)/$(INC_DIR)/
 
 $(INC_DIR)/backward.hpp: $(BACKWARD_CPP_DIR)/backward.hpp
 	cp $(BACKWARD_CPP_DIR)/backward.hpp $(CWD)/$(INC_DIR)/
@@ -936,18 +882,6 @@ $(INC_DIR)/simde/x86/sse4.1.h: $(DOZEU_DIR)/simde/*.h $(DOZEU_DIR)/simde/x86/*.h
 
 $(INC_DIR)/dozeu/dozeu.h: $(DOZEU_DIR)/*.h $(INC_DIR)/simde/x86/sse4.1.h
 	mkdir -p $(CWD)/$(INC_DIR)/dozeu && cp $(DOZEU_DIR)/*.h $(CWD)/$(INC_DIR)/dozeu/
-
-$(OBJ_DIR)/sha1.o: $(SHA1_DIR)/sha1.cpp $(SHA1_DIR)/sha1.hpp
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -c -o $@ $< $(FILTER)
-$(SHARED_OBJ_DIR)/sha1.o: $(SHA1_DIR)/sha1.cpp $(SHA1_DIR)/sha1.hpp
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -fPIC -c -o $@ $< $(FILTER)
-
-# We don't need to hack the build to point at our htslib because sublinearLS gets its htslib from the include flags we set
-# But we do need to hack out the return type error to work around https://github.com/yoheirosen/sublinear-Li-Stephens/issues/6
-# TODO: This probably means actually calling some things in the library is unsafe!
-$(LIB_DIR)/libsublinearLS.a: $(LINLS_DIR)/src/*.cpp $(LINLS_DIR)/src/*.hpp $(LIB_DIR)/libhts.a
-	cd $(LINLS_DIR) && $(MAKE) clean && CFLAGS="-fPIC $(filter-out -Werror=return-type,$(CFLAGS))" CXXFLAGS="-fPIC $(filter-out -Werror=return-type,$(CXXFLAGS))" INCLUDE_FLAGS="-I$(CWD)/$(INC_DIR)" $(MAKE) libs $(FILTER)
-	cd $(LINLS_DIR) && cp lib/libsublinearLS.a $(CWD)/$(LIB_DIR)/ && mkdir -p $(CWD)/$(INC_DIR)/sublinearLS && cp src/*.hpp $(CWD)/$(INC_DIR)/sublinearLS/
 
 $(LIB_DIR)/libbdsg.a: $(INC_DIR)/BooPHF.h $(LIBBDSG_DIR)/Makefile $(LIBBDSG_DIR)/bdsg/src/*.cpp $(LIBBDSG_DIR)/bdsg/include/bdsg/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/internal/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/overlays/*.hpp $(LIB_DIR)/libhandlegraph.a $(LIB_DIR)/libsdsl.a $(LIB_DIR)/libdivsufsort.a $(LIB_DIR)/libdivsufsort64.a $(INC_DIR)/sparsepp/spp.h $(INC_DIR)/mio/mmap.hpp
 	rm -Rf $(CWD)/$(INC_DIR)/bdsg
@@ -1089,9 +1023,6 @@ test/build_graph.o: test/%.o : test/%.cpp test/%.d $(DEPS)
 	@touch $@
 	
 # Config objects get individual rules
-$(CONFIG_OBJ_DIR)/allocator_config_mimalloc.o: $(CONFIG_SRC_DIR)/allocator_config_mimalloc.cpp $(CONFIG_OBJ_DIR)/allocator_config_mimalloc.d $(DEPS) $(LIB_DIR)/mimalloc.o
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) -c -o $@ $< $(FILTER)
-	@touch $@
 $(CONFIG_OBJ_DIR)/allocator_config_jemalloc.o: $(CONFIG_SRC_DIR)/allocator_config_jemalloc.cpp $(CONFIG_OBJ_DIR)/allocator_config_jemalloc.d $(DEPS) $(LIB_DIR)/libjemalloc.a
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) -c -o $@ $< $(FILTER)
 	@touch $@
@@ -1191,14 +1122,9 @@ clean: clean-vcflib
 	cd $(DEP_DIR) && cd kff-cpp-api && rm -Rf build
 	cd $(DEP_DIR) && cd libhandlegraph && rm -Rf build CMakeCache.txt CMakeFiles
 	cd $(DEP_DIR) && cd libvgio && rm -Rf build CMakeCache.txt CMakeFiles
-	cd $(DEP_DIR) && cd mimalloc && rm -Rf build CMakeCache.txt CMakeFiles
-	cd $(DEP_DIR) && cd progress_bar && $(MAKE) clean
-	cd $(DEP_DIR) && cd sha1 && $(MAKE) clean
 	cd $(DEP_DIR) && cd sdsl-lite && ./uninstall.sh || true
 	cd $(DEP_DIR) && cd sonLib && $(MAKE) clean
-	cd $(DEP_DIR) && cd sparsehash && $(MAKE) $(AUTOMAKE_MAKEFLAGS) clean || true
 	cd $(DEP_DIR) && cd structures && $(MAKE) clean
-	cd $(DEP_DIR) && cd sublinear-Li-Stephens && $(MAKE) clean
 	cd $(DEP_DIR) && cd tabixpp && rm -f tabix.o libtabixpp.a
 	cd $(DEP_DIR) && cd vcflib && $(MAKE) clean
 

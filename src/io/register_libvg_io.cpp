@@ -3,27 +3,6 @@
  * Includes calls to register all libvg types with libvgio.
  */
 
-// Keep these includes in alphabetical order.
-
-#include "register_loader_saver_distance_index.hpp"
-#include "register_loader_saver_gbwt.hpp"
-#include "register_loader_saver_r_index.hpp"
-#include "register_loader_saver_gbwtgraph.hpp"
-#include "register_loader_saver_gbz.hpp"
-#include "register_loader_saver_gbzgraph.hpp"
-#include "register_loader_saver_gcsa.hpp"
-#include "register_loader_saver_lcp.hpp"
-#include "register_loader_saver_minimizer.hpp"
-#include "register_loader_saver_snarl_manager.hpp"
-#include "register_loader_saver_vg.hpp"
-#include "register_loader_saver_xg.hpp"
-#include "register_loader_saver_packed_graph.hpp"
-#include "register_loader_saver_hash_graph.hpp"
-#include "register_loader_saver_gfa.hpp"
-#include "register_loader_gfaz.hpp"
-#include "register_loader_saver_zip_codes.hpp"
-#include "register_loader_params_json.hpp"
-
 #include "register_libvg_io.hpp"
 
 
@@ -32,6 +11,26 @@ namespace vg {
 namespace io {
 
 using namespace std;
+
+// Each of these is defined in its own register_loader_*.cpp file.
+void register_loader_saver_distance_index();
+void register_loader_saver_gbwt();
+void register_loader_saver_r_index();
+void register_loader_saver_gbwtgraph();
+void register_loader_saver_gbz();
+void register_loader_saver_gbzgraph();
+void register_loader_saver_gcsa();
+void register_loader_saver_lcp();
+void register_loader_saver_minimizer();
+void register_loader_saver_snarl_manager();
+void register_loader_saver_vg();
+void register_loader_saver_xg();
+void register_loader_saver_packed_graph();
+void register_loader_saver_hash_graph();
+void register_loader_saver_gfa();
+void register_loader_saver_zip_codes();
+void register_loader_gfaz();
+void register_loader_params_json();
 
 bool register_libvg_io() {
     register_loader_saver_distance_index();

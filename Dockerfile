@@ -147,8 +147,6 @@ RUN ls -lah /vg && \
 COPY --from=build /vg/bin/nvg /vg/bin/
 
 COPY --from=build /vg/scripts/* /vg/scripts/
-# Make sure we have the flame graph scripts so we can do self-profiling
-COPY --from=build /vg/deps/FlameGraph /vg/deps/FlameGraph
 
 ENV PATH /vg/bin:$PATH
 

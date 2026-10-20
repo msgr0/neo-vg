@@ -3,11 +3,20 @@
 #include <iostream>
 #include <cassert>
 
-#include "memusage.hpp"
+#include <sys/time.h>
+#include <sys/resource.h>
 
 namespace vg {
 
 using namespace std;
+
+/// Get the max RSS usage ever, as reported by getrusage (KB on Linux, bytes on
+/// macOS; passed through unconverted).
+static size_t get_max_rss_kb() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    return usage.ru_maxrss;
+}
 
 Watchdog::Watchdog(size_t thread_count, const duration& timeout) :
     stop_watcher(false),

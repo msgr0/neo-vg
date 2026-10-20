@@ -137,36 +137,6 @@ double lognormal_pdf(double x, double mu, double sigma) {
     return density;
 }
 
-// https://stackoverflow.com/a/19039500/238609
-double slope(const std::vector<double>& x, const std::vector<double>& y) {
-    const auto n    = x.size();
-    const auto s_x  = std::accumulate(x.begin(), x.end(), 0.0);
-    const auto s_y  = std::accumulate(y.begin(), y.end(), 0.0);
-    const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
-    const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
-    const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
-    return a;
-}
-
-//https://stats.stackexchange.com/a/7459/14524
-// returns alpha parameter of zipf distribution
-double fit_zipf(const vector<double>& y) {
-    // assume input is log-scaled
-    // fit a log-log model
-    assert(y.size());
-    vector<double> ly(y.size());
-    for (int i = 0; i < ly.size(); ++i) {
-        //cerr << y[i] << " ";
-        ly[i] = log(y[i]);
-    }
-    //cerr << endl;
-    vector<double> lx(y.size());
-    for (int i = 1; i <= lx.size(); ++i) {
-        lx[i-1] = log(i);
-    }
-    return -slope(lx, ly);
-}
-
 double fit_fixed_shape_max_exponential(const vector<double>& x, double shape, double tolerance) {
     
     // Fit S for a fixed N with the density of the maximum of N exponential variables
@@ -483,45 +453,6 @@ double phred_to_prob(uint8_t phred) {
     return prob_by_phred[phred];
 }
 
-double phred_for_at_least_one(size_t p, size_t n) {
-
-    /**
-     * Assume that we have n <= MAX_AT_LEAST_ONE_EVENTS independent events with probability p each.
-     * Let x be the AT_LEAST_ONE_PRECISION most significant bits of p. Then
-     *
-     *   phred_at_least_one[(n << AT_LEAST_ONE_PRECISION) + x]
-     *
-     * is an approximate phred score of at least one event occurring.
-     *
-     * We exploit the magical thread-safety of static local initialization to
-     * fill this in exactly once when needed.
-     */
-    static std::vector<double> phred_at_least_one([](void) -> std::vector<double> {
-        // Initialize phred_at_least_one by copying from the result of this function.
-        std::vector<double> to_return;
-        size_t values = static_cast<size_t>(1) << AT_LEAST_ONE_PRECISION;
-        to_return.resize((MAX_AT_LEAST_ONE_EVENTS + 1) * values, 0.0);
-        for (size_t n = 1; n <= MAX_AT_LEAST_ONE_EVENTS; n++) {
-            for (size_t p = 0; p < values; p++) {
-                // Because each p represents a range of probabilities, we choose a value
-                // in the middle for the approximation.
-                double probability = (2 * p + 1) / (2.0 * values);
-                // Phred for at least one out of n.
-                to_return[(n << AT_LEAST_ONE_PRECISION) + p] = prob_to_phred(1.0 - std::pow(1.0 - probability, n));
-            }
-        }
-        return to_return;
-    }());
-    
-    // Make sure we don't go out of bounds.
-    assert(n <= MAX_AT_LEAST_ONE_EVENTS);
-    
-    p >>= 8 * sizeof(size_t) - AT_LEAST_ONE_PRECISION;
-    return phred_at_least_one[(n << AT_LEAST_ONE_PRECISION) + p];
-}
-
-// This is just like phred_for_at_least_one but we don't prob_to_phred
-// TODO: combine the code somehow?
 double prob_for_at_least_one(size_t p, size_t n) {
 
     /**

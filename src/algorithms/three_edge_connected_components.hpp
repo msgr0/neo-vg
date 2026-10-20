@@ -2,8 +2,8 @@
 #define VG_ALGORITHMS_THREE_EDGE_CONNECTED_COMPONENTS_HPP_INCLUDED
 
 #include <functional>
-#include <vector>
-#include <unordered_map>
+
+#include "../handle.hpp"
 
 namespace vg {
 namespace algorithms {
@@ -15,7 +15,7 @@ using namespace std;
 /**
  * Get the three-edge-connected components of an arbitrary graph (not
  * necessarily a handle graph). Only recognizes one kind of edge and one kind
- * of node. Nodes are arbitrary value types (which may need to be hashable).
+ * of node. Nodes are handles (treated as opaque values).
  *
  * Takes a function that loops an iteratee over all nodes, and a function that,
  * given a node, loops an iteratee over all nodes connected to it.
@@ -29,10 +29,9 @@ using namespace std;
  * three_edge_connected_components_dense() instead. The first thing this
  * function does is asign nodes a dense, 0-based rank space.  
  */
-template<typename TECCNode>
-void three_edge_connected_component_merges(const function<void(const function<void(TECCNode)>&)>& for_each_node,
-    const function<void(TECCNode, const function<void(TECCNode)>&)>& for_each_connected_node,
-    const function<void(TECCNode, TECCNode)>& same_component);
+void three_edge_connected_component_merges(const function<void(const function<void(handle_t)>&)>& for_each_node,
+    const function<void(handle_t, const function<void(handle_t)>&)>& for_each_connected_node,
+    const function<void(handle_t, handle_t)>& same_component);
 
 
 /**
@@ -53,37 +52,6 @@ void three_edge_connected_component_merges_dense(size_t node_count, size_t first
     const function<void(size_t, size_t)>& same_component);
 
     
-// Implementation
-
-template<typename TECCNode>
-void three_edge_connected_component_merges(const function<void(const function<void(TECCNode)>&)>& for_each_node,
-    const function<void(TECCNode, const function<void(TECCNode)>&)>& for_each_connected_node,
-    const function<void(TECCNode, TECCNode)>& same_component) {
-    
-    // Convert to small positive integers
-    vector<TECCNode> rank_to_node;
-    unordered_map<TECCNode, size_t> node_to_rank;
-    
-    for_each_node([&](TECCNode node) {
-        // Populate the rank/node translation.
-        // TODO: can we condense this?
-        node_to_rank[node] = rank_to_node.size();
-        rank_to_node.push_back(node);
-    });
-    
-    three_edge_connected_component_merges_dense(rank_to_node.size(), 0, [&](size_t rank, const function<void(size_t)> visit_connected) {
-        // Translate the rank we are asked about into a node
-        for_each_connected_node(rank_to_node[rank], [&](TECCNode connected) {
-            // And translate the node back into a rank
-            visit_connected(node_to_rank[connected]);
-        });
-    }, [&](size_t a, size_t b) {
-        // When we find out two nodes should be in the same component
-        // Call our merge callback
-        same_component(rank_to_node[a], rank_to_node[b]);
-    });
-}
-
     
 }
 }

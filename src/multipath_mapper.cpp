@@ -18,10 +18,11 @@
 #include <ctime>
 #endif
 
+#include <string_view>
+
 #include "multipath_mapper.hpp"
 
 #include "multipath_alignment_graph.hpp"
-#include "kmp.hpp"
 #include "hash_map.hpp"
 #include "position.hpp"
 #include "nodeside.hpp"
@@ -3646,9 +3647,7 @@ namespace vg {
                     size_t begin = max<int64_t>(0, interval.second - adapter_overlap_slosh);
                     size_t end = min<size_t>(begin + read_1_adapter.size() + 2 * adapter_overlap_slosh,
                                              alignment.sequence().size());
-                    size_t pos = kmp_search(alignment.sequence().c_str() + begin, end - begin,
-                                            read_1_adapter.c_str(), read_1_adapter.size(),
-                                            read_1_adapter_lps);
+                    size_t pos = std::string_view(alignment.sequence().c_str() + begin, end - begin).find(read_1_adapter);
                     if (pos != string::npos) {
                         // this softclip is bracketed by a known adapter sequence, it is much more likely
                         // that it should be adapter trimmed rather than meriting a spliced alignment
@@ -3919,9 +3918,7 @@ namespace vg {
                         size_t begin = max<int64_t>(0, interval.second - adapter_overlap_slosh);
                         size_t end = min<size_t>(begin + read_1_adapter.size() + 2 * adapter_overlap_slosh,
                                                  aln.sequence().size());
-                        size_t pos = kmp_search(aln.sequence().c_str() + begin, end - begin,
-                                                read_1_adapter.c_str(), read_1_adapter.size(),
-                                                read_1_adapter_lps);
+                        size_t pos = std::string_view(aln.sequence().c_str() + begin, end - begin).find(read_1_adapter);
                         if (pos != string::npos) {
                             // this softclip is bracketed by a known adapter sequence, it is much more likely
                             // that it should be adapter trimmed rather than meriting a spliced alignment
@@ -3931,9 +3928,7 @@ namespace vg {
                     if (!do_read_1 && do_left && !read_2_adapter.empty()) {
                         size_t end = min<size_t>(interval.first + adapter_overlap_slosh, aln.sequence().size());
                         size_t begin = max<int64_t>(0, end - read_2_adapter.size() - 2 * adapter_overlap_slosh);
-                        size_t pos = kmp_search(aln.sequence().c_str() + begin, end - begin,
-                                                read_2_adapter.c_str(), read_2_adapter.size(),
-                                                read_2_adapter_lps);
+                        size_t pos = std::string_view(aln.sequence().c_str() + begin, end - begin).find(read_2_adapter);
                         if (pos != string::npos) {
                             // this softclip is bracketed by a known adapter sequence, it is much more likely
                             // that it should be adapter trimmed rather than meriting a spliced alignment
@@ -7376,7 +7371,6 @@ namespace vg {
             trimmed_adapter.resize(12);
         }
         read_1_adapter = trimmed_adapter;
-        read_1_adapter_lps = make_prefix_suffix_table(read_1_adapter.c_str(), read_1_adapter.size());
     }
 
     void MultipathMapper::set_read_2_adapter(const string& adapter) {
@@ -7386,7 +7380,6 @@ namespace vg {
             trimmed_adapter.resize(12);
         }
         read_2_adapter = reverse_complement(trimmed_adapter);
-        read_2_adapter_lps = make_prefix_suffix_table(read_2_adapter.c_str(), read_2_adapter.size());
     }
 
     // make the memos live in this .o file

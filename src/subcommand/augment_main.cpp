@@ -21,7 +21,6 @@
 #include <fstream>
 
 #include "subcommand.hpp"
-#include "../option.hpp"
 #include "../xg.hpp"
 #include "../vg.hpp"
 #include "../augment.hpp"
@@ -39,7 +38,7 @@ using namespace std;
 using namespace vg;
 using namespace vg::subcommand;
 
-void help_augment(char** argv, ConfigurableParser& parser) {
+void help_augment(char** argv) {
     cerr << "usage: " << argv[0] << " augment [options] <graph.vg> [alignment.gam] > augmented_graph.vg" << endl
          << "Embed GAM alignments into a graph to facilitate variant calling" << endl
          << endl
@@ -67,9 +66,6 @@ void help_augment(char** argv, ConfigurableParser& parser) {
          << "loci file options:" << endl
          << "  -l, --include-loci FILE    merge all alleles in loci into the graph" << endl       
          << "  -L, --include-gt FILE      merge only alleles in called genotypes into graph" << endl;
-    
-     // Then report more options
-     parser.print_help(cerr);
 }
 
 int main_augment(int argc, char** argv) {
@@ -160,9 +156,14 @@ int main_augment(int argc, char** argv) {
     static const char* short_options = "Z:A:iSBh?pvt:l:L:sm:c:q:Q:N:EF";
     optind = 2; // force optind past command positional arguments
 
-    // This is our command-line parser
-    ConfigurableParser parser(short_options, long_options, [&](int c) {
-        // Parse all the options we have defined here.
+    if (argc == 2) {
+        help_augment(argv);
+        return 1;
+    }
+
+    // Parse the command line options, updating optind.
+    int c;
+    while ((c = getopt_long(argc, argv, short_options, long_options, nullptr)) != -1) {
         switch (c)
         {
             // General Options
@@ -208,7 +209,7 @@ int main_augment(int argc, char** argv) {
         case 'h':
         case '?':
             /* getopt_long already printed an error message. */
-            help_augment(argv, parser);
+            help_augment(argv);
             exit(1);
             break;
         case 'p':
@@ -230,15 +231,7 @@ int main_augment(int argc, char** argv) {
         default:
           abort ();
         }
-    });
-
-    if (argc == 2) {
-        help_augment(argv, parser);
-        return 1;
     }
-
-    // Parse the command line options, updating optind.
-    parser.parse(argc, argv);
 
     // Parse the two positional arguments
     if (optind + 1 > argc) {

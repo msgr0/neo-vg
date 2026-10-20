@@ -2,7 +2,7 @@
 #include "cactus.hpp"
 #include "vg.hpp"
 #include "handle.hpp"
-#include "algorithms/dfs.hpp"
+#include <handlegraph/algorithms/internal/dfs.hpp>
 
 //#define debug
 
@@ -902,7 +902,7 @@ pair<stCactusGraph*, stList*> handle_graph_to_cactus(const PathHandleGraph& grap
                 return found;
             };
             
-            algorithms::dfs(graph,
+            handlegraph::algorithms::internal::dfs(graph,
                 handle_noop,
                 handle_noop,
                 dfs_break,

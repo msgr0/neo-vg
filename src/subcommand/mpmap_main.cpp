@@ -113,8 +113,6 @@ void help_mpmap(char** argv) {
        //<< "  -H, --gbwt-name FILE      use this GBWT haplotype index for population-based MAPQs" << endl
          << "  -d, --dist-name FILE      use this snarl distance index for clustering" << endl
          << "                            (recommended, see `nvg index`)" << endl
-       //<< "      --linear-index FILE   use this sublinear Li and Stephens index file for population-based MAPQs" << endl
-       //<< "      --linear-path PATH    use the given path name as the path that the linear index is against" << endl
          << "  -s, --snarls FILE         align to alternate paths in these snarls" << endl
          << "                            (unnecessary if providing -d, see `nvg snarls`)" << endl
          << "input:" << endl
@@ -269,14 +267,10 @@ int main_mpmap(int argc, char** argv) {
     constexpr int OPT_SUPPRESS_MISMAPPING_DETECTION = 1037;
     constexpr int OPT_DROP_SUBGRAPH = 1038;
     constexpr int OPT_REF_NAME = 1039;
-    constexpr int OPT_LINEAR_PATH = 1040;
-    constexpr int OPT_LINEAR_INDEX = 1041;
     string matrix_file_name;
     string graph_name;
     string gcsa_name;
     string gbwt_name;
-    string sublinearLS_name;
-    string sublinearLS_ref_path;
     string snarls_name;
     string distance_index_name;
     string fastq_name_1;
@@ -443,8 +437,6 @@ int main_mpmap(int argc, char** argv) {
             {"gcsa-name", required_argument, 0, 'g'},
             {"gbwt-name", required_argument, 0, 'H'},
             {"dist-name", required_argument, 0, 'd'},
-            {"linear-index", required_argument, 0, OPT_LINEAR_PATH},
-            {"linear-path", required_argument, 0, OPT_LINEAR_INDEX},
             {"fastq", required_argument, 0, 'f'},
             {"gam-input", required_argument, 0, 'G'},
             {"sample", required_argument, 0, 'N'},
@@ -579,14 +571,6 @@ int main_mpmap(int argc, char** argv) {
                 
             case OPT_PATH_RESCUE_GRAPH:
                 get_rescue_graph_from_paths = true;;
-                break;
-                
-            case OPT_LINEAR_INDEX: // --linear-index
-                sublinearLS_name = require_exists(logger, optarg);
-                break;
-            
-            case OPT_LINEAR_PATH: // --linear-path
-                sublinearLS_ref_path = optarg;
                 break;
                 
             case 'f':
@@ -1063,7 +1047,7 @@ int main_mpmap(int argc, char** argv) {
     // the spliced surject algorithm sometimes by having better multipath alignments, but i should
     // revisit this at some point
     if (single_path_alignment_mode &&
-        (population_max_paths == 0 || (sublinearLS_name.empty() && gbwt_name.empty())) &&
+        (population_max_paths == 0 || gbwt_name.empty()) &&
         !(hts_output && transcriptomic)) {
         // adjust parameters that produce irrelevant extra work single path mode
         if (!snarls_name.empty()) {
@@ -1200,37 +1184,22 @@ int main_mpmap(int argc, char** argv) {
         logger.error() << "The mapping quality method 'None' is no longer supported." << endl;
     }
     
-    if (population_max_paths != 10 && population_max_paths != 0 && gbwt_name.empty() && sublinearLS_name.empty()) {
+    if (population_max_paths != 10 && population_max_paths != 0 && gbwt_name.empty()) {
         // Don't allow anything but the default or the "disabled" setting without an index.
         // TODO: This restriction makes neat auto-generation of command line options for different conditions hard.
         logger.error() << "Maximum number of paths per alignment for population scoring "
-                       << "(--max-paths) is specified but population database (-H or --linear-index) "
+                       << "(--max-paths) is specified but population database (-H) "
                        << "was not provided." << endl;
     }
     
-    if (always_check_population && gbwt_name.empty() && sublinearLS_name.empty()) {
+    if (always_check_population && gbwt_name.empty()) {
         logger.error() << "Cannot --always-check-population if no population database "
-                       << "(-H or --linear-index) is provided." << endl;
+                       << "(-H) is provided." << endl;
     }
     
-    if (force_haplotype_count != 0 && gbwt_name.empty() && sublinearLS_name.empty()) {
+    if (force_haplotype_count != 0 && gbwt_name.empty()) {
         logger.warn() << "Cannot --force-haplotype-count if no population database "
-                      << "(-H or --linear-index) is provided. Ignoring option." << endl;
-    }
-    
-    if (!sublinearLS_name.empty() && !gbwt_name.empty()) {
-        logger.error() << "GBWT index (-H) and linear haplotype index (--linear-index) "
-                       << "both specified. Only one can be used." << endl;
-    }
-    
-    if (!sublinearLS_name.empty() && sublinearLS_ref_path.empty()) {
-        logger.error() << "Linear haplotype index (--linear-index) cannot be used "
-                       << "without a single reference path (--linear-path)." << endl;
-    }
-    
-    if (sublinearLS_name.empty() && !sublinearLS_ref_path.empty()) {
-        logger.error() << "Linear haplotype ref path (--linear-path) cannot be used "
-                       << "without an index (--linear-index)." << endl;
+                      << "(-H) is provided. Ignoring option." << endl;
     }
     
     if (max_num_mappings > max_map_attempts && max_map_attempts != 0) {
@@ -1402,13 +1371,8 @@ int main_mpmap(int argc, char** argv) {
     }
     
     ifstream gbwt_stream;
-    ifstream ls_stream;
     if (!gbwt_name.empty()) {
         gbwt_stream.open(gbwt_name);
-    }
-    else if (!sublinearLS_name.empty()) {
-        // We want to use sublinear Li and Stephens as our haplotype scoring approach
-        ls_stream.open(sublinearLS_name);
     }
     
     // Count our threads
@@ -1671,7 +1635,6 @@ int main_mpmap(int argc, char** argv) {
     // Load optional indexes
     
     unique_ptr<gbwt::GBWT> gbwt;
-    haplo::linear_haplo_structure* sublinearLS = nullptr;
     haplo::ScoreProvider* haplo_score_provider = nullptr;
     if (!gbwt_name.empty()) {
         log_progress("Loading GBWT from " + gbwt_name);
@@ -1686,17 +1649,6 @@ int main_mpmap(int argc, char** argv) {
     
         // We have the GBWT available for scoring haplotypes
         haplo_score_provider = new haplo::GBWTScoreProvider<gbwt::GBWT>(*gbwt);
-    }
-    else if (!sublinearLS_name.empty()) {
-        log_progress("Loading LS index from " + sublinearLS_name);
-        
-        // TODO: we only support a single ref contig, and we use these
-        // hardcoded mutation and recombination likelihoods
-        
-        sublinearLS = new linear_haplo_structure(ls_stream, -9 * 2.3, -6 * 2.3, *path_position_handle_graph,
-                                                 path_position_handle_graph->get_path_handle(sublinearLS_ref_path));
-        haplo_score_provider = new haplo::LinearScoreProvider(*sublinearLS);
-        log_progress("Completed loading LS index");
     }
     
     // Load structures that we need for HTS lib outputs
@@ -2429,10 +2381,6 @@ int main_mpmap(int argc, char** argv) {
 #endif
     if (haplo_score_provider != nullptr) {
         delete haplo_score_provider;
-    }
-    
-    if (sublinearLS != nullptr) {
-        delete sublinearLS;
     }
    
     return 0;

@@ -4,7 +4,6 @@
  */
 
 #include <vg/io/registry.hpp>
-#include "register_loader_params_json.hpp"
 
 #include <iterator>
 

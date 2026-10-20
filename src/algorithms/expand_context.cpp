@@ -5,7 +5,7 @@ namespace algorithms {
 
 using namespace std;
 
-    void expand_context_by_steps(const HandleGraph* source, MutableHandleGraph* subgraph,
+    static void expand_context_by_steps(const HandleGraph* source, MutableHandleGraph* subgraph,
                                  int64_t dist, bool expand_forward, bool expand_backward) {
         
         // let's make an O(1) lookup for the current edges in case the implementation doesn't provide
@@ -69,106 +69,12 @@ using namespace std;
         }
     }
     
-    void expand_context_by_length(const HandleGraph* source, MutableHandleGraph* subgraph,
-                                  int64_t dist, bool expand_forward, bool expand_backward) {
-        
-        // let's make an O(1) lookup for the current edges in case the implementation doesn't provide
-        // one (avoids O(N^2) behavior using has_edge)
-        unordered_set<edge_t> already_included_edges;
-        subgraph->for_each_edge([&](const edge_t& edge) {
-            already_included_edges.insert(edge);
-        });
-        
-        // extra bool indicates whether the position indicated is at the
-        // beginning of the node (beginning = true, end = false)
-        structures::RankPairingHeap<pair<handle_t, bool>, int64_t, greater<int64_t>> dijk_queue;
-        // all the edges we encounter along the way
-        unordered_set<edge_t> seen_edges;
-        
-        // initialize the queue at the ends pointing out of the node in the direction
-        // of our search
-        subgraph->for_each_handle([&](const handle_t& handle) {
-            handle_t src_handle = source->get_handle(subgraph->get_id(handle));
-            if (expand_forward) {
-                dijk_queue.push_or_reprioritize(make_pair(src_handle, false), 0);
-            }
-            if (expand_backward) {
-                dijk_queue.push_or_reprioritize(make_pair(src_handle, true), 0);
-            }
-        });
-        
-        
-        while (!dijk_queue.empty()) {
-            // the next closest untraversed node end
-            pair<pair<handle_t, bool>, int64_t> here = dijk_queue.top();
-            dijk_queue.pop();
-            
-            if (here.second > dist) {
-                break;
-            }
-            
-            if ((here.first.second && expand_forward)
-                || (!here.first.second && expand_backward)) {
-                // cross the node (traverse the sequence length)
-                int64_t dist_across = here.second + source->get_length(here.first.first);
-                if (dist_across <= dist) {
-                    dijk_queue.push_or_reprioritize(make_pair(here.first.first, !here.first.second), dist_across);
-                }
-            }
-            if ((here.first.second && expand_backward)
-                || (!here.first.second && expand_forward)) {
-                // cross an edge (no added distance)
-                source->follow_edges(here.first.first, here.first.second, [&](const handle_t& next) {
-                    dijk_queue.push_or_reprioritize(make_pair(next, !here.first.second), here.second);
-                    
-                    // the edge handle will be in a different order depending on whether we're
-                    // going left or right
-                    if (here.first.second) {
-                        seen_edges.insert(source->edge_handle(next, here.first.first));
-                    }
-                    else {
-                        seen_edges.insert(source->edge_handle(here.first.first, next));
-                    }
-                    
-                    if (!subgraph->has_node(source->get_id(next))) {
-                        subgraph->create_handle(source->get_sequence(source->forward(next)),
-                                                source->get_id(next));
-                    }
-                });
-            }
-        }
-        
-        // add in the edges we saw
-        for (const edge_t& edge : seen_edges) {
-            edge_t insertable = subgraph->edge_handle(subgraph->get_handle(source->get_id(edge.first),
-                                                                           source->get_is_reverse(edge.first)),
-                                                      subgraph->get_handle(source->get_id(edge.second),
-                                                                           source->get_is_reverse(edge.second)));
-            if (!already_included_edges.count(insertable)) {
-                subgraph->create_edge(insertable);
-            }
-        }
-    }
-    
-    void expand_context(const HandleGraph* source, MutableHandleGraph* subgraph,
-                        int64_t dist, bool use_steps, bool expand_forward,
-                        bool expand_backward) {
-        
-        if (use_steps) {
-            expand_context_by_steps(source, subgraph, dist, expand_forward, expand_backward);
-        }
-        else {
-            expand_context_by_length(source, subgraph, dist, expand_forward, expand_backward);
-        }
-    }
-    
     void expand_context_with_paths(const PathHandleGraph* source,
                                    MutablePathMutableHandleGraph* subgraph,
-                                   int64_t dist, bool use_steps, bool expand_forward,
-                                   bool expand_backward) {
+                                   int64_t dist, bool expand_forward, bool expand_backward) {
         
         // get the topology of the subgraph we want
-        expand_context(source, subgraph, dist, use_steps, expand_forward, expand_backward);
+        expand_context_by_steps(source, subgraph, dist, expand_forward, expand_backward);
         
         // find all steps on all nodes
         unordered_set<step_handle_t> seen_steps;

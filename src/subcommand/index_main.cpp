@@ -524,7 +524,7 @@ int main_index(int argc, char** argv) {
                     }
                     graph->for_each_path_of_sense({PathSense::REFERENCE, PathSense::GENERIC}, [&](const path_handle_t& path_handle) {
                         string path_name = graph->get_path_name(path_handle);
-                        if (path_name.compare(0, ref_prefix.size(), ref_prefix) == 0 && !graph->is_empty(path_handle)) {
+                        if (path_name.starts_with(ref_prefix) && !graph->is_empty(path_handle)) {
                             extra_node_weight[graph->get_id(graph->get_handle_of_step(graph->path_begin(path_handle)))] += EXTRA_WEIGHT;
                             extra_node_weight[graph->get_id(graph->get_handle_of_step(graph->path_back(path_handle)))] += EXTRA_WEIGHT;
                         }

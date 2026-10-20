@@ -366,7 +366,7 @@ int main_deconstruct(int argc, char** argv) {
         graph->for_each_path_of_sense({PathSense::REFERENCE, PathSense::GENERIC}, [&](const path_handle_t& path_handle) {
             string path_name = graph->get_path_name(path_handle);
             for (auto& prefix : refpath_prefixes) {
-                if (path_name.compare(0, prefix.size(), prefix) == 0) {
+                if (path_name.starts_with(prefix)) {
                     refpaths.push_back(path_name);
                     break;
                 }

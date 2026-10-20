@@ -18,7 +18,6 @@
 
 #include "algorithms/extract_connecting_graph.hpp"
 #include "algorithms/prune_to_connecting_graph.hpp"
-#include "algorithms/component.hpp"
 #include "algorithms/nearest_offsets_in_paths.hpp"
 
 #include "bdsg/hash_graph.hpp"
@@ -1448,9 +1447,9 @@ using namespace std;
                             
                             // TODO: we could probably dagify, but i don't want to worry about it yet
                             if (connecting.get_node_count() == 0 || !handlealgs::is_directed_acyclic(&connecting)
-                                || algorithms::num_components(connecting) != 1) {
+                                || !handlealgs::is_weakly_connected(&connecting)) {
 #ifdef debug_constrictions
-                                cerr << "did not get well-behaved intervening graph: " << connecting.get_node_count() << " nodes, acyclic? " << handlealgs::is_directed_acyclic(&connecting) << ", components " << algorithms::num_components(connecting) << endl;
+                                cerr << "did not get well-behaved intervening graph: " << connecting.get_node_count() << " nodes, acyclic? " << handlealgs::is_directed_acyclic(&connecting) << ", connected? " << handlealgs::is_weakly_connected(&connecting) << endl;
 #endif
                                 incompatible = true;
                                 break;

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cctype>
 #include <locale>
+#include <openssl/evp.h>
 // We don't define _GNU_SOURCE to get the cpuset functions since we will
 // already have it for libstdc++ on the platforms where we need them
 #include <sched.h>
@@ -216,36 +217,19 @@ std::vector<std::string> split_delims(const std::string &s, const std::string& d
     return split_delims(s, delims, elems, max_cuts);
 }
 
-bool starts_with(const std::string& value, const std::string& prefix) {
-#if __cplusplus > 201703L
-    // C++20 provides this
-    return value.starts_with(prefix);
-#else
-    // Before then, C++ is terrible and we have to do it ourselves.
-    if (value.size() < prefix.size()) {
-        return false;
-    }
-    return std::equal(prefix.begin(), prefix.end(), value.begin());
-#endif
-}
-
-bool ends_with(const std::string& value, const std::string& suffix) {
-#if __cplusplus > 201703L
-    // C++20 provides this
-    return value.ends_with(suffix);
-#else
-    // Before then, C++ is terrible and we have to do it ourselves.
-    if (value.size() < suffix.size()) {
-        return false;
-    }
-    return value.substr(value.length() - suffix.length()) == suffix;
-#endif
-}
-
 const std::string sha1sum(const std::string& data) {
-    SHA1 checksum;
-    checksum.update(data);
-    return checksum.final();
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int length = 0;
+    if (!EVP_Digest(data.data(), data.size(), digest, &length, EVP_sha1(), nullptr)) {
+        throw std::runtime_error("SHA1 digest failed");
+    }
+    static const char hex_digits[] = "0123456789abcdef";
+    std::string result(2 * length, '0');
+    for (unsigned int i = 0; i < length; i++) {
+        result[2 * i] = hex_digits[digest[i] >> 4];
+        result[2 * i + 1] = hex_digits[digest[i] & 0xF];
+    }
+    return result;
 }
 
 const std::string sha1head(const std::string& data, size_t head) {
@@ -564,9 +548,6 @@ string get_or_make_variant_id(const vcflib::Variant& variant) {
 string make_variant_id(const vcflib::Variant& variant) {
     // Synthesize a name for the variant
 
-    // Let's just hash
-    SHA1 hasher;
-
     // Turn the variant into a string, leaving out the actual calls and any
     // assigned ID. Note that this keeps the modified 0-based position.
     std::stringstream variant_stringer;
@@ -578,11 +559,10 @@ string make_variant_id(const vcflib::Variant& variant) {
     for (auto& alt : variant.alt) {
       variant_stringer << toUppercase(alt) << '\n';
     }
-    hasher.update(variant_stringer.str());
 
     // Name the variant with the hex hash. Will be unique unless two
     // identical variants are in the file.
-    return hasher.final();
+    return sha1sum(variant_stringer.str());
 }
     
 vector<size_t> range_vector(size_t begin, size_t end) {
@@ -734,7 +714,7 @@ string require_exists(const Logger& logger, const string& filename) {
 }
 
 string require_non_gzipped(const Logger& logger, const string& filename) {
-    if (ends_with(filename, ".gz")) {
+    if (filename.ends_with(".gz")) {
         logger.error() << "file \"" << filename << "\" appears to be gzipped; "
                        << "please decompress it before use" << endl;
     }

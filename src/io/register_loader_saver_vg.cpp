@@ -5,7 +5,6 @@
 
 #include <vg/io/registry.hpp>
 #include <vg/io/protobuf_iterator.hpp>
-#include "register_loader_saver_vg.hpp"
 
 #include "../vg.hpp"
 

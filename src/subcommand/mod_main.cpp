@@ -586,7 +586,7 @@ int main_mod(int argc, char** argv) {
         bool has_prefix = false;
         graph->for_each_step_on_handle(handle, [&nomerge_prefix, &graph, &has_prefix](const step_handle_t& step_handle) {
                 string path_name = graph->get_path_name(graph->get_path_handle_of_step(step_handle));
-                if (path_name.compare(0, nomerge_prefix.length(), nomerge_prefix) == 0) {
+                if (path_name.starts_with(nomerge_prefix)) {
                     has_prefix = true;
                 }
                 return !has_prefix;

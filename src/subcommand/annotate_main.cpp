@@ -12,7 +12,6 @@
 #include "../algorithms/alignment_path_offsets.hpp"
 #include <bdsg/overlays/overlay_helper.hpp>
 
-#include "progress_bar.hpp"
 
 #include <unistd.h>
 #include <getopt.h>

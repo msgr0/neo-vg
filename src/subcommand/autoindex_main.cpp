@@ -377,7 +377,7 @@ int main_autoindex(int argc, char** argv) {
             if (!registry.available(target)) {
                 vector<string> inferred_file_names = registry.get_possible_filenames(target);
                 for (const string& filename : inferred_file_names) {
-                    if (target == "Giraffe GBZ" && !ends_with(filename, ".giraffe.gbz")) {
+                    if (target == "Giraffe GBZ" && !filename.ends_with(".giraffe.gbz")) {
                         // TODO: Giraffe GBZ indexes can be saved as .<sample>.gbz or .giraffe.gbz.
                         // But we can't pick up .<sample>.gbz automatically without possibly mistaking a plain GBZ for a Giraffe one.
                         // And we don't handle haplotype samplign in autoindex yet anyway.

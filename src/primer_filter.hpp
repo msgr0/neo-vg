@@ -183,21 +183,10 @@ private:
     void update_variation(PrimerPair& primer_pair, const string& path_name);
     
     /**
-     * Split a string into vectors.
-     * Used in: load_primers
-     */
-    vector<string> split(const string& str);
-
-    /**
-     * Split a string into vectors given delimiter.
+     * Split a string into vectors given delimiter. Unlike split_delims, keeps
+     * empty fields (except a trailing one).
      */
     vector<string> split(const string& str, const char& delim);
-    
-    /**
-     * Works like str.startswith(prefix) in python
-     * Used in: load_primers
-     */
-    bool startswith(const string& str, const string& prefix);
 };
 
 }

@@ -1,5 +1,5 @@
 #include "phase_unfolder.hpp"
-#include "progress_bar.hpp"
+#include "progressive.hpp"
 #include "algorithms/disjoint_components.hpp"
 
 #include <cassert>
@@ -199,11 +199,10 @@ size_t PhaseUnfolder::verify_paths(MutableHandleGraph& unfolded, bool show_progr
 
     size_t total_paths = this->path_graph.get_path_count() + this->gbwt_index.sequences(), verified = 0, failures = 0;
     std::set<vg::id_t> failed_threads;
-    ProgressBar* progress = nullptr;
+    const std::string progress_message = "Verifying paths";
     size_t progress_step = std::max(total_paths / 100, static_cast<size_t>(32));
     if (show_progress) {
-        progress = new ProgressBar(total_paths, "Verifying paths");
-        progress->Progressed(verified);
+        Progressive::draw_progress_bar(progress_message, verified, total_paths);
     }
 
     this->path_graph.for_each_path_handle([&](const path_handle_t& path_handle) {
@@ -219,7 +218,7 @@ size_t PhaseUnfolder::verify_paths(MutableHandleGraph& unfolded, bool show_progr
         }
         verified++;
         if (show_progress && (verified % progress_step == 0 || verified >= total_paths)) {
-            progress->Progressed(verified);
+            Progressive::draw_progress_bar(progress_message, verified, total_paths);
         }
     });
     
@@ -237,13 +236,12 @@ size_t PhaseUnfolder::verify_paths(MutableHandleGraph& unfolded, bool show_progr
             }
             verified++;
             if (show_progress && (verified % progress_step == 0 || verified >= total_paths)) {
-                progress->Progressed(verified);
+                Progressive::draw_progress_bar(progress_message, verified, total_paths);
             }
         }
     }
 
     if (show_progress) {
-        delete progress; progress = nullptr;
         std::cerr << std::endl;
 
         for (vg::id_t thread_id : failed_threads) {

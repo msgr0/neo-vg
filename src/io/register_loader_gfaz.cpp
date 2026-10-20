@@ -2,7 +2,6 @@
  * \file register_loader_gfaz.cpp
  */
 
-#include "register_loader_gfaz.hpp"
 
 #include <GFAz/core/codec/serialization.hpp>
 #include <vg/io/registry.hpp>

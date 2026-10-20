@@ -228,24 +228,24 @@ SequenceDictionary get_sequence_dictionary(const string& filename, const vector<
                 }
             
                 // See if each line starts with @SQ and we have to parse it, or @HD and we have to drop it, or if we have to handle it as a name.
-                if (starts_with(line, "@SQ")) {
+                if (line.starts_with("@SQ")) {
                     // If it is SAM, split on tabs
                     auto parts = split_delims(line, "\t");
                                         
                     for (size_t i = 1; i < parts.size(); i++) {
-                        if (starts_with(parts[i], "SN:")) {
+                        if (parts[i].starts_with("SN:")) {
                             // The rest of this field is the name
                             sequence_name = parts[i].substr(3);
-                        } else if (starts_with(parts[i], "LN:")) {
+                        } else if (parts[i].starts_with("LN:")) {
                             // The rest of this field is a length number
                             length = stoll(parts[i].substr(3));
-                        } else if (starts_with(parts[i], "M5:")) {
+                        } else if (parts[i].starts_with("M5:")) {
                             // The rest of this field is an MD5 sum
                             sequence_md5_sum = parts[i].substr(3);
                         }
                     }
                                         
-                } else if (starts_with(line, "@HD")) {
+                } else if (line.starts_with("@HD")) {
                     // SAM header line also found in dict files. Drop it.
                     // TODO: Hope nobody named a sequence "@HD"-something
                     continue;
