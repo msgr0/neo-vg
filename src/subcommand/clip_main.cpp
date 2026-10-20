@@ -22,7 +22,7 @@ void help_clip(char** argv) {
          << endl
          << "input options: " << endl
          << "  -b, --bed FILE             BED regions for path intervals of graph to target" << endl
-         << "  -r, --snarls FILE          snarls from vg snarls (recomputed if unspecified" << endl
+         << "  -r, --snarls FILE          snarls from nvg snarls (recomputed if unspecified" << endl
          << "                             and -n, -e, -N, -E, -a, -l, -L, or -D used)" << endl
          << "depth clipping options: " << endl
          << "  -d, --depth N              clip out nodes and edges with path depth below N" << endl
@@ -66,7 +66,7 @@ void help_clip(char** argv) {
 }    
 
 int main_clip(int argc, char** argv) {
-    Logger logger("vg clip");
+    Logger logger("nvg clip");
 
     string bed_path;
     string snarls_path;
@@ -74,7 +74,6 @@ int main_clip(int argc, char** argv) {
     int64_t min_depth = -1;
     int64_t min_fragment_len = 0;
     bool verbose = false;
-    bool depth_clipping = false;
     bool stub_clipping = false;
     bool stubbify_reference = false;
 
@@ -357,7 +356,7 @@ int main_clip(int argc, char** argv) {
                 }
                 if (bed_regions_in_graph.empty()) {
                     logger.warn() << "No BED region found that lies on path in graph "
-                                  << "(use vg paths -Lv to list paths that are in the graph)" << endl;
+                                  << "(use nvg paths -Lv to list paths that are in the graph)" << endl;
                 }
             }
             swap(bed_regions, bed_regions_in_graph);

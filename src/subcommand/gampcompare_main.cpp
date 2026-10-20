@@ -35,7 +35,7 @@ void help_gampcompare(char** argv) {
 }
 
 int main_gampcompare(int argc, char** argv) {
-    Logger logger("vg gampcompare");
+    Logger logger("nvg gampcompare");
 
     if (argc == 2) {
         help_gampcompare(argv);

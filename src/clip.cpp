@@ -1075,7 +1075,7 @@ void clip_deletion_edges(MutablePathMutableHandleGraph* graph, int64_t max_delet
 
         // find set of deletion candidates sorted by length by walking out from the reference path
         if (verbose) {
-            cerr << "[vg clip]: Searching for deletion candidates on " << graph->get_path_name(ref_path)
+            cerr << "[nvg clip]: Searching for deletion candidates on " << graph->get_path_name(ref_path)
                  << " with " << context_steps << " context steps and " << get_thread_count() << " threads" << endl;
         }
         multimap<int64_t, edge_t> length_to_edge = find_deletion_candidate_edges(graph, ref_path, handle_to_position,
@@ -1095,7 +1095,7 @@ void clip_deletion_edges(MutablePathMutableHandleGraph* graph, int64_t max_delet
         }
 
         if (verbose) {
-            cerr << "[vg clip]: Found " << length_to_edge.size() << " candidate deletion edges for " << graph->get_path_name(ref_path);
+            cerr << "[nvg clip]: Found " << length_to_edge.size() << " candidate deletion edges for " << graph->get_path_name(ref_path);
             if (!length_to_edge.empty()) {
                 cerr << " with sizes ranging from " << length_to_edge.begin()->first << " to " << length_to_edge.rbegin()->first;
             }
@@ -1115,7 +1115,7 @@ void clip_deletion_edges(MutablePathMutableHandleGraph* graph, int64_t max_delet
                 edge_blacklist.insert(edge);
                 if (verbose) {
                     if (verbose) {
-                        cerr << "[vg clip]: Found deletion edge for candidate " << candidate_i << " on " << graph->get_path_name(ref_path) << ": "
+                        cerr << "[nvg clip]: Found deletion edge for candidate " << candidate_i << " on " << graph->get_path_name(ref_path) << ": "
                              << (graph->get_is_reverse(edge.first) ? "<" : ">") << graph->get_id(edge.first)
                              << (graph->get_is_reverse(edge.second) ? "<" : ">") << graph->get_id(edge.second)
                              << " with reference length " << deletion_size << endl;

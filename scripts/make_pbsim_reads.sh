@@ -82,7 +82,7 @@ if [[ -z "${GRAPH_GBZ_URL}" ]] ; then
 
     if [[ ! -e "${WORK_DIR}/${GRAPH_NAME}.gbz" ]] ; then
         # Make it one file
-        time vg gbwt -x "${WORK_DIR}/${GRAPH_NAME}.xg" "${WORK_DIR}/${GRAPH_NAME}.gbwt" --gbz-format -g "${WORK_DIR}/${GRAPH_NAME}.gbz.tmp"
+        time nvg gbwt -x "${WORK_DIR}/${GRAPH_NAME}.xg" "${WORK_DIR}/${GRAPH_NAME}.gbwt" --gbz-format -g "${WORK_DIR}/${GRAPH_NAME}.gbz.tmp"
         mv "${WORK_DIR}/${GRAPH_NAME}.gbz.tmp" "${WORK_DIR}/${GRAPH_NAME}.gbz"
     fi
 
@@ -101,7 +101,7 @@ fi
 
 if [[ ! -e "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz" ]] ; then
     # Make it have our sample as the reference
-    vg gbwt -Z trash/${GRAPH_NAME}.gbz --set-tag "reference_samples=${SAMPLE_NAME}" --gbz-format -g "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz.tmp"
+    nvg gbwt -Z trash/${GRAPH_NAME}.gbz --set-tag "reference_samples=${SAMPLE_NAME}" --gbz-format -g "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz.tmp"
     mv "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz.tmp" "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz"
 fi
 
@@ -110,7 +110,7 @@ if [[ ! -e "${WORK_DIR}/${SAMPLE_NAME}.fa" ]] ; then
     # we so it from the one where the sample is haplotypes, we get different path
     # name strings and we can't inject without hacking them up. We leave the code
     # to hack them up anyway though, for reference later.
-    vg paths -x "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz" \
+    nvg paths -x "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz" \
         --sample "${SAMPLE_NAME}" \
         --extract-fasta \
       > "${WORK_DIR}/${SAMPLE_NAME}.fa.tmp"
@@ -215,18 +215,18 @@ fi
 
 if [[ ! -e "${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam" ]] ; then
     # Move reads into graph space
-    time vg inject -x "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz" "${WORK_DIR}/${SAMPLE_NAME}-reads/merged.bam" -t 16 >"${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam.tmp"
+    time nvg inject -x "${WORK_DIR}/${GRAPH_NAME}-${SAMPLE_NAME}-as-ref.gbz" "${WORK_DIR}/${SAMPLE_NAME}-reads/merged.bam" -t 16 >"${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam.tmp"
     mv "${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam.tmp" "${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam"
 fi
 
 if [[ ! -e "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam" ]] ; then
     # Annotate reads with linear reference positions
-    time vg annotate -x "${WORK_DIR}/${GRAPH_NAME}.gbz" -a "${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam" --multi-position -l 100 -t 16 >"${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam.tmp"
+    time nvg annotate -x "${WORK_DIR}/${GRAPH_NAME}.gbz" -a "${WORK_DIR}/${SAMPLE_NAME}-reads/injected.gam" --multi-position -l 100 -t 16 >"${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam.tmp"
     mv "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam.tmp" "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam"
 fi
 
 # Work out howe many reads there are
-TOTAL_READS="$(vg stats -a "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam" | grep "^Total alignments:" | cut -f2 -d':' | tr -d ' ')"
+TOTAL_READS="$(nvg stats -a "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam" | grep "^Total alignments:" | cut -f2 -d':' | tr -d ' ')"
 
 if [[ "${TOTAL_READS}" -lt 1000500 ]] ; then
     echo "Only ${TOTAL_READS} reads were simulated. Cannot subset to 1000000 reads with buffer!"
@@ -240,7 +240,7 @@ for READ_COUNT in 100 1000 10000 100000 1000000 ; do
     # Get the fraction of reads to keep, overestimated, with no leading 0, to paste onto subsample seed.
     FRACTION="$(echo "(${READ_COUNT} + 500)/${TOTAL_READS}" | bc -l | sed 's/^[0-9]*//g')"
     # Can't use pipefail here because head will cut off the pipe and fail the previous command
-    vg filter -d "${SUBSAMPLE_SEED}${FRACTION}" "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam" | vg view -aj - | shuf | head -n"${READ_COUNT}" | vg view -JGa - > "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}-${READ_COUNT}.gam"
+    nvg filter -d "${SUBSAMPLE_SEED}${FRACTION}" "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}.gam" | nvg view -aj - | shuf | head -n"${READ_COUNT}" | nvg view -JGa - > "${WORK_DIR}/${SAMPLE_NAME}-reads/${SAMPLE_NAME}-sim-${TECH_NAME}-${READ_COUNT}.gam"
     ((SUBSAMPLE_SEED+=1))    
 done
 

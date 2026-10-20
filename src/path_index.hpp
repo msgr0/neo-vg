@@ -71,9 +71,6 @@ struct PathIndex {
     /// be greater than the path length.
     NodeSide at_position(size_t position) const;
 
-    /// Check whether a node is on the reference path.
-    bool path_contains_node(int64_t node_id) const ;
-    
     /// Check whether a node is on the reference path in a given path-relative orientation.
     bool path_contains_node_in_orientation(int64_t node_id, bool is_reverse) const;
     

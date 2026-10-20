@@ -247,7 +247,7 @@ auto StreamIndexBase::add_group(id_t min_id, id_t max_id, int64_t virtual_start,
     if (min_id < last_group_min_id) {
         // Someone is trying to index an unsorted GAM.
         // This is probably user error, so complain appropriately:
-        cerr << "error [vg::GAMIndex]: GAM data being indexed is not sorted. Sort with vg gamsort." << endl;
+        cerr << "error [vg::GAMIndex]: GAM data being indexed is not sorted. Sort with nvg gamsort." << endl;
         exit(1);
     }
     last_group_min_id = min_id;

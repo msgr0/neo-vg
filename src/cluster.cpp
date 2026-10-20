@@ -1021,31 +1021,6 @@ void MEMClusterer::HitGraph::component_topological_order(const vector<size_t>& c
     }
 }
 
-void MEMClusterer::HitGraph::identify_sources_and_sinks(vector<size_t>& sources_out,
-                                                        vector<size_t>& sinks_out) const {
-    
-    sources_out.clear();
-    sinks_out.clear();
-    
-    vector<bool> is_source(nodes.size(), true);
-    
-    for (size_t i = 0; i < nodes.size(); i++) {
-        if (nodes[i].edges_from.empty()) {
-            sinks_out.push_back(i);
-        }
-        
-        for (const HitEdge& edge : nodes[i].edges_from) {
-            is_source[edge.to_idx] = false;
-        }
-    }
-    
-    for (size_t i = 0; i < nodes.size(); i++) {
-        if (is_source[i]) {
-            sources_out.push_back(i);
-        }
-    }
-}
-
 vector<MEMClusterer::cluster_t> MEMClusterer::HitGraph::clusters(const Alignment& alignment,
                                                                  const GSSWAligner* aligner,
                                                                  int32_t max_qual_score,
@@ -2325,132 +2300,6 @@ vector<unordered_map<size_t, int64_t>> OrientedDistanceClusterer::flatten_distan
     return strand_relative_position;
 }
 
-vector<pair<size_t, size_t>> OrientedDistanceClusterer::compute_tail_mem_coverage(const Alignment& alignment,
-                                                                                  const vector<MaximalExactMatch>& mems) {
-    
-    // include an index for the past-the-last position on the read
-    vector<pair<size_t, size_t>> mem_tail_coverage(alignment.sequence().size() + 1);
-    
-    if (mems.empty()) {
-        return mem_tail_coverage;
-    }
-    
-    // convert the MEMs to the read interval they cover
-    vector<pair<int64_t, int64_t>> mem_intervals;
-    mem_intervals.reserve(mems.size());
-    for (int64_t i = 0; i < mems.size(); i++) {
-        if (!mems[i].nodes.empty()) {
-            mem_intervals.emplace_back(mems[i].begin - alignment.sequence().begin(),
-                                       mems[i].end - alignment.sequence().begin());
-        }
-    }
-    
-    // ensure that the intervals are sorted lexicographically
-    if (!std::is_sorted(mem_intervals.begin(), mem_intervals.end())) {
-        std::sort(mem_intervals.begin(), mem_intervals.end());
-    }
-    
-    // find number of SMEM beginnings strictly to the left of each position
-    
-    int64_t last_mem_idx = mem_intervals.size() - 1;
-    int64_t mem_idx = 0;
-    size_t smem_count = 0;
-    
-    // iterate through any sub-MEMs contained in the SMEM that share its start position
-    int64_t curr_mem_begin = mem_intervals[mem_idx].first;
-    int64_t curr_mem_end = mem_intervals[mem_idx].second;
-    while (mem_idx < last_mem_idx ? mem_intervals[mem_idx + 1].first == curr_mem_begin : false) {
-        mem_idx++;
-    }
-    for (int64_t i = 0; i < mem_tail_coverage.size(); i++) {
-        
-        mem_tail_coverage[i].first = smem_count;
-        
-        // are we encountering the start of another SMEM
-        if (mem_idx < mem_intervals.size() ? i == mem_intervals[mem_idx].first : false) {
-            smem_count++;
-            // iterate to the next MEM that contains some new sequence
-            curr_mem_end = mem_intervals[mem_idx].second;
-            mem_idx++;
-            while (mem_idx < mems.size() ? mem_intervals[mem_idx].second <= curr_mem_end : false) {
-                mem_idx++;
-            }
-            // iterate through any sub-MEMs contained in the SMEM that share its start position
-            curr_mem_begin = mem_intervals[mem_idx].first;
-            while (mem_idx < last_mem_idx ? mem_intervals[mem_idx + 1].first == curr_mem_begin : false) {
-                mem_idx++;
-            }
-        }
-    }
-    
-    // now use insertion sort to switch the lexicographic ordering
-    for (int64_t i = 1; i < mem_intervals.size(); i++) {
-        int64_t j = i;
-        while (mem_intervals[j].second < mem_intervals[j - 1].second ||
-               (mem_intervals[j].second == mem_intervals[j - 1].second && mem_intervals[j].first < mem_intervals[j - 1].first)) {
-            std::swap(mem_intervals[j], mem_intervals[j - 1]);
-            j--;
-            if (j == 0) {
-                break;
-            }
-        }
-    }
-    
-#ifdef debug_mem_clusterer
-    cerr << "reversed lexicographic ordering of intervals" << endl;
-    for (auto interval : mem_intervals) {
-        cerr << "\t" << interval.first << " " << interval.second << endl;
-    }
-#endif
-    
-    // find number of SMEM ends strictly to the right of each position
-    
-    mem_idx = last_mem_idx;
-    smem_count = 0;
-    
-    // iterate through any sub-MEMs contained in the SMEM that share its end position
-    curr_mem_begin = mem_intervals[mem_idx].first;
-    curr_mem_end = mem_intervals[mem_idx].second;
-    while (mem_idx > 0 ? mem_intervals[mem_idx - 1].second == curr_mem_end : false) {
-        mem_idx--;
-    }
-    
-    for (int64_t i = mem_tail_coverage.size() - 1; i >= 0; i--) {
-        
-        mem_tail_coverage[i].second = smem_count;
-        
-        if (mem_idx >= 0 ? i == mem_intervals[mem_idx].second : false) {
-            smem_count++;
-            // iterate to the next MEM that contains some new sequence
-            curr_mem_begin = mem_intervals[mem_idx].first;
-            mem_idx--;
-            while (mem_idx >= 0 ? mem_intervals[mem_idx].first >= curr_mem_begin : false) {
-                mem_idx--;
-            }
-            // iterate through any sub-MEMs contained in the SMEM that share its end position
-            curr_mem_end = mem_intervals[mem_idx].second;
-            while (mem_idx > 0 ? mem_intervals[mem_idx - 1].second == curr_mem_end : false) {
-                mem_idx--;
-            }
-        }
-    }
-    
-#ifdef debug_mem_clusterer
-    cerr << "computed left MEM coverage" << endl;
-    for (auto pos : mem_tail_coverage) {
-        cerr << pos.first << " ";
-    }
-    cerr << endl;
-    cerr << "computed right MEM coverage" << endl;
-    for (auto pos : mem_tail_coverage) {
-        cerr << pos.second << " ";
-    }
-    cerr << endl;
-#endif
-    
-    return mem_tail_coverage;
-}
-
 vector<pair<pair<size_t, size_t>, int64_t>> OrientedDistanceClusterer::pair_clusters(const Alignment& alignment_1,
                                                                                      const Alignment& alignment_2,
                                                                                      const vector<cluster_t*>& left_clusters,
@@ -2678,10 +2527,6 @@ TargetValueSearch::TargetValueSearch(const HandleGraph& handle_graph,
     // nothing else to do
 }
 
-bool TargetValueSearch::tv_path_exists(const pos_t& pos_1, const pos_t& pos_2, int64_t target_value, int64_t tolerance) {
-    return !tv_path(pos_1, pos_2, target_value, tolerance).empty();
-}
-    
 vector<handle_t> TargetValueSearch::tv_path(const pos_t& pos_1, const pos_t& pos_2, int64_t target_value, int64_t tolerance) {
 
     //TODO: Doesn't work for cyclic graphs since max dist returns cap, not infinity
@@ -3767,68 +3612,6 @@ MEMClusterer::HitGraph ComponentMinDistanceClusterer::make_hit_graph(const Align
     return hit_graph;
 }
     
-// collect node starts to build out graph
-vector<pair<gcsa::node_type, size_t> > mem_node_start_positions(const HandleGraph& graph, const vg::MaximalExactMatch& mem) {
-    // walk the match, getting all the nodes that it touches
-    string mem_seq = mem.sequence();
-    vector<pair<gcsa::node_type, size_t> > positions;
-    hash_set<pair<gcsa::node_type, size_t> > seen_pos;
-    //hash_set<handle_t> handles;
-    hash_set<pair<gcsa::node_type, size_t> > next; // handles and offsets of the exact match set we need to extend
-    auto start_pos = mem.nodes.front();
-    next.insert(make_pair(start_pos, 0));
-    while (!next.empty()) {
-        hash_set<pair<gcsa::node_type, size_t> > todo;
-        for (auto& h : next) {
-            auto& pos = h.first;
-            size_t query_offset = h.second;
-            // check if we match each node in next
-            auto handle = graph.get_handle(gcsa::Node::id(pos), gcsa::Node::rc(pos));
-            string h_seq = graph.get_sequence(handle);
-            size_t mem_todo = mem_seq.size() - query_offset;
-            size_t overlap = min((size_t)mem_todo, (size_t)(h_seq.size()-gcsa::Node::offset(pos)));
-            /*
-            cerr << pos << " " << mem_todo << " " << overlap << endl
-                 << mem_seq.substr(query_offset, overlap) << endl
-                 << h_seq.substr(offset(pos), overlap) << endl;
-            */
-            // if we do, insert into nodes
-            if (mem_seq.substr(query_offset, overlap) == h_seq.substr(gcsa::Node::offset(pos), overlap)) {
-                if (!seen_pos.count(h)) {
-                    seen_pos.insert(h);
-                    auto q = h;
-                    q.second = mem_todo - overlap;
-                    positions.push_back(q);
-                }
-                // if we continue past this node, insert our next nodes into nexts
-                if (mem_todo - overlap > 0) {
-                    size_t new_off = query_offset + overlap;
-                    graph.follow_edges(handle, false, [&](const handle_t& next) {
-                            todo.insert(make_pair(gcsa::Node::encode(graph.get_id(next), 0, graph.get_is_reverse(next)), new_off));
-                            return true;
-                        });
-                }
-            } else {
-                // still store at least this node and the remainder
-                // but record that we have more left
-                if (!seen_pos.count(h)) {
-                    seen_pos.insert(h);
-                    auto q = h;
-                    q.second = mem_todo;
-                    positions.push_back(q);
-                }
-            }
-        }
-        next = todo;
-    }
-    // ensure positions are sorted by remainder
-    std::sort(positions.begin(), positions.end(),
-              [](const pair<gcsa::node_type, size_t>& a, const pair<gcsa::node_type, size_t>& b) {
-                  return a.second > b.second;
-              });
-    return positions;
-}
-
 bdsg::HashGraph cluster_subgraph_containing(const HandleGraph& base, const Alignment& aln, const vector<vg::MaximalExactMatch>& cluster, const GSSWAligner* aligner) {
     vector<pos_t> positions;
     vector<size_t> forward_max_dist;
@@ -3848,56 +3631,6 @@ bdsg::HashGraph cluster_subgraph_containing(const HandleGraph& base, const Align
     auto cluster_graph = bdsg::HashGraph();
     algorithms::extract_containing_graph(&base, &cluster_graph, positions, forward_max_dist, backward_max_dist);
     return cluster_graph;
-}
-
-bdsg::HashGraph cluster_subgraph_walk(const HandleGraph& base, const Alignment& aln, const vector<vg::MaximalExactMatch>& mems, double expansion) {
-    assert(mems.size());
-    auto& start_mem = mems.front();
-    auto start_pos = make_pos_t(start_mem.nodes.front());
-    auto rev_start_pos = reverse(start_pos, base.get_length(base.get_handle(id(start_pos))));
-    // Even if the MEM is right up against the start of the read, it may not be
-    // part of the best alignment. Make sure to have some padding.
-    // TODO: how much padding?
-    bdsg::HashGraph graph;
-    int inside_padding = max(1, (int)aln.sequence().size()/16);
-    int end_padding = max(8, (int)aln.sequence().size()/8);
-    int get_before = end_padding + (int)(expansion * (int)(start_mem.begin - aln.sequence().begin()));
-    if (get_before) {
-        //algorithms::extract_context(base, graph, base.get_handle(id(rev_start_pos), is_rev(rev_start_pos)), offset(rev_start_pos), get_before, false, true);
-    }
-    //cerr << "======================================================" << endl;
-    for (int i = 0; i < mems.size(); ++i) {
-        auto& mem = mems[i];
-        //cerr << mem << endl;
-        vector<pair<gcsa::node_type, size_t> > match_positions = mem_node_start_positions(base, mem);
-        if (!match_positions.size()) {
-            // TODO XXX is MEM merging causing this to occur?
-            match_positions.push_back(make_pair(mem.nodes.front(), mem.length()));
-        }
-        for (auto& p : match_positions) {
-            handle_t h = base.get_handle(gcsa::Node::id(p.first), gcsa::Node::rc(p.first));
-            algorithms::extract_context(base, graph, h, gcsa::Node::offset(p.first), 0);
-        }
-        // extend after the last match node with the expansion
-        auto& p = match_positions.back();
-        auto& pos = p.first;
-        int mem_remainder = p.second;
-        //cerr << p.first << " " << p.second << endl;
-        handle_t h = base.get_handle(gcsa::Node::id(pos));
-        int get_after = //base.get_length(h);
-            (i+1 == mems.size() ?
-               end_padding +
-               expansion * ((int)(aln.sequence().end() - mem.end) + mem_remainder)
-               :
-               inside_padding +
-               expansion * ((int)(mems[i+1].begin - mem.end) + mem_remainder));
-        if (get_after > 0) {
-            algorithms::extract_context(base, graph, h, gcsa::Node::offset(pos), get_after, true, false);
-        }
-    }
-    //algorithms::expand_subgraph_by_steps(base, graph, 0);
-    algorithms::expand_subgraph_to_length(base, graph, aln.sequence().size() * expansion, false);
-    return graph;
 }
 
 }

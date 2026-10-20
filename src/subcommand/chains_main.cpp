@@ -1,6 +1,6 @@
 /** \file chains_main.cpp
  *
- * Defines the "vg chains" subcommand, which extracts the handles in top-level chains from a distance index or a snarl file.
+ * Defines the "nvg chains" subcommand, which extracts the handles in top-level chains from a distance index or a snarl file.
  *
  * NOTE: If a component (~chromosome) does not start with a shared node, the top-level chain is not unique.
  * For example, if the component starts with edges (u, w) and (v, w), the chain may start with either u or v.
@@ -55,7 +55,7 @@ sdsl::int_vector<> normalize_chain(gbwt::vector_type& chain);
 //----------------------------------------------------------------------------
 
 int main_chains(int argc, char** argv) {
-    Logger logger("vg chains");
+    Logger logger("nvg chains");
     ChainsConfig config(argc, argv, logger);
 
     if (config.progress) {

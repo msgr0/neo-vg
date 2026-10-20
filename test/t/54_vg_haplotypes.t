@@ -13,104 +13,104 @@ plan tests 94
 # The reads are 50x novaseq reads for HG003 mapping to those regions.
 
 # Build indexes for the full graph.
-vg gbwt -G haplotype-sampling/micb-kir3dl1.gfa --gbz-format -g full.gbz -r full.ri
-vg index -j full.dist full.gbz
+nvg gbwt -G haplotype-sampling/micb-kir3dl1.gfa --gbz-format -g full.gbz -r full.ri
+nvg index -j full.dist full.gbz
 
 # Generate haplotype information
-vg haplotypes --validate --subchain-length 300 -H full.hapl full.gbz
+nvg haplotypes --validate --subchain-length 300 -H full.hapl full.gbz
 is $? 0 "generating haplotype information"
-is "$(vg describe full.hapl | grep 'pggname = ')" "$(vg describe full.gbz | grep 'pggname = ')" "graph name was copied to haplotype information"
+is "$(nvg describe full.hapl | grep 'pggname = ')" "$(nvg describe full.gbz | grep 'pggname = ')" "graph name was copied to haplotype information"
 
 # Sample haplotypes separately
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --include-reference -g indirect.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --include-reference -g indirect.gbz full.gbz
 is $? 0 "sampling from existing haplotype information"
-is $(vg gbwt -S -Z indirect.gbz) 3 "1 generated + 2 reference samples"
-is $(vg gbwt -C -Z indirect.gbz) 2 "2 contigs"
-is $(vg gbwt -H -Z indirect.gbz) 6 "4 generated + 2 reference haplotypes"
-is "$(vg describe indirect.gbz | grep -c 'pggname = ')" 1 "sampled GBZ contains graph name"
-is "$(vg describe indirect.gbz | grep -c 'subgraph = ')" 1 "sampled GBZ contains a subgraph relationship"
+is $(nvg gbwt -S -Z indirect.gbz) 3 "1 generated + 2 reference samples"
+is $(nvg gbwt -C -Z indirect.gbz) 2 "2 contigs"
+is $(nvg gbwt -H -Z indirect.gbz) 6 "4 generated + 2 reference haplotypes"
+is "$(nvg describe indirect.gbz | grep -c 'pggname = ')" 1 "sampled GBZ contains graph name"
+is "$(nvg describe indirect.gbz | grep -c 'subgraph = ')" 1 "sampled GBZ contains a subgraph relationship"
 
 # Sample the haplotypes directly
-vg haplotypes --validate --subchain-length 300 -k haplotype-sampling/HG003.kff --include-reference -g direct.gbz full.gbz
+nvg haplotypes --validate --subchain-length 300 -k haplotype-sampling/HG003.kff --include-reference -g direct.gbz full.gbz
 is $? 0 "sampling the haplotypes directly"
 cmp indirect.gbz direct.gbz
 is $? 0 "the outputs are identical"
 
 # Sample without reference
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff -g no_ref.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff -g no_ref.gbz full.gbz
 is $? 0 "sampling without adding reference"
-is $(vg gbwt -S -Z no_ref.gbz) 1 "1 sample"
-is $(vg gbwt -C -Z no_ref.gbz) 2 "2 contigs"
-is $(vg gbwt -H -Z no_ref.gbz) 4 "4 haplotypes"
+is $(nvg gbwt -S -Z no_ref.gbz) 1 "1 sample"
+is $(nvg gbwt -C -Z no_ref.gbz) 2 "2 contigs"
+is $(nvg gbwt -H -Z no_ref.gbz) 4 "4 haplotypes"
 
 # Sample banning the selection of CHM13
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --ban-sample CHM13 -g ban_ref.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --ban-sample CHM13 -g ban_ref.gbz full.gbz
 is $? 0 "sampling banning the selection of CHM13"
 cmp ban_ref.gbz no_ref.gbz > /dev/null
 is $? 1 "the output changes"
 
 # Sample a contig using the high-coverage model
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 -g hicov.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 -g hicov.gbz full.gbz
 is $? 0 "sampling with a high-coverage contig"
 cmp hicov.gbz no_ref.gbz
 is $? 1 "the high-coverage model changes the output"
 
 # The high-coverage haplotype count applies to high-coverage contigs
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 --high-cov-num-haps 8 -g hicov8.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 --high-cov-num-haps 8 -g hicov8.gbz full.gbz
 is $? 0 "sampling with a high-coverage contig and 8 haplotypes"
-is $([ $(vg gbwt -H -Z hicov8.gbz) -gt $(vg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "more haplotypes are generated for the high-coverage contig"
+is $([ $(nvg gbwt -H -Z hicov8.gbz) -gt $(nvg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "more haplotypes are generated for the high-coverage contig"
 
 # A high-coverage contig can be selected by PanSN-style name
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig GRCh38#0#chr6 -g hicov_pansn.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig GRCh38#0#chr6 -g hicov_pansn.gbz full.gbz
 is $? 0 "sampling with a high-coverage contig by PanSN name"
 cmp hicov_pansn.gbz hicov.gbz
 is $? 0 "plain and PanSN contig names produce identical output"
 
 # Selecting an unknown high-coverage contig fails
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig no_such_contig -g /dev/null full.gbz 2> hicov_log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig no_such_contig -g /dev/null full.gbz 2> hicov_log.txt
 is $? 1 "an unknown high-coverage contig fails"
 is $(grep -c "found 0 chains for contig" hicov_log.txt) 1 "an appropriate error message is printed"
 
 # Sample a contig using the half-coverage model
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig chr6 -g halfcov.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig chr6 -g halfcov.gbz full.gbz
 is $? 0 "sampling with a half-coverage contig"
 cmp halfcov.gbz no_ref.gbz
 is $? 1 "the half-coverage model changes the output"
 
 # The half-coverage haplotype count applies to half-coverage contigs
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig chr6 --half-cov-num-haps 6 -g halfcov6.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig chr6 --half-cov-num-haps 6 -g halfcov6.gbz full.gbz
 is $? 0 "sampling with a half-coverage contig and 6 haplotypes"
-is $([ $(vg gbwt -H -Z halfcov6.gbz) -gt $(vg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "more haplotypes are generated for the half-coverage contig"
+is $([ $(nvg gbwt -H -Z halfcov6.gbz) -gt $(nvg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "more haplotypes are generated for the half-coverage contig"
 
 # A half-coverage contig can be selected by PanSN-style name
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig GRCh38#0#chr6 -g halfcov_pansn.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --half-cov-contig GRCh38#0#chr6 -g halfcov_pansn.gbz full.gbz
 is $? 0 "sampling with a half-coverage contig by PanSN name"
 cmp halfcov_pansn.gbz halfcov.gbz
 is $? 0 "plain and PanSN contig names produce identical output for half-coverage"
 
 # A contig cannot be both high-coverage and half-coverage
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 --half-cov-contig chr6 -g /dev/null full.gbz 2> bothcov_log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --high-cov-contig chr6 --half-cov-contig chr6 -g /dev/null full.gbz 2> bothcov_log.txt
 is $? 1 "a contig cannot be both high-coverage and half-coverage"
 is $(grep -c "both high-coverage and half-coverage" bothcov_log.txt) 1 "an appropriate error message is printed"
 
 # Exclude a contig from personalization using a plain contig name.
 # The excluded chain is copied through verbatim, preserving all of its original
 # haplotypes, so the output has more haplotypes than plain sampling.
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig chr6 -g exclude.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig chr6 -g exclude.gbz full.gbz
 is $? 0 "sampling with an excluded contig"
 cmp exclude.gbz no_ref.gbz
 is $? 1 "excluding a contig changes the output"
-is $([ $(vg gbwt -C -Z exclude.gbz) -gt $(vg gbwt -C -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "excluding a contig preserves its original contig names"
-is $([ $(vg gbwt -H -Z exclude.gbz) -gt $(vg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "excluding a contig preserves its original haplotypes"
+is $([ $(nvg gbwt -C -Z exclude.gbz) -gt $(nvg gbwt -C -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "excluding a contig preserves its original contig names"
+is $([ $(nvg gbwt -H -Z exclude.gbz) -gt $(nvg gbwt -H -Z no_ref.gbz) ] && echo 1 || echo 0) 1 "excluding a contig preserves its original haplotypes"
 
 # Excluding a contig by PanSN-style name resolves to the same chain
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig GRCh38#0#chr6 -g exclude_pansn.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig GRCh38#0#chr6 -g exclude_pansn.gbz full.gbz
 is $? 0 "sampling with an excluded contig by PanSN name"
 cmp exclude_pansn.gbz exclude.gbz
 is $? 0 "plain and PanSN contig names produce identical output"
 
 # Excluding an unknown contig fails
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig no_such_contig -g /dev/null full.gbz 2> exclude_log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --exclude-contig no_such_contig -g /dev/null full.gbz 2> exclude_log.txt
 is $? 1 "excluding an unknown contig fails"
 is $(grep -c "found 0 chains for contig" exclude_log.txt) 1 "an appropriate error message is printed"
 
@@ -120,71 +120,71 @@ is $(grep -c "found 0 chains for contig" exclude_log.txt) 1 "an appropriate erro
 # reference-including baseline so we can also check the reference path is intact.
 # --validate is not used here: wrapping intentionally adds an origin-spanning
 # edge that is absent from the source graph, which the validator would reject.
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference -g wrap_base.gbz full.gbz
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --wrap chr6 -g wrap.gbz full.gbz
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference -g wrap_base.gbz full.gbz
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --wrap chr6 -g wrap.gbz full.gbz
 is $? 0 "sampling with a wrapped contig"
 cmp wrap.gbz wrap_base.gbz
 is $? 1 "wrapping a contig changes the output"
-is $(vg paths -E -x wrap.gbz | awk '$1 == "recombination#1#chr6#0" {print $2}') $(echo "2 * $(vg paths -E -x wrap_base.gbz | awk '$1 == "recombination#1#chr6#0" {print $2}')" | bc) "the wrapped haplotype is exactly doubled"
-is "$(vg paths -E -x wrap.gbz | grep 'recombination.*chr19')" "$(vg paths -E -x wrap_base.gbz | grep 'recombination.*chr19')" "haplotypes on an unwrapped contig are unchanged"
-is "$(vg paths -E -x wrap.gbz | grep 'GRCh38#0#chr6')" "$(vg paths -E -x wrap_base.gbz | grep 'GRCh38#0#chr6')" "the reference path on the wrapped contig is unchanged"
+is $(nvg paths -E -x wrap.gbz | awk '$1 == "recombination#1#chr6#0" {print $2}') $(echo "2 * $(nvg paths -E -x wrap_base.gbz | awk '$1 == "recombination#1#chr6#0" {print $2}')" | bc) "the wrapped haplotype is exactly doubled"
+is "$(nvg paths -E -x wrap.gbz | grep 'recombination.*chr19')" "$(nvg paths -E -x wrap_base.gbz | grep 'recombination.*chr19')" "haplotypes on an unwrapped contig are unchanged"
+is "$(nvg paths -E -x wrap.gbz | grep 'GRCh38#0#chr6')" "$(nvg paths -E -x wrap_base.gbz | grep 'GRCh38#0#chr6')" "the reference path on the wrapped contig is unchanged"
 
 # Wrapping a contig by PanSN-style name resolves to the same chain
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --wrap GRCh38#0#chr6 -g wrap_pansn.gbz full.gbz
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --wrap GRCh38#0#chr6 -g wrap_pansn.gbz full.gbz
 is $? 0 "sampling with a wrapped contig by PanSN name"
 cmp wrap_pansn.gbz wrap.gbz
 is $? 0 "plain and PanSN wrap contig names produce identical output"
 
 # Wrapping an unknown contig fails
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --wrap no_such_contig -g /dev/null full.gbz 2> wrap_log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --wrap no_such_contig -g /dev/null full.gbz 2> wrap_log.txt
 is $? 1 "wrapping an unknown contig fails"
 is $(grep -c "found 0 chains for contig" wrap_log.txt) 1 "an appropriate error message is printed"
 
 # Wrapping and excluding the same contig fails
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --wrap chr6 --exclude-contig chr6 -g /dev/null full.gbz 2> wrap_exclude_log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --wrap chr6 --exclude-contig chr6 -g /dev/null full.gbz 2> wrap_exclude_log.txt
 is $? 1 "wrapping and excluding the same contig fails"
 is $(grep -c "cannot be both wrapped and excluded" wrap_exclude_log.txt) 1 "an appropriate error message is printed"
 
 # Diploid sampling
-vg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --diploid-sampling -g diploid.gbz full.gbz
+nvg haplotypes --validate -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --diploid-sampling -g diploid.gbz full.gbz
 is $? 0 "diploid sampling"
-is $(vg gbwt -S -Z diploid.gbz) 3 "1 generated + 2 reference samples"
-is $(vg gbwt -C -Z diploid.gbz) 2 "2 contigs"
-is $(vg gbwt -H -Z diploid.gbz) 4 "2 generated + 2 reference haplotypes"
+is $(nvg gbwt -S -Z diploid.gbz) 3 "1 generated + 2 reference samples"
+is $(nvg gbwt -C -Z diploid.gbz) 2 "2 contigs"
+is $(nvg gbwt -H -Z diploid.gbz) 4 "2 generated + 2 reference haplotypes"
 
 # Diploid sampling using a preset
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --preset diploid -g diploid2.gbz full.gbz
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --preset diploid -g diploid2.gbz full.gbz
 is $? 0 "diploid sampling using a preset"
 cmp diploid.gbz diploid2.gbz
 is $? 0 "the outputs are identical"
 
 # Diploid sampling with a specified reference sample
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --diploid-sampling --set-reference GRCh38 -g diploid3.gbz full.gbz
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff --include-reference --diploid-sampling --set-reference GRCh38 -g diploid3.gbz full.gbz
 is $? 0 "diploid sampling with a specified reference sample"
-is $(vg gbwt -S -Z diploid3.gbz) 2 "1 generated + 1 reference samples"
-is $(vg gbwt -C -Z diploid3.gbz) 2 "2 contigs"
-is $(vg gbwt -H -Z diploid3.gbz) 3 "2 generated + 1 reference haplotypes"
+is $(nvg gbwt -S -Z diploid3.gbz) 2 "1 generated + 1 reference samples"
+is $(nvg gbwt -C -Z diploid3.gbz) 2 "2 contigs"
+is $(nvg gbwt -H -Z diploid3.gbz) 3 "2 generated + 1 reference haplotypes"
 
 # Sampling with a gref reference. Build a gref version of the test graph; -l 1 keeps
 # every fragment so the length filter has something to act on.
-vg paths -x haplotype-sampling/micb-kir3dl1.gfa --compute-gref -Q GRCh38 -l 1 > gref.pg
+nvg paths -x haplotype-sampling/micb-kir3dl1.gfa --compute-gref -Q GRCh38 -l 1 > gref.pg
 is $? 0 "computing a gref cover on the test graph"
-vg convert -f gref.pg > gref.gfa
-vg gbwt -G gref.gfa --gbz-format -g gref.gbz -r gref.ri
-vg index -j gref.dist gref.gbz
-vg haplotypes --validate --subchain-length 300 -H gref.hapl gref.gbz
+nvg convert -f gref.pg > gref.gfa
+nvg gbwt -G gref.gfa --gbz-format -g gref.gbz -r gref.ri
+nvg index -j gref.dist gref.gbz
+nvg haplotypes --validate --subchain-length 300 -H gref.hapl gref.gbz
 is $? 0 "generating haplotype information for the gref graph"
 
 # Same GBZ, same haplotype information, same kmers: only the reference sample differs.
-vg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
+nvg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
     --set-reference GRCh38 -g gref_base.gbz gref.gbz
 is $? 0 "sampling the gref graph with the base reference"
-vg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
+nvg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
     --set-reference gref_GRCh38 --min-gref-len 1 -g gref_ref.gbz gref.gbz
 is $? 0 "sampling the gref graph with the gref reference"
 
 # The gref reference must not change the topology: same nodes and same edges.
-topology() { vg convert --no-translation -f "$1" | awk '$1=="S" || $1=="L"' | sort; }
+topology() { nvg convert --no-translation -f "$1" | awk '$1=="S" || $1=="L"' | sort; }
 cmp -s <(topology gref_base.gbz) <(topology gref_ref.gbz)
 is $? 0 "the gref reference gives the same nodes and edges as the base reference"
 
@@ -197,42 +197,42 @@ bad_gref_pieces() {
 }
 
 # The gref fragments survive, clipped, and only with the gref reference.
-is $(vg paths -L -x gref_base.gbz | grep -c '_alt') 0 "no gref fragments without the gref reference"
-is $([ $(vg paths -L -x gref_ref.gbz | grep -c '_alt\[') -gt 0 ] && echo 1 || echo 0) 1 "gref fragments are clipped into subranges"
-vg paths -F -x gref.gbz -Q gref_ > gref.fa
-vg paths -F -x gref_ref.gbz -Q gref_ > gref_ref.fa
+is $(nvg paths -L -x gref_base.gbz | grep -c '_alt') 0 "no gref fragments without the gref reference"
+is $([ $(nvg paths -L -x gref_ref.gbz | grep -c '_alt\[') -gt 0 ] && echo 1 || echo 0) 1 "gref fragments are clipped into subranges"
+nvg paths -F -x gref.gbz -Q gref_ > gref.fa
+nvg paths -F -x gref_ref.gbz -Q gref_ > gref_ref.fa
 is "$(bad_gref_pieces gref.fa gref_ref.fa)" "" "every gref piece spells its fragment from its subrange start"
 
 # Re-sampling keeps the offsets relative to the original fragment.
-vg gbwt -Z gref_ref.gbz -r gref_ref.ri
-vg index -j gref_ref.dist gref_ref.gbz
-vg haplotypes -k haplotype-sampling/HG003.kff --include-reference --num-haplotypes 2 --min-gref-len 1 -g gref_ref2.gbz gref_ref.gbz
+nvg gbwt -Z gref_ref.gbz -r gref_ref.ri
+nvg index -j gref_ref.dist gref_ref.gbz
+nvg haplotypes -k haplotype-sampling/HG003.kff --include-reference --num-haplotypes 2 --min-gref-len 1 -g gref_ref2.gbz gref_ref.gbz
 is $? 0 "re-sampling the gref-sampled graph"
-vg paths -F -x gref_ref2.gbz -Q gref_ > gref_ref2.fa
+nvg paths -F -x gref_ref2.gbz -Q gref_ > gref_ref2.fa
 is "$(bad_gref_pieces gref.fa gref_ref2.fa)" "" "re-sampled gref pieces keep offsets relative to the original fragment"
 
 # The length filter drops fragments without touching the topology.
-vg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
+nvg haplotypes --validate -i gref.hapl -k haplotype-sampling/HG003.kff --include-reference \
     --set-reference gref_GRCh38 --min-gref-len 1000000 -g gref_long.gbz gref.gbz
-is $(vg paths -L -x gref_long.gbz | grep -c '_alt') 0 "--min-gref-len drops short gref fragments"
+is $(nvg paths -L -x gref_long.gbz | grep -c '_alt') 0 "--min-gref-len drops short gref fragments"
 cmp -s <(topology gref_base.gbz) <(topology gref_long.gbz)
 is $? 0 "dropping gref fragments keeps the topology"
 
 # A non-PanSN reference whose gref copy comes first in path order (gref_x6 before x6): the
 # chains, and so the generated haplotypes, must still be named after the reference, and the
 # reference paths must keep their subranges.
-vg convert -W -f haplotype-sampling/micb-kir3dl1.gfa | sed -e '/^H/d' -e 's/^\(P.\)GRCh38#0#chr/\1x/' > generic.gfa
-vg paths -x generic.gfa --compute-gref -Q x -l 1 > generic.pg
-vg convert -f generic.pg > generic_gref.gfa
-vg gbwt -G generic_gref.gfa --gbz-format -g generic.gbz -r generic.ri
-vg index -j generic.dist generic.gbz
-vg haplotypes --validate --subchain-length 300 -k haplotype-sampling/HG003.kff --include-reference --min-gref-len 1 -g generic_out.gbz generic.gbz
-is $(vg paths -L -x generic_out.gbz | grep -c '^recombination#[0-9]*#x[0-9]*#') 8 "a generic gref reference does not rename the generated haplotypes"
-is "$(vg paths -L -x generic_out.gbz | grep -v '_alt' | grep -v '^recombination' | sort)" "$(vg paths -L -x generic.gbz | grep -v '_alt' | grep -v '#' | sort)" "generic reference paths keep their subranges"
+nvg convert -W -f haplotype-sampling/micb-kir3dl1.gfa | sed -e '/^H/d' -e 's/^\(P.\)GRCh38#0#chr/\1x/' > generic.gfa
+nvg paths -x generic.gfa --compute-gref -Q x -l 1 > generic.pg
+nvg convert -f generic.pg > generic_gref.gfa
+nvg gbwt -G generic_gref.gfa --gbz-format -g generic.gbz -r generic.ri
+nvg index -j generic.dist generic.gbz
+nvg haplotypes --validate --subchain-length 300 -k haplotype-sampling/HG003.kff --include-reference --min-gref-len 1 -g generic_out.gbz generic.gbz
+is $(nvg paths -L -x generic_out.gbz | grep -c '^recombination#[0-9]*#x[0-9]*#') 8 "a generic gref reference does not rename the generated haplotypes"
+is "$(nvg paths -L -x generic_out.gbz | grep -v '_alt' | grep -v '^recombination' | sort)" "$(nvg paths -L -x generic.gbz | grep -v '_alt' | grep -v '#' | sort)" "generic reference paths keep their subranges"
 
 # Giraffe integration, guessed output name
 rm -f full.HG003.* default.gam
-vg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
+nvg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
     -f haplotype-sampling/HG003.fq.gz > default.gam 2> /dev/null
 is $? 0 "Giraffe integration with a guessed output name"
 cmp diploid.gbz full.HG003.gbz
@@ -240,7 +240,7 @@ is $? 0 "the sampled graph is identical to a manually sampled one"
 
 # Giraffe integration, specified output name
 rm -f sampled.003HG.* specified.gam
-vg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
+nvg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
     --index-basename sampled -N 003HG \
     -f haplotype-sampling/HG003.fq.gz > specified.gam 2> /dev/null
 is $? 0 "Giraffe integration with a specified output name"
@@ -249,7 +249,7 @@ is $? 0 "the sampled graphs are identical"
 
 # Giraffe integration, specified reference sample
 rm -f GRCh38.HG003.* HG003_GRCh38.gam
-vg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
+nvg giraffe --progress -Z full.gbz --haplotype-name full.hapl --kff-name haplotype-sampling/HG003.kff \
     --index-basename GRCh38 -N HG003 --set-reference GRCh38 \
     -f haplotype-sampling/HG003.fq.gz > HG003_GRCh38.gam 2> /dev/null
 is $? 0 "Giraffe integration with a specified reference sample"
@@ -260,21 +260,21 @@ is $? 0 "the sampled graph is identical to a manually sampled one"
 # Providing --kff-name without --haplotype-name implies haplotype sampling;
 # the haplotype index (.hapl) is built by the IndexRegistry from the GBZ.
 rm -f auto_hapl.HG003.* auto_hapl.gam auto_hapl.dist
-vg giraffe --progress -Z full.gbz --kff-name haplotype-sampling/HG003.kff \
+nvg giraffe --progress -Z full.gbz --kff-name haplotype-sampling/HG003.kff \
     --index-basename auto_hapl -N HG003 \
     -f haplotype-sampling/HG003.fq.gz > auto_hapl.gam 2> /dev/null
 is $? 0 "Giraffe builds haplotype index automatically"
-is "$(vg gbwt -H -Z auto_hapl.HG003.gbz)" 4 "auto-built hapl produces 2 diploid + 2 reference haplotypes"
+is "$(nvg gbwt -H -Z auto_hapl.HG003.gbz)" 4 "auto-built hapl produces 2 diploid + 2 reference haplotypes"
 
 # Giraffe integration, kmer counting done automatically from reads.
 # Providing --haplotype-name without --kff-name implies haplotype sampling;
 # the kmer counts (.kff) are built by the IndexRegistry from the reads using kmc.
 rm -f auto_kff.HG003.* auto_kff.gam auto_kff.dist
-vg giraffe --progress -Z full.gbz --haplotype-name full.hapl \
+nvg giraffe --progress -Z full.gbz --haplotype-name full.hapl \
     --index-basename auto_kff -N HG003 \
     -f haplotype-sampling/HG003.fq.gz -o gaf > auto_kff.gaf 2> /dev/null
 is $? 0 "Giraffe counts kmers from reads automatically"
-is "$(vg gbwt -H -Z auto_kff.HG003.gbz)" 4 "auto kmer counting produces 2 diploid + 2 reference haplotypes"
+is "$(nvg gbwt -H -Z auto_kff.HG003.gbz)" 4 "auto kmer counting produces 2 diploid + 2 reference haplotypes"
 
 # KMC prints statistics to stdout.
 # Check that the stats are not included in the alignment output.
@@ -284,30 +284,30 @@ rm -f auto_kff.gaf
 # Giraffe integration, fully automatic: both hapl and kff are built by the
 # IndexRegistry. Triggered by --haplotype-sampling without either input file.
 rm -f auto_all.HG003.* auto_all.gam auto_all.dist
-vg giraffe --progress -Z full.gbz --haplotype-sampling \
+nvg giraffe --progress -Z full.gbz --haplotype-sampling \
     --index-basename auto_all -N HG003 \
     -f haplotype-sampling/HG003.fq.gz > auto_all.gam 2> /dev/null
 is $? 0 "Giraffe does fully automatic haplotype sampling"
-is "$(vg gbwt -H -Z auto_all.HG003.gbz)" 4 "fully automatic haplotype sampling produces 2 diploid + 2 reference haplotypes"
+is "$(nvg gbwt -H -Z auto_all.HG003.gbz)" 4 "fully automatic haplotype sampling produces 2 diploid + 2 reference haplotypes"
 
 # Giraffe integration, non-diploid
 rm -f auto_nondip.HG003.* auto_nondip.gam auto_nondip.dist
-vg giraffe --progress -Z full.gbz --haplotype-sampling --no-diploid-sampling --num-haplotypes 3 \
+nvg giraffe --progress -Z full.gbz --haplotype-sampling --no-diploid-sampling --num-haplotypes 3 \
     --index-basename auto_nondip -N HG003 \
     -f haplotype-sampling/HG003.fq.gz > auto_nondip.gam 2> /dev/null
 is $? 0 "Giraffe does non-diploid haplotype sampling"
-is "$(vg gbwt -H -Z auto_nondip.HG003.gbz)" 5 "non-diploid haplotype sampling sampling produces 3 requested + 2 reference haplotypes"
+is "$(nvg gbwt -H -Z auto_nondip.HG003.gbz)" 5 "non-diploid haplotype sampling sampling produces 3 requested + 2 reference haplotypes"
 
 # Giraffe integration, single reference
 rm -f auto_oneref.HG003.* auto_oneref.gam auto_oneref.dist
-vg giraffe --progress -Z full.gbz --haplotype-sampling --set-reference GRCh38 \
+nvg giraffe --progress -Z full.gbz --haplotype-sampling --set-reference GRCh38 \
     --index-basename auto_oneref -N HG003 \
     -f haplotype-sampling/HG003.fq.gz > auto_oneref.gam 2> /dev/null
 is $? 0 "Giraffe does haplotype sampling when setting reference"
-is "$(vg gbwt -H -Z auto_oneref.HG003.gbz)" 3 "setting reference produces 2 diploid + 1 reference haplotypes"
+is "$(nvg gbwt -H -Z auto_oneref.HG003.gbz)" 3 "setting reference produces 2 diploid + 1 reference haplotypes"
 
 # Attempts to use mismatched files fail
-vg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff -g /dev/null diploid.gbz 2> log.txt
+nvg haplotypes -i full.hapl -k haplotype-sampling/HG003.kff -g /dev/null diploid.gbz 2> log.txt
 is $? 1 "sampling with mismatched GBZ and haplotype information fails"
 is $(grep -c "error.*are not compatible" log.txt) 1 "an appropriate error message is printed"
 

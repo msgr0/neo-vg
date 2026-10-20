@@ -1,4 +1,4 @@
-// snarl_main.cpp: define the "vg snarls" subcommand, which outputs snarls and bubbles
+// snarl_main.cpp: define the "nvg snarls" subcommand, which outputs snarls and bubbles
 
 #include <omp.h>
 #include <unistd.h>
@@ -48,7 +48,7 @@ void help_snarl(char** argv) {
          << "traversals output options (note that these have no effect on the " << endl
          << "stdout .pb file):" << endl
          << "  -r, --traversals OUTFILE  output SnarlTraversals for ultrabubbles" << endl
-         << "                            to OUTFILE (inspect with vg view -Ej)" << endl
+         << "                            to OUTFILE (inspect with nvg view -Ej)" << endl
          << "  -e, --path-traversals     only consider traversals that correspond to paths in" << endl
          << "                            the graph (-m ignored)" << endl
          << "  -l, --leaf-only           limit --traversals output to leaf ultrabubbles" << endl
@@ -64,7 +64,7 @@ void help_snarl(char** argv) {
 }
 
 int main_snarl(int argc, char** argv) {
-    Logger logger("vg snarls");
+    Logger logger("nvg snarls");
 
     if (argc == 2) {
         help_snarl(argv);
@@ -100,7 +100,6 @@ int main_snarl(int argc, char** argv) {
             {
                 {"algorithm", required_argument, 0, 'A'},
                 {"traversals", required_argument, 0, 'r'},
-                {"pathnames", no_argument, 0, 'p'},
                 {"leaf-only", no_argument, 0, 'l'},
                 {"top-level", no_argument, 0, 'o'},
                 {"any-snarl-type", no_argument, 0, 'a'},
@@ -121,7 +120,7 @@ int main_snarl(int argc, char** argv) {
 
         int option_index = 0;
 
-        c = getopt_long (argc, argv, "A:sr:laTopm:nv:f:i:ew:P:h?t:",
+        c = getopt_long (argc, argv, "A:sr:laTom:nv:f:i:ew:P:h?t:",
                          long_options, &option_index);
 
         /* Detect the end of the options. */
@@ -165,9 +164,6 @@ int main_snarl(int argc, char** argv) {
             
         case 's':
             sort_snarls = true;
-            break;
-        case 'p':
-            logger.error() << "vg snarls --pathnames has been removed" << endl;
             break;
         case 'v':
             vcf_filename = require_exists(logger, optarg);

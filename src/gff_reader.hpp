@@ -33,8 +33,6 @@ namespace vg {
         bool strand_is_rev = false;
         int32_t phase = -1;
         string attributes;
-        
-        map<string, string> parse_attributes();
     };
     
     /**

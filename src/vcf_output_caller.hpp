@@ -64,7 +64,7 @@ public:
 
     /// Enable post-genotyping merging of near-identical called ALT alleles, so that a 1/2 call of
     /// two effectively-identical alleles collapses to 1/1 with a single ALT.  Uses the same
-    /// similarity metric and the same core-length gate as "vg deconstruct -L/--cluster-min-len" (a
+    /// similarity metric and the same core-length gate as "nvg deconstruct -L/--cluster-min-len" (a
     /// length-weighted Jaccard, except that a pure deletion is scored against the site -- see
     /// weighted_traversal_similarity).  The gate is applied to the alleles each tool emits, and
     /// those sets differ, so the two can disagree at a given site:

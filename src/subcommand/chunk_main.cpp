@@ -1,4 +1,4 @@
-// chunk_main.cpp: define the "vg chunk" subcommand, which chunks up vg graphs
+// chunk_main.cpp: define the "nvg chunk" subcommand, which chunks up vg graphs
 // some similar logic to vg find, but focussed on generating multiple chunks
 // at once. 
 
@@ -17,7 +17,6 @@
 #include <vg/io/stream.hpp>
 #include <vg/io/stream_multiplexer.hpp>
 #include <vg/io/vpkg.hpp>
-#include "../convert.hpp"
 #include "../utility.hpp"
 #include "../chunker.hpp"
 #include "../stream_index.hpp"
@@ -121,7 +120,7 @@ void help_chunk(char** argv) {
 }
 
 int main_chunk(int argc, char** argv) {
-    Logger logger("vg chunk");
+    Logger logger("nvg chunk");
 
     if (argc == 2) {
         help_chunk(argv);
@@ -605,11 +604,11 @@ int main_chunk(int argc, char** argv) {
                     Region region;
                     vector<string> parts = split_delims(range, ":");
                     if (parts.size() == 1) {
-                        vg::convert(parts.front(), region.start);
+                        convert(parts.front(), region.start);
                         region.end = region.start;
                     } else {
-                        vg::convert(parts.front(), region.start);
-                        vg::convert(parts.back(), region.end);
+                        convert(parts.front(), region.start);
+                        convert(parts.back(), region.end);
                     }
                     regions.push_back(region);
                 }

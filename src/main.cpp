@@ -23,7 +23,7 @@ using namespace vg;
 
 
 void vg_help(char** argv) {
-    cerr << "vg: variation graph tool, version " << Version::get_short() << endl
+    cerr << "nvg: variation graph tool, version " << Version::get_short() << endl
          << endl
          << "usage: " << argv[0] << " <command> [options]" << endl
          << endl
@@ -38,13 +38,13 @@ void vg_help(char** argv) {
         cerr << "  -- " << name << command.get_description() << endl;
      });
      
-     cerr << endl << "For more commands, type `vg help`." << endl;
+     cerr << endl << "For more commands, type `nvg help`." << endl;
      cerr << "For technical support, please visit: https://www.biostars.org/tag/vg/" << endl << endl;
  }
 
 /// Main entry point once we know we're on a supported CPU.
 int vg_main(int argc, char *argv[]) {
-    Logger logger("vg");
+    Logger logger("nvg");
 
     // Make sure we configure the memory allocator appropriately for our environment
     AllocatorConfig::configure();

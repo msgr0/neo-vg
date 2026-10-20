@@ -36,8 +36,8 @@ Can be generated like this:
     
 Simulated reads can then be generated like this:
 
-    vg construct -r hs37d5.fa >graph.vg
-    vg sim -x graph.vg -l 150 -p 500 -v 5 -n 10000 -P MT -a >sim.gam
-    vg view -aXi sim.gam >sim.fq
+    nvg construct -r hs37d5.fa >graph.vg
+    nvg sim -x graph.vg -l 150 -p 500 -v 5 -n 10000 -P MT -a >sim.gam
+    nvg view -aXi sim.gam >sim.fq
     
 Since the contigs are short, we probably won't actually get 500 bp read separation.

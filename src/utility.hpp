@@ -44,7 +44,6 @@ int get_thread_count(void);
 /// /proc.
 void choose_good_thread_count();
 string wrap_text(const string& str, size_t width);
-bool is_number(const string& s);
 /// Return a copy of the given string with all characters lowercased,
 /// using the C locale for the conversion.
 std::string to_lower(const std::string& s);
@@ -69,8 +68,6 @@ bool ends_with(const std::string& value, const std::string& suffix);
 const std::string sha1sum(const std::string& data);
 const std::string sha1head(const std::string& data, size_t head);
 
-/// Return true if a character is an uppercase A, C, G, or T, and false otherwise.
-bool isATGC(char b);
 bool allATGC(const string& s);
 bool allATGCN(const string& s);
 string nonATGCNtoN(const string& s);
@@ -83,41 +80,6 @@ void toUppercaseInPlace(string& s);
 
 // write a fasta sqeuence
 void write_fasta_sequence(const std::string& name, const std::string& sequence, ostream& os, size_t width=80);
-
-
-
-template<typename T, typename V>
-set<T> map_keys_to_set(const map<T, V>& m) {
-    set<T> r;
-    for (auto p : m) r.insert(p.first);
-    return r;
-}
-
-// pairwise maximum
-template<typename T>
-vector<T> pmax(const std::vector<T>& a, const std::vector<T>& b) {
-    std::vector<T> c;
-    assert(a.size() == b.size());
-    c.reserve(a.size());
-    std::transform(a.begin(), a.end(), b.begin(),
-                   std::back_inserter(c),
-                   [](T a, T b) { return std::max<T>(a, b); });
-    return c;
-}
-
-// maximum of all vectors
-template<typename T>
-vector<T> vpmax(const std::vector<std::vector<T>>& vv) {
-    std::vector<T> c;
-    if (vv.empty()) return c;
-    c = vv.front();
-    typename std::vector<std::vector<T> >::const_iterator v = vv.begin();
-    ++v; // skip the first element
-    for ( ; v != vv.end(); ++v) {
-        c = pmax(c, *v);
-    }
-    return c;
-}
 
 /**
  * Compute the sum of the values in a collection. Values must be default-
@@ -207,68 +169,6 @@ void create_ref_allele(vcflib::Variant& variant, const std::string& allele);
 int add_alt_allele(vcflib::Variant& variant, const std::string& allele);
 
 /**
- * We have a transforming map function that we can chain.
- */ 
-template <template <class T, class A = std::allocator<T>> class Container, typename Input, typename Output>
-Container<Output> map_over(const Container<Input>& in, const std::function<Output(const Input&)>& lambda) {
-    Container<Output> to_return;
-    for (const Input& item : in) {
-        to_return.push_back(lambda(item));
-    }
-    return to_return;
-}
-
-/**
- * We have a wrapper of that to turn a container reference into a container of pointers.
- */
-template <template <class T, class A = std::allocator<T>> class Container, typename Item>
-Container<const Item*> pointerfy(const Container<Item>& in) {
-    return map_over<Container, Item, const Item*>(in, [](const Item& item) -> const Item* {
-        return &item;
-    });
-}
-
-// Simple little tree
-template<typename T>
-struct TreeNode {
-    T v;
-    vector<TreeNode<T>*> children;
-    TreeNode<T>* parent;
-    TreeNode() : parent(0) {}
-    ~TreeNode() { for (auto c : children) { delete c; } }
-    void for_each_preorder(function<void(TreeNode<T>*)> lambda) {
-        lambda(this);
-        for (auto c : children) {
-            c->for_each_preorder(lambda);
-        }
-    }
-    void for_each_postorder(function<void(TreeNode<T>*)> lambda) {
-        for (auto c : children) {
-            c->for_each_postorder(lambda);
-        }
-        lambda(this);
-    }
-};
-    
-
-    
-template<typename T>
-struct Tree {
-    typedef TreeNode<T> Node;
-    Node* root;
-    Tree(Node* r = 0) : root(r) { }
-    ~Tree() { delete root; }
-    void for_each_preorder(function<void(Node*)> lambda) {
-        if (root) root->for_each_preorder(lambda);
-    }
-    void for_each_postorder(function<void(Node*)> lambda) {
-       if (root) root->for_each_postorder(lambda);
-    }
-
-};
-
-
-/**
  * We want to be able to operate on reordered subset of things without moving
  * the originals, so we use this view over things stored in a vector.
  *
@@ -351,55 +251,6 @@ struct VectorView {
             return items->empty();
         } else {
             return true;
-        }
-    }
-    
-    /**
-     * Call the given callback with a dense and properly ordered vector of the items.
-     */
-    void with_vector(const std::function<void(const vector<Item>&)>& callback) const {
-        if (indexes) {
-            // We need to reorder
-            vector<Item> reordered;
-            reordered.reserve(indexes->size());
-            for (auto& i : *indexes) {
-                reordered.emplace_back((*items)[i]);
-            }
-            callback(reordered);
-        } else if (items) {
-            // We already have this
-            callback(*items);
-        } else {
-            // We have no items at all.
-            return callback({});
-        }
-    }
-    
-    /**
-     * Call the given callback with a dense and properly ordered vector of the
-     * items, which can be modified. Modification will not be visible in
-     * the backing storage.
-     *
-     * TODO: will this be called even when the const version could be more
-     * efficiently used?
-     */
-    void with_vector(const std::function<void(vector<Item>&)>& callback) {
-        if (indexes) {
-            // We need to reorder
-            vector<Item> reordered;
-            reordered.reserve(indexes->size());
-            for (auto& i : *indexes) {
-                reordered.emplace_back((*items)[i]);
-            }
-            callback(reordered);
-        } else if (items) {
-            // We need a copy
-            std::vector<Item> clone(*items);
-            callback(clone);
-        } else {
-            // We have no items at all.
-            vector<Item> empty;
-            return callback(empty);
         }
     }
     
@@ -512,59 +363,6 @@ typename VectorView<Item>::const_iterator operator+(typename VectorView<Item>::c
 }
 
 /**
- * Represents the reverse of the view transformation used in a VectorView.
- *
- * Assumes we have the memory for a dense inverse, and that nobody will ever
- * ask about values that aren't actually in the view. If an item appears
- * multiple times, one index will win.
- *
- * If the VectorView's backing vectors are modified, the inverse will need to
- * be re-made.
- *
- * In keeping with VectorView's value semantics, the inverted VectorView does
- * not need to outlivce this object.
- */
-class VectorViewInverse {
-
-private:
-    /// Stores the index in the view at which each item in the backing storage appears.
-    vector<size_t> inverse;
-    
-public:
-    /// Default-construct an inverse of nothing
-    inline VectorViewInverse() : inverse() {
-        // Nothing to do!
-    };
-    
-    /// Invert the given VectorView.
-    template<typename Item>
-    inline VectorViewInverse(const VectorView<Item>& view) : inverse() {
-        if (view.indexes) {
-            // A transformation exists to invert.
-            // Make sure we have room for all the dense inverse values
-            inverse.resize(view.items->size());
-            for (size_t view_index = 0; view_index < view.indexes->size(); view_index++) {
-                // Save all the inverse references.
-                inverse[(*(view.indexes))[view_index]] = view_index;
-            }
-        }
-    };
-    
-    /**
-     * Get the view index from a backing index.
-     */
-    inline size_t operator[](size_t backing_index) {
-        if (inverse.empty()) {
-            // No transformation necessary.
-            return backing_index;
-        }
-        // Otherwise, look in the stored inverse and hope we asked for
-        // something actually in the view.
-        return inverse[backing_index];
-    }
-};
-
-/**
  * A vector of pointers that is wrapped so that the vector elements are returned
  * as references instead of pointers
  */
@@ -634,64 +432,11 @@ std::vector<size_t> sort_permutation(const Iterator& begin, const Iterator& end)
     });
 }
 
-/// Apply one permutation on top of another. Retutn the combined permutation.
-std::vector<size_t> stack_permutations(const std::vector<size_t>& bottom, const std::vector<size_t>& top);
-
-struct IncrementIter {
-public:
-    IncrementIter(size_t number) : current(number) {
-        
-    }
-    
-    inline IncrementIter& operator=(const IncrementIter& other) {
-        current = other.current;
-        return *this;
-    }
-    
-    inline bool operator==(const IncrementIter& other) const {
-        return current == other.current;
-    }
-    
-    inline bool operator!=(const IncrementIter& other) const {
-        return current != other.current;
-    }
-    
-    inline IncrementIter operator++() {
-        current++;
-        return *this;
-    }
-    
-    inline IncrementIter operator++( int ) {
-        IncrementIter temp = *this;
-        current++;
-        return temp;
-    }
-    
-    inline size_t operator*(){
-        return current;
-    }
-    
-private:
-    size_t current;
-};
-    
-size_t integer_power(size_t x, size_t power);
-
-/// Computes base^exponent in log(exponent) time
-size_t integer_power(uint64_t base, uint64_t exponent);
-/// Computes base^exponent mod modulus in log(exponent) time without requiring more
-/// than 64 bits to represent exponentiated number
-size_t modular_exponent(uint64_t base, uint64_t exponent, uint64_t modulus);
-
 /// Returns a uniformly random DNA sequence of the given length
 string random_sequence(size_t length);
 
 /// Returns a uniformly random DNA sequence sequence deterministically from a seed
 string pseudo_random_sequence(size_t length, uint64_t seed);
-
-/// Escape "%" to "%25"
-string percent_url_encode(const string& seq);
-string replace_in_string(string subject, const string& search, const string& replace);
 
 /// AN RNG that can skip initialization and any hashing of the seed until it is
 /// needed. Not thread safe, not even a little bit.
@@ -846,10 +591,6 @@ void get_input_file(int& optind, int argc, char** argv, function<void(istream&)>
 /// Parse out the name of an input file (i.e. the next positional argument), or
 /// throw an error. File name must be nonempty, but may be "-" or may not exist.
 string get_input_file_name(int& optind, int argc, char** argv, bool test_open = true);
-
-/// Parse out the name of an output file (i.e. the next positional argument), or
-/// throw an error. File name must be nonempty.
-string get_output_file_name(int& optind, int argc, char** argv);
 
 /// Get a callback with an istream& to an open file. Handles "-" as a filename as
 /// indicating standard input. The reference passed is guaranteed to be valid

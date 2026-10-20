@@ -1,6 +1,6 @@
 /** \file sim_main.cpp
  *
- * Defines the "vg sim" subcommand, which generates potential reads from a graph.
+ * Defines the "nvg sim" subcommand, which generates potential reads from a graph.
  */
 
 
@@ -73,7 +73,7 @@ vector<tuple<string, string, size_t>> parse_haplotype_transcript_file(const Logg
         }
         if (tokens.size() != 5) {
             logger.error() << "Cannot parse haplotype transcript file. "
-                           << "Expected 5-column TSV file as produced by vg rna -i, got "
+                           << "Expected 5-column TSV file as produced by nvg rna -i, got "
                            << tokens.size() << " columns." << std::endl;
         }
         // contributing haplotypes are separeted by commas
@@ -131,7 +131,7 @@ void help_sim(char** argv) {
          << "  -g, --gbwt-name FILE        use samples from this GBWT index" << endl
          << "  -T, --tx-expr-file FILE     simulate from an expression profile formatted as" << endl
          << "                              RSEM output (cannot also give -P)" << endl
-         << "  -H, --haplo-tx-file FILE    transcript origin info table from vg rna -i" << endl
+         << "  -H, --haplo-tx-file FILE    transcript origin info table from nvg rna -i" << endl
          << "                              (required for -T on haplotype transcripts)" << endl
          << "  -u, --unsheared             sample from unsheared fragments" << endl
          << "  -E, --path-pos-file FILE    output a TSV with sampled position on path" << endl
@@ -139,7 +139,7 @@ void help_sim(char** argv) {
 }
 
 int main_sim(int argc, char** argv) {
-    Logger logger("vg sim");
+    Logger logger("nvg sim");
 
     if (argc == 2) {
         help_sim(argv);
@@ -709,7 +709,7 @@ int main_sim(int argc, char** argv) {
                     logger.error() << "transcript path \"" << transcript_expression.first 
                                    << "\" not found in index. If you embedded haplotype-specific transcripts "
                                    << "in the graph, you may need the "
-                                   << "haplotype transcript file from vg rna -i" << std::endl;
+                                   << "haplotype transcript file from nvg rna -i" << std::endl;
                 }
             }
         }

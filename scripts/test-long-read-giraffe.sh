@@ -81,7 +81,7 @@ cd ..
 
 rm -f *.out
 JOB_ARGS=(-c16 --mem 400G --job-name zipcode-run)
-do_sbatch "time vg giraffe --parameter-preset lr --progress --track-provenance -Z ${GRAPH_BASE}.gbz -d ${GRAPH_BASE}.dist -m ${GRAPH_BASE}.${MINPARAMS}.withzip.min -z ${GRAPH_BASE}.${MINPARAMS}.zipcodes -G ${INPUT_READS} -t16 ${GIRAFFE_ARGS} >${GAM_FILE}"
+do_sbatch "time nvg giraffe --parameter-preset lr --progress --track-provenance -Z ${GRAPH_BASE}.gbz -d ${GRAPH_BASE}.dist -m ${GRAPH_BASE}.${MINPARAMS}.withzip.min -z ${GRAPH_BASE}.${MINPARAMS}.zipcodes -G ${INPUT_READS} -t16 ${GIRAFFE_ARGS} >${GAM_FILE}"
 
 swait
 
@@ -93,19 +93,19 @@ mkdir -p "${OUT_DIR}"
 
 JOB_ARGS=(-c 3 --mem 10G)
 for STAGE in minimizer seed tree fragment chain align winner ; do
-    [[ -e "${OUT_DIR}/read-time-${STAGE}.tsv" ]] || do_sbatch "set -e; vg view -aj "${GAM_FILE}" | jq -r '.annotation.stage_'${STAGE}'_time' >${OUT_DIR}/read-time-${STAGE}.tsv"
+    [[ -e "${OUT_DIR}/read-time-${STAGE}.tsv" ]] || do_sbatch "set -e; nvg view -aj "${GAM_FILE}" | jq -r '.annotation.stage_'${STAGE}'_time' >${OUT_DIR}/read-time-${STAGE}.tsv"
 done
-[[ -e "${OUT_DIR}/read-time-to-chain.tsv" ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.stage_minimizer_time + .annotation.stage_seed_time + .annotation.stage_bucket_time + .annotation.stage_fragment_time + .annotation.stage_chain_time' >${OUT_DIR}/read-time-to-chain.tsv"
+[[ -e "${OUT_DIR}/read-time-to-chain.tsv" ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.stage_minimizer_time + .annotation.stage_seed_time + .annotation.stage_bucket_time + .annotation.stage_fragment_time + .annotation.stage_chain_time' >${OUT_DIR}/read-time-to-chain.tsv"
 
     
 
-[[ -e "${OUT_DIR}"/read-best-chain-coverage.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_coverage' > ${OUT_DIR}/read-best-chain-coverage.tsv"
-[[ -e "${OUT_DIR}"/read-best-chain-longest-jump.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_longest_jump' > ${OUT_DIR}/read-best-chain-longest-jump.tsv"
-[[ -e "${OUT_DIR}"/read-best-chain-average-jump.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_average_jump' > ${OUT_DIR}/read-best-chain-average-jump.tsv"
-[[ -e "${OUT_DIR}"/read-best-chain-anchors.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_anchors' > ${OUT_DIR}/read-best-chain-anchors.tsv"
-[[ -e "${OUT_DIR}"/read-best-chain-anchor-length.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_anchor_length' > ${OUT_DIR}/read-best-chain-anchor-length.tsv"
-[[ -e "${OUT_DIR}"/read-score.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '.score // 0' > ${OUT_DIR}/read-score.tsv"
-[[ -e "${OUT_DIR}"/read-unclipped.tsv ]] || do_sbatch "set -e; vg view -aj ${GAM_FILE} | jq -r '1.0 - (([[.path.mapping[0].edit[0], .path.mapping[-1].edit[-1]][] | select(.from_length // 0 == 0) | select(.sequence) | .to_length] + [0] | add) / (.sequence | length))' > ${OUT_DIR}/read-unclipped.tsv"
+[[ -e "${OUT_DIR}"/read-best-chain-coverage.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_coverage' > ${OUT_DIR}/read-best-chain-coverage.tsv"
+[[ -e "${OUT_DIR}"/read-best-chain-longest-jump.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_longest_jump' > ${OUT_DIR}/read-best-chain-longest-jump.tsv"
+[[ -e "${OUT_DIR}"/read-best-chain-average-jump.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_average_jump' > ${OUT_DIR}/read-best-chain-average-jump.tsv"
+[[ -e "${OUT_DIR}"/read-best-chain-anchors.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_anchors' > ${OUT_DIR}/read-best-chain-anchors.tsv"
+[[ -e "${OUT_DIR}"/read-best-chain-anchor-length.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.annotation.best_chain_anchor_length' > ${OUT_DIR}/read-best-chain-anchor-length.tsv"
+[[ -e "${OUT_DIR}"/read-score.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '.score // 0' > ${OUT_DIR}/read-score.tsv"
+[[ -e "${OUT_DIR}"/read-unclipped.tsv ]] || do_sbatch "set -e; nvg view -aj ${GAM_FILE} | jq -r '1.0 - (([[.path.mapping[0].edit[0], .path.mapping[-1].edit[-1]][] | select(.from_length // 0 == 0) | select(.sequence) | .to_length] + [0] | add) / (.sequence | length))' > ${OUT_DIR}/read-unclipped.tsv"
 
 swait
 
@@ -137,8 +137,8 @@ done
 cat "${PLOT_DIR}/stats.tsv"
 
 JOB_ARGS=(-c16 --mem 20G)
-do_srun vg annotate -a ${GAM_FILE} -x ${GRAPH_BASE}.gbz -m >${GAM_FILE%.gam}.annotated.gam
-do_srun vg gamcompare --range 200 ${GAM_FILE%.gam}.annotated.gam ${INPUT_READS} -T -a "${CONDITION}" -o ${GAM_FILE%.gam}.compared.gam > ${GAM_FILE%.gam}.compared.tsv
+do_srun nvg annotate -a ${GAM_FILE} -x ${GRAPH_BASE}.gbz -m >${GAM_FILE%.gam}.annotated.gam
+do_srun nvg gamcompare --range 200 ${GAM_FILE%.gam}.annotated.gam ${INPUT_READS} -T -a "${CONDITION}" -o ${GAM_FILE%.gam}.compared.gam > ${GAM_FILE%.gam}.compared.tsv
 
 Rscript scripts/plot-pr.R ${GAM_FILE%.gam}.compared.tsv ${GAM_FILE%.gam}.alone.png
 

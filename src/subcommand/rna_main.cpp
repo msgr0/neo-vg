@@ -1,6 +1,6 @@
 /** \file rna_main.cpp
  *
- * Defines the "vg rna" subcommand.
+ * Defines the "nvg rna" subcommand.
  */
 
 #include <unistd.h>
@@ -74,7 +74,7 @@ void help_rna(char** argv) {
 }
 
 int32_t main_rna(int32_t argc, char** argv) {
-    Logger logger("vg rna");
+    Logger logger("nvg rna");
 
     if (argc == 2) {
         help_rna(argv);

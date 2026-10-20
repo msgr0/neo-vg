@@ -1,6 +1,6 @@
 /** \file view_main.cpp
  *
- * Defines the "vg view" subcommand, which converts formats.
+ * Defines the "nvg view" subcommand, which converts formats.
  */
 
 
@@ -37,7 +37,7 @@ void help_view(char** argv) {
          << "  -g, --gfa                 output GFA format (default)" << endl
          << "  -F, --gfa-in              input GFA format, reducing overlaps if they occur" << endl
 
-         << "  -v, --vg                  output VG format [DEPRECATED, use vg convert]" << endl
+         << "  -v, --vg                  output VG format [DEPRECATED, use nvg convert]" << endl
          << "  -V, --vg-in               input VG format only" << endl
 
          << "  -j, --json                output JSON format" << endl
@@ -50,7 +50,6 @@ void help_view(char** argv) {
          << "  -Z, --translation-in      input is a graph translation description" << endl
 
          << "  -t, --turtle              output RDF/turtle format (can not be loaded by VG)" << endl
-         << "  -T, --turtle-in           input turtle format." << endl
          << "  -r, --rdf-base-uri URI    set base uri for the RDF output" << endl
 
          << "  -a, --align-in            input GAM format, or JSON version of GAM format" << endl
@@ -82,9 +81,6 @@ void help_view(char** argv) {
          << "  -X, --fastq-out           output fastq (input defaults to GAM)" << endl
          << "  -i, --interleaved         fastq is interleaved paired-ended" << endl
 
-         << "  -L, --pileup              output VG Pileup format" << endl
-         << "  -l, --pileup-in           input VG Pileup format, or JSON version of it" << endl
-
          << "  -B, --distance-in         input distance index" << endl
          << "  -R, --snarl-in            input VG Snarl format" << endl
          << "  -E, --snarl-traversal-in  input VG SnarlTraversal format" << endl
@@ -103,7 +99,7 @@ void help_view(char** argv) {
 }
 
 int main_view(int argc, char** argv) {
-    Logger logger("vg view");
+    Logger logger("nvg view");
 
     if (argc == 2) {
         help_view(argv);
@@ -123,7 +119,6 @@ int main_view(int argc, char** argv) {
     // dot      N   N   N       N   N   N   N       N
     //
     // and json-gam -> gam
-    //     json-pileup -> pileup
 
     bool which_read_in_pair = true;
     string output_type;
@@ -180,12 +175,9 @@ int main_view(int argc, char** argv) {
                 {"interleaved", no_argument, 0, 'i'},
                 {"aln-graph", required_argument, 0, 'A'},
                 {"show-paths", no_argument, 0, 'p'},
-                {"turtle-in", no_argument, 0, 'T'},
                 {"walk-paths", no_argument, 0, 'w'},
                 {"annotate-paths", no_argument, 0, 'n'},
                 {"random-seed", required_argument, 0, 's'},
-                {"pileup", no_argument, 0, 'L'},
-                {"pileup-in", no_argument, 0, 'l'},
                 {"invert-ports", no_argument, 0, 'I'},
                 {"show-mappings", no_argument, 0, 'M'},
                 {"simple-dot", no_argument, 0, 'S'},
@@ -213,7 +205,7 @@ int main_view(int argc, char** argv) {
             };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "dgFjJh?vVpaGbifA:s:wnlLIMcTtr:SuCZYmqQ:zXBREDx:kKe7:",
+        c = getopt_long (argc, argv, "dgFjJh?vVpaGbifA:s:wnIMctr:SuCZYmqQ:zXBREDx:kKe7:",
                          long_options, &option_index);
 
         /* Detect the end of the options. */
@@ -289,7 +281,7 @@ int main_view(int argc, char** argv) {
             break;
 
         case 'J':
-            // -J can complement input GAM/Pileup, hence the extra logic here.
+            // -J can complement input GAM, hence the extra logic here.
             if (input_type.empty()) {
                 input_type = "json";
             }
@@ -319,9 +311,6 @@ int main_view(int argc, char** argv) {
 
         case 'r':
             rdf_base_uri = optarg;
-            break;
-        case 'T':
-            input_type= "turtle-in";
             break;
         case 'a':
             input_type = "gam";
@@ -365,18 +354,6 @@ int main_view(int argc, char** argv) {
 
         case 'I':
             invert_edge_ports_in_dot = true;
-            break;
-
-        case 'L':
-            output_type = "pileup";
-            break;
-
-        case 'l':
-            input_type = "pileup";
-            if (output_type.empty()) {
-                // Default to Pileup -> JSON
-                output_type = "json";
-            }
             break;
 
         case 'q':
@@ -488,7 +465,7 @@ int main_view(int argc, char** argv) {
         logger.error() << "no filename given" << endl;
     }
     if (output_type == "vg") {
-        logger.warn() << "vg-protobuf output (-v / --v) is deprecated. please use vg convert instead." << endl;
+        logger.warn() << "vg-protobuf output (-v / --v) is deprecated. please use nvg convert instead." << endl;
     }
     
     string file_name = get_input_file_name(optind, argc, argv);
@@ -587,15 +564,6 @@ int main_view(int argc, char** argv) {
                 use_graph(g);
             }
         }, false, !expect_duplicates);
-    } else if(input_type == "turtle-in") {
-        // TODO: Only vg::VG can load Turtle right now
-        graph = make_unique<VG>();
-        bool pre_compress=color_variants;
-        if (file_name == "-") {
-            dynamic_cast<vg::VG*>(graph.get())->from_turtle("/dev/stdin", rdf_base_uri);
-        } else {
-            dynamic_cast<vg::VG*>(graph.get())->from_turtle(file_name, rdf_base_uri);
-        }
     } else if (input_type == "gam") {
         if (!input_json) {
             if (output_type == "json") {
@@ -838,30 +806,6 @@ int main_view(int argc, char** argv) {
         } else {
             // We can't convert fastq to the other graph formats
             logger.error() << "FASTQ can only be converted to GAM" << endl;
-        }
-        cout.flush();
-        return 0;
-    } else if (input_type == "pileup") {
-        if (!input_json) {
-            if (output_type == "json") {
-                // convert values to printable ones
-                function<void(Pileup&)> lambda = [](Pileup& p) {
-                    cout << pb2json(p) << "\n";
-                };
-                get_input_file(file_name, [&](istream& in) {
-                    vg::io::for_each(in, lambda);
-                });
-            } else {
-                // todo
-                logger.error() << "(binary) Pileup can only be converted to JSON" << endl;
-            }
-        } else {
-            if (output_type == "json" || output_type == "pileup") {
-                vg::io::JSONStreamHelper<Pileup> json_helper(file_name);
-                json_helper.write(cout, output_type == "json");
-            } else {
-                logger.error() << "JSON Pileup can only be converted to Pileup or JSON" << endl;
-            }
         }
         cout.flush();
         return 0;

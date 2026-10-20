@@ -54,12 +54,13 @@ void help_mask(char** argv) {
          << "  -b, --bed FILE       BED regions corresponding to path intervals" << endl
          << "                       of the graph to target (required)" << endl
          << "  -g, --gbz-input      input graph is in GBZ format" << endl
-         << "  -s, --snarls FILE    snarls from vg snarls (computed directly if not provided)" << endl
+         << "  -s, --snarls FILE    snarls from nvg snarls" << endl
+         << "                       (computed directly if not provided)" << endl
          << "  -h, --help           print this help message to stderr and exit" << endl;
 }    
 
 int main_mask(int argc, char** argv) {
-    Logger logger("vg mask");
+    Logger logger("nvg mask");
     
     string bed_filepath;
     string snarls_filepath;
@@ -109,11 +110,11 @@ int main_mask(int argc, char** argv) {
     
     if (argc - optind != 1) {
         help_mask(argv);
-        logger.error() << "vg mask requires exactly 1 positional argument" << endl;
+        logger.error() << "nvg mask requires exactly 1 positional argument" << endl;
     }
 
     if (bed_filepath.empty()) {
-        logger.error() << "vg mask requires an input BED file from -b / --bed" << endl;
+        logger.error() << "nvg mask requires an input BED file from -b / --bed" << endl;
     }
     
     // load the graph

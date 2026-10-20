@@ -25,15 +25,6 @@
 [submodule "deps/sparsehash"]
 	path = deps/sparsehash
 	url = https://github.com/sparsehash/sparsehash.git
-[submodule "deps/DYNAMIC"]
-	path = deps/DYNAMIC
-	url = https://github.com/vgteam/DYNAMIC
-[submodule "deps/raptor"]
-	path = deps/raptor
-	url = https://github.com/vgteam/raptor.git
-[submodule "deps/Complete-Striped-Smith-Waterman-Library"]
-	path = deps/ssw
-	url = https://github.com/vgteam/Complete-Striped-Smith-Waterman-Library.git
 [submodule "deps/pinchesAndCacti"]
 	path = deps/pinchesAndCacti
 	url = https://github.com/benedictpaten/pinchesAndCacti.git
@@ -124,12 +115,6 @@
 [submodule "deps/GFAz"]
 	path = deps/GFAz
 	url = https://github.com/babyplutokurt/GFAz.git
-[submodule "deps/cairo"]
-	path = deps/cairo
-	url = https://gitlab.freedesktop.org/cairo/cairo.git
-[submodule "deps/pixman"]
-	path = deps/pixman
-	url = https://gitlab.freedesktop.org/pixman/pixman.git
 [submodule "deps/elfutils"]
 	path = deps/elfutils
 	url = https://github.com/vgteam/elfutils.git

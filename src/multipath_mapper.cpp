@@ -18,10 +18,6 @@
 #include <ctime>
 #endif
 
-#ifdef debug_check_adapters
-#include "ssw_aligner.hpp"
-#endif
-
 #include "multipath_mapper.hpp"
 
 #include "multipath_alignment_graph.hpp"
@@ -44,7 +40,6 @@
 #include "algorithms/locally_expand_graph.hpp"
 #include "algorithms/jump_along_path.hpp"
 #include "algorithms/ref_path_distance.hpp"
-#include "algorithms/component.hpp"
 #include "algorithms/pad_band.hpp"
 
 namespace vg {
@@ -628,7 +623,7 @@ namespace vg {
             
             if (ambiguous_pair_buffer.size() + fragment_length_distr.curr_sample_size()
                 == fragment_length_distr.max_sample_size() * fragment_length_warning_factor) {
-                cerr << "warning:[vg mpmap] Mapped " << ambiguous_pair_buffer.size() + fragment_length_distr.curr_sample_size() << " read pairs as unpaired reads to learn fragment length distribution, but only obtained " << fragment_length_distr.curr_sample_size() << " unambiguous, consistently mapped pairs. Often this indicates data issues, such as reads that are pre-sorted with unmappable reads at the front, reads that are not actually paired, or mismatched indexes." << endl;
+                cerr << "warning:[nvg mpmap] Mapped " << ambiguous_pair_buffer.size() + fragment_length_distr.curr_sample_size() << " read pairs as unpaired reads to learn fragment length distribution, but only obtained " << fragment_length_distr.curr_sample_size() << " unambiguous, consistently mapped pairs. Often this indicates data issues, such as reads that are pre-sorted with unmappable reads at the front, reads that are not actually paired, or mismatched indexes." << endl;
             }
         }
         
@@ -4166,26 +4161,6 @@ namespace vg {
                 }
             }
             
-#ifdef debug_check_adapters
-            vector<int32_t> adapter_aln_scores;
-            vector<string> adapters{"AGATCGGAAGAG"}; // the illumina universal adapter
-            adapters.push_back(reverse_complement(adapters.back()));
-            for (auto mp_aln : {multipath_aln_pairs_out[current_index[j]].first, multipath_aln_pairs_out[current_index[j]].second}) {
-                for (auto adapter : adapters) {
-                    adapter_aln_scores.push_back(SSWAligner().align(mp_aln.sequence(), adapter).score());
-                }
-            }
-            string line = (alignment1.name() +
-                           "\t" + to_string(attempt_1_left) + "\t" + to_string(attempt_1_right) +
-                           "\t" + to_string(attempt_2_left) + "\t" + to_string(attempt_2_right) +
-                           "\t" + to_string(success_1_left) + "\t" + to_string(success_1_right) +
-                           "\t" + to_string(success_2_left) + "\t" + to_string(success_2_right));
-            for (auto s : adapter_aln_scores) {
-                line += (string("\t") + to_string(s));
-            }
-            line += "\n";
-            cerr << line;
-#endif
         }
         
         if (any_splices) {

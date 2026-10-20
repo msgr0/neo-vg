@@ -222,7 +222,7 @@ string Version::get_short() {
 
 string Version::get_long() {
     stringstream s;
-    s << "vg version " << get_short() << endl;
+    s << "nvg version " << get_short() << endl;
     s << "Compiled with " << COMPILER << " on " << OS << endl;
     s << "Linked against " << STANDARD_LIBRARY << endl;
     s << "Using HTSlib headers " << HTSLIB_HEADERS << ", library " << HTSLIB_LIBRARY << endl;

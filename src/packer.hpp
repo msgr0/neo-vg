@@ -12,7 +12,6 @@
 #include "path.hpp"
 #include "position.hpp"
 #include "vg/io/json2pb.h"
-#include "graph.hpp"
 #include "gcsa/internal.h"
 #include "sdsl/csa_wt.hpp"
 #include "sdsl/suffix_arrays.hpp"
@@ -62,7 +61,6 @@ public:
     void add(const Alignment& aln, int min_mapq = 0, int min_baseq = 0, int trim_ends = 0);
 
     void merge_from_files(const vector<string>& file_names);
-    void merge_from_dynamic(vector<Packer*>& packers);
     void load_from_file(const string& file_name);
     void save_to_file(const string& file_name);
     void load(istream& in);
@@ -70,7 +68,6 @@ public:
                      sdsl::structure_tree_node* s = NULL,
                      std::string name = "");
     void make_compact(void);
-    void make_dynamic(void);
     size_t position_in_basis(const Position& pos) const;
     string pos_key(size_t i) const;
     string edit_value(const Edit& edit, bool revcomp) const;
@@ -80,12 +77,10 @@ public:
     ostream& as_table(ostream& out, bool show_edits, vector<vg::id_t> node_ids);
     ostream& as_edge_table(ostream& out, vector<vg::id_t> node_ids);
     ostream& as_quality_table(ostream& out, vector<vg::id_t> node_ids);
-    ostream& show_structure(ostream& out); // debugging
     void write_edits(vector<ofstream*>& out) const; // for merge
     void write_edits(ostream& out, size_t bin) const; // for merge
     size_t get_bin_size(void) const;
     size_t get_n_bins(void) const;
-    bool is_dynamic(void) const;
     const HandleGraph* get_graph() const;
     size_t coverage_size(void) const ;
     void increment_coverage(size_t i);
@@ -204,12 +199,6 @@ private:
     static const int maximum_quality;
     static const int lru_cache_size;
     
-};
-
-// for making a combined matrix output and maybe doing other fun operations
-class Packers : public vector<Packer> {
-    void load(const vector<string>& file_names);
-    ostream& as_table(ostream& out);
 };
 
 }

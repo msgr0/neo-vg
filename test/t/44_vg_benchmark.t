@@ -7,8 +7,8 @@ PATH=../bin:$PATH # for vg
 
 plan tests 1
 
-vg benchmark >/dev/null
+nvg benchmark >/dev/null
 
-is "${?}" "0" "vg benchmark completes succesfully"
+is "${?}" "0" "nvg benchmark completes succesfully"
 
 

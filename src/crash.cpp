@@ -332,7 +332,7 @@ void emit_stacktrace(int signalNumber, siginfo_t *signalInfo, void *signalContex
     
     draw_br();
     
-    *out << "Crash report for vg " << Version::get_short() << endl;
+    *out << "Crash report for nvg " << Version::get_short() << endl;
    
     // This holds the context that the signal came from, including registers and stuff
     ucontext_t* context = (ucontext_t*) signalContext;
@@ -459,14 +459,6 @@ void enable_crash_handling() {
     
     // We don't set_terminate for aborts because we still want the standard
     // library's message about what the exception was.
-}
-
-void with_exception_handling(const std::function<void(void)>& body) {
-    try {
-        body();
-    } catch(const std::exception& ex) {
-        report_exception(ex); 
-    }
 }
 
 void report_exception(const std::exception& ex) {

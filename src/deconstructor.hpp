@@ -13,7 +13,6 @@
 #include "traversal_finder.hpp"
 #include "graph_caller.hpp"
 #include "vcf_output_caller.hpp"
-#include "lru_cache.h"
 
 #include <gbwtgraph/utils.h>
 

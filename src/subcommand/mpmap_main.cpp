@@ -107,16 +107,16 @@ void help_mpmap(char** argv) {
          << "  -h, --help                print this help message to stderr and exit" << endl
          << "graph/index:" << endl
          << "  -x, --graph-name FILE     graph (required; XG recommended but other formats" << endl
-         << "                            are acceptable: see `vg convert`)" << endl
+         << "                            are acceptable: see `nvg convert`)" << endl
          << "  -g, --gcsa-name FILE      use this GCSA2 (FILE) & LCP (FILE.lcp) index pair" << endl
-         << "                            for MEMs (required; see `vg index`)" << endl
+         << "                            for MEMs (required; see `nvg index`)" << endl
        //<< "  -H, --gbwt-name FILE      use this GBWT haplotype index for population-based MAPQs" << endl
          << "  -d, --dist-name FILE      use this snarl distance index for clustering" << endl
-         << "                            (recommended, see `vg index`)" << endl
+         << "                            (recommended, see `nvg index`)" << endl
        //<< "      --linear-index FILE   use this sublinear Li and Stephens index file for population-based MAPQs" << endl
        //<< "      --linear-path PATH    use the given path name as the path that the linear index is against" << endl
          << "  -s, --snarls FILE         align to alternate paths in these snarls" << endl
-         << "                            (unnecessary if providing -d, see `vg snarls`)" << endl
+         << "                            (unnecessary if providing -d, see `nvg snarls`)" << endl
          << "input:" << endl
          << "  -f, --fastq FILE          input FASTQ (possibly gzipped), can be given twice" << endl
          << "                            for paired ends (for stdin use -)" << endl
@@ -222,7 +222,7 @@ void help_mpmap(char** argv) {
 
 
 int main_mpmap(int argc, char** argv) {
-    Logger logger("vg mpmap");
+    Logger logger("nvg mpmap");
     
     if (argc == 2) {
         help_mpmap(argv);
@@ -307,7 +307,6 @@ int main_mpmap(int argc, char** argv) {
     bool top_tracebacks = false;
     // How many distinct single path alignments should we look for in a multipath, for MAPQ?
     // TODO: create an option.
-    int localization_max_paths = 5;
     int max_num_mappings = 0;
     int default_dna_num_mappings = 1;
     int default_rna_num_mappings = 10;
@@ -1535,7 +1534,7 @@ int main_mpmap(int argc, char** argv) {
             strm << "XG format is recommended for most mapping tasks. ";
         }
         
-        strm << "See `vg convert` if you want to change graph formats.";
+        strm << "See `nvg convert` if you want to change graph formats.";
         log_progress(strm.str());
     }
     

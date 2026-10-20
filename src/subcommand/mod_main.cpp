@@ -1,4 +1,4 @@
-// mod.cpp: define the "vg mod" subcommand, which modifies vg graphs
+// mod.cpp: define the "nvg mod" subcommand, which modifies vg graphs
 
 #include <omp.h>
 #include <unistd.h>
@@ -85,7 +85,7 @@ void help_mod(char** argv) {
 }
 
 int main_mod(int argc, char** argv) {
-    Logger logger("vg mod");
+    Logger logger("nvg mod");
 
     if (argc == 2) {
         help_mod(argv);
@@ -94,7 +94,6 @@ int main_mod(int argc, char** argv) {
 
     set<string> path_names;
     bool invert_keep_paths = false;
-    bool label_paths = false;
     bool compact_ids = false;
     bool prune_complex = false;
     int path_length = 0;
@@ -132,13 +131,9 @@ int main_mod(int argc, char** argv) {
 
         {
             {"help", no_argument, 0, 'h'},
-            {"include-aln", required_argument, 0, 'i'},
-            {"include-loci", required_argument, 0, 'q'},
-            {"include-gt", required_argument, 0, 'Q'},
             {"compact-ids", no_argument, 0, 'c'},
             {"keep-path", required_argument, 0, 'k'},
             {"invert-keep-path", no_argument, 0, 'V'},
-            {"remove-orphans", no_argument, 0, 'o'},
             {"prune-complex", no_argument, 0, 'p'},
             {"prune-subgraphs", no_argument, 0, 'S'},
             {"length", required_argument, 0, 'l'},
@@ -146,7 +141,6 @@ int main_mod(int argc, char** argv) {
             {"chop", required_argument, 0, 'X'},
             {"markers", no_argument, 0, 'm'},
             {"threads", required_argument, 0, 't'},
-            {"label-paths", no_argument, 0, 'P'},
             {"simplify", no_argument, 0, 's'},
             {"unchop", no_argument, 0, 'u'},
             {"normalize", no_argument, 0, 'n'},
@@ -164,20 +158,16 @@ int main_mod(int argc, char** argv) {
             {"dagify-len-max", required_argument, 0, 'L'},
             {"break-cycles", no_argument, 0, 'b'},
             {"destroy-node", required_argument, 0, 'y'},
-            {"translation", required_argument, 0, 'Z'},
             {"unreverse-edges", no_argument, 0, 'E'},
             {"cactus", no_argument, 0, 'a'},
             {"sample-vcf", required_argument, 0, 'v'},
             {"sample-graph", required_argument, 0, 'G'},
             {"max-degree", required_argument, 0, 'M'},
-            {"drop-paths", no_argument, 0, 'D'},
-            {"retain-path", required_argument, 0, 'r'},
-            {"retain-complement", no_argument, 0, 'I'},
             {0, 0, 0, 0}
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?k:Voi:q:Q:cpl:e:mt:SX:Psunz:NAf:g:x:RU:bd:Ow:L:y:Z:Eav:G:M:Dr:I",
+        c = getopt_long (argc, argv, "h?k:Vcpl:e:mt:SX:sunz:NAf:g:x:RU:bd:Ow:L:y:Eav:G:M:",
                          long_options, &option_index);
 
 
@@ -187,34 +177,6 @@ int main_mod(int argc, char** argv) {
 
         switch (c)
         {
-
-        case 'i':
-            logger.error() << "vg mod -i is deprecated.  please switch to vg augment" << endl;
-            break;
-
-        case 'q':
-            logger.error() << "vg mod -q is deprecated.  please switch to vg augment -l" << endl;
-            break;
-
-        case 'Q':
-            logger.error() << "vg mod -Q is deprecated.  please switch to vg augment -L" << endl;
-            break;
-
-        case 'Z':
-            logger.error() << "vg mod -Z is deprecated.  please switch to vg augment -Z" << endl;
-            break;
-
-        case 'D':
-            logger.error() << "vg mod -D is deprecated.  please switch to vg paths -d" << endl;
-            break;
-
-        case 'r':
-            logger.error() << "vg mod -r is deprecated.  please switch to vg paths -r" << endl;
-            break;
-
-        case 'I':
-            logger.error() << "vg mod -I is deprecated.  please switch to vg paths -d" << endl;
-            break;
 
         case 'c':
             compact_ids = true;
@@ -226,10 +188,6 @@ int main_mod(int argc, char** argv) {
 
         case 'V':
             invert_keep_paths = true;
-            break;
-
-        case 'o':
-            logger.warn() << "-o is deprecated. Dangling edges are now automatically removed." << endl;
             break;
 
         case 'p':
@@ -274,12 +232,6 @@ int main_mod(int argc, char** argv) {
 
         case 'O':
             orient_forward = true;
-            break;
-
-        case 'P':
-            logger.warn() << "vg mod -P is deprecated and will soon be removed. "
-                          << "please switch to vg augment -B" << endl;
-            label_paths = true;
             break;
 
         case 's':

@@ -195,27 +195,6 @@ void Packer::merge_from_files(const vector<string>& file_names) {
     }
 }
 
-void Packer::merge_from_dynamic(vector<Packer*>& packers) {
-    // load dynamic packs into our dynamic structures, then compact
-    bool first = true;
-    for (auto& p : packers) {
-        auto& c = *p;
-        c.close_edit_tmpfiles(); // flush and close temporaries
-        // take bin size and counts from the first, assume they are all the same
-        if (first) {
-            bin_size = c.get_bin_size();
-            n_bins = c.get_n_bins();
-            ensure_edit_tmpfiles_open();
-            first = false;
-        } else {
-            assert(bin_size == c.get_bin_size());
-            assert(n_bins == c.get_n_bins());
-        }
-        c.write_edits(tmpfstreams);
-    }
-    collect_coverage(packers);
-}
-
 size_t Packer::get_bin_size(void) const {
     return bin_size;
 }
@@ -401,17 +380,6 @@ void Packer::make_compact(void) {
     // construct the record marker bitvector
     remove_edit_tmpfiles();
     is_compacted = true;
-}
-
-void Packer::make_dynamic(void) {
-    if (!is_compacted) return;
-    // unpack the compact represenation into the countarray
-    assert(false); // not implemented
-    is_compacted = false;
-}
-
-bool Packer::is_dynamic(void) const {
-    return !is_compacted;
 }
 
 const HandleGraph* Packer::get_graph() const {
@@ -1049,16 +1017,6 @@ ostream& Packer::as_quality_table(ostream& out, vector<vg::id_t> node_ids) {
         }
         out << i << "\t" << node_id << "\t" << node_quality_civ[i] << endl;
     }
-    return out;
-}
-
-ostream& Packer::show_structure(ostream& out) {
-    out << coverage_civ << endl; // graph coverage (compacted coverage_dynamic)
-    for (auto& edit_csa : edit_csas) {
-        out << edit_csa << endl;
-    }
-    //out << " i SA ISA PSI LF BWT    T[SA[i]..SA[i]-1]" << endl;
-    //csXprintf(cout, "%2I %2S %3s %3P %2p %3B   %:3T", edit_csa);
     return out;
 }
 

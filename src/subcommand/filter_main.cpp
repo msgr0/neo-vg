@@ -1,6 +1,6 @@
 /** \file filter_main.cpp
  *
- * Defines the "vg filter" subcommand, which filters alignments.
+ * Defines the "nvg filter" subcommand, which filters alignments.
  */
 
 
@@ -60,7 +60,7 @@ void help_filter(char** argv) {
          << "  -V, --no-output              print out -v statistics and do not write the GAM" << endl
          << "  -T, --tsv-out FIELD[;FIELD]  write TSV of given fields instead of filtered GAM" << endl
          << "                               See wiki page:" << endl
-         << "                               \"Getting alignment statistics with vg filter\"" << endl
+         << "                               \"Getting alignment statistics with nvg filter\"" << endl
          << "  -q, --min-mapq N             drop alignments with mapping quality < N" << endl
          << "  -E, --repeat-ends N          drop reads with tandem repeat (motif size <= 2N," << endl
          << "                               spanning >= N bases) at either end" << endl
@@ -93,7 +93,7 @@ void help_filter(char** argv) {
 }
 
 int main_filter(int argc, char** argv) {
-    Logger logger("vg filter");
+    Logger logger("nvg filter");
 
     if (argc <= 2) {
         help_filter(argv);

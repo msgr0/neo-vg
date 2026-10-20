@@ -21,7 +21,6 @@
 
 #include <vg/vg.pb.h>
 #include "vg.hpp"
-#include "translator.hpp"
 #include "hash_map.hpp"
 #include "utility.hpp"
 #include "types.hpp"
@@ -34,7 +33,6 @@ namespace vg {
 
 using namespace std;
 
-class AugmentedGraph;
 
 // some Protobuf replacements
 using Traversal = vector<handle_t>;
@@ -85,127 +83,10 @@ protected:
                         unordered_set<handle_t>& stop_at, unordered_set<handle_t>& yield_at);
 };
 
-/** Does exhaustive traversal, but restricting to nodes and edges that meet 
-    support thresholds (counts of reads that touch them, taken from augmented graph).
-*/
-class SupportRestrictedTraversalFinder : public ExhaustiveTraversalFinder {
-public:
-    AugmentedGraph& aug;
-    int min_node_support;
-    int min_edge_support;
 
-    SupportRestrictedTraversalFinder(AugmentedGraph& augmented_graph,
-                                     SnarlManager& snarl_manager,
-                                     int min_node_support = 1,                                     
-                                     int min_edge_support = 1,
-                                     bool include_reversing_traversals = false);
-    virtual ~SupportRestrictedTraversalFinder();
-protected:
-    virtual bool visit_next_node(const Node*, const Edge*);
-};
-
-class ReadRestrictedTraversalFinder : public TraversalFinder {
-
-    AugmentedGraph& aug;
-    SnarlManager& snarl_manager;
-    
-    // How many times must a path recur before we try aligning to it? Also, how
-    // many times must a node in the graph be visited before we use it in indel
-    // realignment for nearby indels? Note that the primary path counts as a
-    // recurrence. TODO: novel inserts can't recur, and novel deletions can't be
-    // filtered in this way.
-    int min_recurrence;
-    
-    // How many nodes max should we walk when checking if a path runs through a superbubble/site
-    int max_path_search_steps;
-    
-public:
-    ReadRestrictedTraversalFinder(AugmentedGraph& augmented_graph, SnarlManager& snarl_manager,
-                                  int min_recurrence = 2,
-                                  int max_path_search_steps = 100);
-    
-    virtual ~ReadRestrictedTraversalFinder();
-    
-    /**
-     * For the given site, emit all traversals with unique sequences that run from
-     * start to end, out of the paths in the graph. Uses the map of reads by
-     * name to determine if a path is a read or a real named path. Paths through
-     * the site supported only by reads are subject to a min recurrence count,
-     * while those supported by actual embedded named paths are not.
-     */
-    virtual vector<SnarlTraversal> find_traversals(const Snarl& site);
-    
-};
-
-/**
- * Like ReadRestrictedTraversal finder, but works on paths in the graph.  As with
- * the former, it's been cut out of Genotyper and moved here.  
- * 
- * I'm not sure what PathBasedTraversalFinder (see below) does, but it does not work
- * as a drop-in replacement for this class, so keep the two implementations at least 
- * for now.    
- *
- * DEPRECATED: Use PathTraversalFinder instead
- */
-class PathRestrictedTraversalFinder : public TraversalFinder {
-
-    VG& graph;
-    SnarlManager& snarl_manager;
-
-    // store the reads that are embedded in the augmented graph, by their unique names
-    map<string, const Alignment*>& reads_by_name;
-
-    // How many times must a path recur before we try aligning to it? Also, how
-    // many times must a node in the graph be visited before we use it in indel
-    // realignment for nearby indels? Note that the primary path counts as a
-    // recurrence. TODO: novel inserts can't recur, and novel deletions can't be
-    // filtered in this way.
-    int min_recurrence;
-    
-    // How many nodes max should we walk when checking if a path runs through a superbubble/site
-    int max_path_search_steps;
-
-    // Allow multiple traversals with the same sequence
-    bool allow_duplicates;
-    
-public:
-    PathRestrictedTraversalFinder(VG& graph, SnarlManager& snarl_manager,
-                                  map<string, const Alignment*>& reads_by_name,
-                                  int min_recurrence = 2,
-                                  int max_path_search_steps = 100,
-                                  bool allow_duplicates = false);
-    
-    virtual ~PathRestrictedTraversalFinder();
-
-    /**
-     * For the given site, emit all subpaths with unique sequences that run from
-     * start to end, out of the paths in the graph. Uses the map of reads by
-     * name to determine if a path is a read or a real named path. Paths through
-     * the snarl supported only by reads are subject to a min recurrence count,
-     * while those supported by actual embedded named paths are not.
-     */
-    virtual vector<SnarlTraversal> find_traversals(const Snarl& site);
-
-    /**
-    * Like above, but return the path name corresponding to each traversal
-    */
-    virtual pair<vector<SnarlTraversal>, vector<string> > find_named_traversals(const Snarl& site);
-    
-};
-
-class PathBasedTraversalFinder : public TraversalFinder{
-    const PathHandleGraph& graph;
-    SnarlManager& snarlmanager;
-    public:
-    PathBasedTraversalFinder(const PathHandleGraph& graph, SnarlManager& sm);
-    virtual ~PathBasedTraversalFinder() = default;
-    virtual vector<SnarlTraversal> find_traversals(const Snarl& site);
-
-};
-
-/** This is a Handle Graph replacement for PathRestrictedTraversalFinder
- * that uses the PathHandleGraph interface instead of the VG-based 
- * path index.  It returns all traversals through a snarl that are contained
+/** This finder
+ * uses the PathHandleGraph interface.
+ * It returns all traversals through a snarl that are contained
  * within paths in the graph.  It can also return a mapping from the traversals
  * to their paths*/
 class PathTraversalFinder : public TraversalFinder {
@@ -259,154 +140,6 @@ public:
      */
     virtual vector<SnarlTraversal> find_traversals(const Snarl& site);
 };
-
-/**
- * This TraversalFinder is derived from the old vg call code, and emits at least
- * one traversal representing every node, and one traversal representing every
- * edge.
- */
-class RepresentativeTraversalFinder : public TraversalFinder {
-
-protected:
-    /// The annotated, augmented graph we're finding traversals in
-    const PathHandleGraph& graph;
-
-    /// The SnarlManager managiung the snarls we use
-    SnarlManager& snarl_manager;
-    
-    /// We keep around a function that can be used to get an index for the
-    /// appropriate path to use to scaffold a given site, or null if no
-    /// appropriate index exists.
-    function<PathIndex*(const Snarl&)> get_index;
-    
-    /// What DFS depth should we search to?
-    size_t max_depth;
-    /// How many DFS searches should we let there be on the stack at a time?
-    size_t max_width;
-    /// How many search intermediates can we allow?
-    size_t max_bubble_paths;
-    /// Minimum support for a node to consider travnersal through it
-    size_t min_node_support;
-    /// Minimum support for a edge to consider travnersal through it
-    size_t min_edge_support;    
-    
-    /**
-     * Find a Path that runs from the start of the given snarl to the end, which
-     * we can use to backend our traversals into when a snarl is off the primary
-     * path.
-     */
-    Path find_backbone(const Snarl& site);
-    
-    /**
-     * Given an edge or node in the augmented graph, look out from the edge or
-     * node or snarl in both directions to find a shortest bubble relative to
-     * the path, with a consistent orientation. The bubble may not visit the
-     * same node twice.
-     *
-     * Exactly one of edge and node and snarl must be not null.
-     *
-     * Takes a max depth for the searches producing the paths on each side.
-     * 
-     * Return the ordered and oriented nodes in the bubble, with the outer nodes
-     * being oriented forward along the path for which an index is provided, and
-     * with the first node coming before the last node in the reference.  Also
-     * return the minimum support found on any edge or node in the bubble
-     * (including the reference node endpoints and their edges which aren't
-     * stored in the path).
-     */
-    pair<Support, vector<Visit>> find_bubble(id_t node, const edge_t* edge, const Snarl* snarl, PathIndex& index,
-                                             const Snarl& site);
-        
-    /**
-     * Get the minimum support of all nodes and edges in path, in the path's forward orientation.
-     */
-    Support min_support_in_path(const list<Visit>& path);
-        
-    /**
-     * Do a breadth-first search left from the given node traversal, and return
-     * lengths, target-path-relative orientations, and paths starting at the
-     * given node and ending on the given indexed path. Refuses to visit nodes
-     * with no support, if support data is available in the augmented graph.
-     *
-     * If in_snarl is not null, restricts the found paths to stay within the
-     * given snarl.
-     *
-     * If both_orientations_distance is not zero, keeps searching up to that
-     * many steps after finding the target path to see if it can find a node on
-     * the target path in the opposite orientation. This is useful for
-     * inversions.
-     */
-    set<tuple<size_t, bool, structures::ImmutableList<Visit>>> bfs_left(Visit visit, PathIndex& index,
-                                                                        bool stop_if_visited = false,
-                                                                        const Snarl* in_snarl = nullptr,
-                                                                        size_t both_orientations_distance = 0);
-        
-    /**
-     * Do a breadth-first search right from the given node traversal, and return
-     * lengths, target-path-relative orientations, and paths starting at the
-     * given node and ending on the given indexed path. Refuses to visit nodes
-     * with no support, if support data is available in the augmented graph.
-     *
-     * API is similar to bfs_left().
-     */
-    set<tuple<size_t, bool, structures::ImmutableList<Visit>>> bfs_right(Visit visit, PathIndex& index,
-                                                                         bool stop_if_visited = false,
-                                                                         const Snarl* in_snarl = nullptr,
-                                                                         size_t both_orientations_distance = 0);
-        
-    /**
-     * Get the length of a path through nodes, in base pairs.
-     */
-    size_t bp_length(const  structures::ImmutableList<Visit>& path);
-
-    /** 
-     * Get support
-     */
-    bool has_supports = false;
-    function<Support(id_t)> get_node_support;
-    function<Support(edge_t)> get_edge_support;
-
-public:
-
-    /**
-     * Make a new RepresentativeTraversalFinder to find traversals. Uses the
-     * given augmented graph as the graph with coverage annotation, and reasons
-     * about child snarls with the given SnarlManager. Explores up to max_depth
-     * in the BFS search when trying to find its way across snarls, and
-     * considers up to max_width search states at a time. When combining search
-     * results on either side of a graph element to be represented, thinks about
-     * max_bubble_paths combinations.
-     *
-     * Uses the given get_index function to try and find a PathIndex for a
-     * reference path traversing a child snarl.
-     */
-    RepresentativeTraversalFinder(const PathHandleGraph& graph, SnarlManager& snarl_manager,
-                                  size_t max_depth, size_t max_width, size_t max_bubble_paths,
-                                  size_t min_node_support = 1, size_t min_edge_support = 1,
-                                  function<PathIndex*(const Snarl&)> get_index = [](const Snarl& s) { return nullptr; },
-                                  function<Support(id_t)> get_node_support = nullptr,
-                                  function<Support(edge_t)> get_edge_support = nullptr);
-    
-    /// Should we emit verbose debugging info?
-    bool verbose = false;
-
-    /// Should trivial child snarls have their traversals glommed into ours?
-    bool eat_trivial_children = false;
-    
-    /// What timeout/step limit should we use for finding other orientations of
-    /// the reference path after we find one?
-    size_t other_orientation_timeout = 10;
-    
-    virtual ~RepresentativeTraversalFinder() = default;
-    
-    /**
-     * Find traversals to cover the nodes and edges of the snarl. Always emits
-     * the primary path traversal first, if applicable.
-     */
-    virtual vector<SnarlTraversal> find_traversals(const Snarl& site);
-    
-};
-
 
 /**
  * This TraversalFinder returns a traversals and their corresponding genotypes

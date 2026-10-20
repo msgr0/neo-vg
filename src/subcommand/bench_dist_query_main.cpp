@@ -1,6 +1,6 @@
 /** \file bench_dist_query_main.cpp
  *
- * Defines the "vg bench-dist-query" subcommand, which benchmarks distance query speed across multiple indexes.
+ * Defines the "nvg bench-dist-query" subcommand, which benchmarks distance query speed across multiple indexes.
  */
 
 #include <omp.h>
@@ -45,7 +45,7 @@ void help_bench_dist_query(char** argv) {
 
 
 int main_bench_dist_query(int argc, char** argv) {
-    Logger logger("vg bench-dist-query");
+    Logger logger("nvg bench-dist-query");
     bool show_progress = false;
 
     string graph_path = "";

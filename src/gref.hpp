@@ -80,11 +80,6 @@ public:
     // Example: parse_base_path("gref_CHM13#0#chr1_3_alt") -> "gref_CHM13#0#chr1"
     static string parse_base_path(const string& gref_name);
 
-    // Parse an gref path name to extract the gref index.
-    // Returns -1 if the path is not an gref path.
-    // Example: parse_gref_index("gref_CHM13#0#chr1_3_alt") -> 3
-    static int64_t parse_gref_index(const string& gref_name);
-
 public:
     // Remove any gref paths already in the graph.  Run this before compute(): fragment
     // numbering starts from scratch and assumes none survive.

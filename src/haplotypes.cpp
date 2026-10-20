@@ -143,22 +143,6 @@ void haplo_DP_column::update_inner_values() {
   }
 }
 
-// void haplo_DP_column::binary_extend_intervals(hDP_graph_accessor& ga, int_itvl_t indices, int_itvl_t ss_deltas, int_itvl_t state_sizes) {
-//   if(indices.size() <= 1) {
-//     return;
-//   } else if(ss_deltas.size() == 0) {
-//     int_itvl_t correction = prev - curr range start
-//     for(size_t i = indices.bottom + 1; i < indices.top; i++) {
-//       
-//       rect.false_extend(ga, correction);
-//       
-//     }
-//   } else {
-//     int64_t mid_index = indices.bottom + indices.size()/2;
-//     
-//   }
-// }
-
 void haplo_DP_column::update_score_vector(haploMath::RRMemo& memo) {
   assert(!entries.empty());
   auto r_0 = entries.at(0);
@@ -253,10 +237,6 @@ void haplo_DP_column::print(ostream& out) const {
 
 bool haplo_DP_column::is_empty() const {
   return entries.size() == 0;
-}
-
-haplo_DP_column* haplo_DP::get_current_column() {
-  return &DP_column;
 }
 
 /*******************************************************************************
@@ -831,10 +811,6 @@ double RRMemo::logS(int height, int width) {
 
 double RRMemo::logRRDiff(int height, int width) {
   return haploMath::logdiff(logS(height,width),logT(width)) - log(height);
-}
-
-double RRMemo::log_continue_factor(int64_t totwidth) {
-  return totwidth * log_continue_probability;
 }
 
 double RRMemo::log_recombination_penalty() {

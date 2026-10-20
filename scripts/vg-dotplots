@@ -12,8 +12,8 @@ type=$3
 
 mkdir -p $outdir
 
-vg dotplot -x $graph | gzip >$outdir/pathoverlaps.tsv.gz
-paths=$(vg paths -L -x $graph)
+nvg dotplot -x $graph | gzip >$outdir/pathoverlaps.tsv.gz
+paths=$(nvg paths -L -x $graph)
 
 #(zcat $outdir/pathoverlaps.tsv.gz | tail -n+2 | awk '{ print $1, $4 }' | sort | uniq ) | while read cmp
 for path1 in $paths

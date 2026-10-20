@@ -78,12 +78,6 @@ public:
     void extract_id_range(vg::id_t start, vg::id_t end, int64_t context, int64_t length, bool forward_only,
                           MutablePathMutableHandleGraph& subgraph, Region& out_region);
 
-    /**
-     * Get a set of all edges in the graph along a path region (to check for discontinuities later on)
-     */ 
-    set<pair<pair<id_t, bool>, pair<id_t, bool>>> get_path_edge_index(step_handle_t start_step,
-                                                                      step_handle_t end_step, int64_t context) const;
-
 };
 
 

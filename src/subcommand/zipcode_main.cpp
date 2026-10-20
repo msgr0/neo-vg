@@ -48,7 +48,7 @@ void help_zipcode(char** argv) {
 }
 
 int main_zipcode(int argc, char** argv) {
-    Logger logger("vg zipcode");
+    Logger logger("nvg zipcode");
 
     if (argc == 2) {
         help_zipcode(argv);

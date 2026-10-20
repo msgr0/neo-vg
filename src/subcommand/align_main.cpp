@@ -1,6 +1,6 @@
 /** \file align_main.cpp
  *
- * Defines the "vg align" subcommand, which aligns a read against an entire
+ * Defines the "nvg align" subcommand, which aligns a read against an entire
  * graph.
  */
 
@@ -18,7 +18,7 @@
 #include "../path.hpp"
 #include "../split_strand_graph.hpp"
 #include "../dagified_graph.hpp"
-#include "../ssw_aligner.hpp"
+#include <bdsg/hash_graph.hpp>
 #include "../aligner.hpp"
 #include "../minimizer_mapper.hpp"
 #include <vg/io/stream.hpp>
@@ -46,13 +46,13 @@ void help_align(char** argv) {
          << "  -L, --pin-left           pin first instead of last bases of the graph/sequence" << endl
          << "  -w, --between POS,POS    align the sequence between the two positions," << endl
          << "                           specified as node ID, + or -, offset" << endl
-         << "  -r, --reference STR      don't use a graph: run SSW alignment between -s / -r" << endl
+         << "  -r, --reference STR      don't use a graph: align -s to the sequence -r" << endl
          << "  -D, --debug              print out score matrices and other debugging info" << endl
          << "  -h, --help               print this help message to stderr and exit" << endl;
 }
 
 int main_align(int argc, char** argv) {
-    Logger logger("vg align");
+    Logger logger("nvg align");
 
     string seq;
     string seq_name;
@@ -64,7 +64,6 @@ int main_align(int argc, char** argv) {
 
     constexpr int OPT_SCORE_MATRIX = 1000;
     string matrix_file_name;
-    bool print_cigar = false;
     bool output_json = false;
     int match = 1;
     int mismatch = 4;
@@ -207,6 +206,11 @@ int main_align(int argc, char** argv) {
         // sequence.
         string graph_filename = get_input_file_name(optind, argc, argv);
         graph = vg::io::VPKG::load_one<PathHandleGraph>(graph_filename);
+    } else {
+        // ponytail: the reference is just a one-node graph for the normal aligner
+        auto ref_graph = make_unique<bdsg::HashGraph>();
+        ref_graph->create_handle(ref_seq);
+        graph = std::move(ref_graph);
     }
 
     ifstream matrix_stream;
@@ -215,13 +219,7 @@ int main_align(int argc, char** argv) {
     }
 
     Alignment alignment;
-    if (!ref_seq.empty()) {
-        if (!matrix_file_name.empty()) {
-            logger.error() << "Custom scoring matrix not supported in reference sequence mode" << std::endl;
-        }
-        SSWAligner ssw = SSWAligner(match, mismatch, gap_open, gap_extend);
-        alignment = ssw.align(seq, ref_seq);
-    } else {
+    {
         
         // construct a score matrix
         int8_t* score_matrix;

@@ -1,6 +1,6 @@
 /** \file prune_main.cpp
  *
- * Defines the "vg prune" subcommand, which prunes the complex regions of the
+ * Defines the "nvg prune" subcommand, which prunes the complex regions of the
  * graph for GCSA2 indexing.
  *
  * By default, pruning removes the nodes touched by paths of length
@@ -139,7 +139,7 @@ void help_prune(char** argv) {
 }
 
 int main_prune(int argc, char** argv) {
-    Logger logger("vg prune");
+    Logger logger("nvg prune");
 
     if (argc == 2) {
         help_prune(argv);
@@ -172,7 +172,6 @@ int main_prune(int argc, char** argv) {
             { "restore-paths", no_argument, 0, 'r' },
             { "unfold-paths", no_argument, 0, 'u' },
             { "verify-paths", no_argument, 0, 'v' },
-            { "xg-name", no_argument, 0, 'x' }, // no longer needed
             { "gbwt-name", required_argument, 0, 'g' },
             { "mapping", required_argument, 0, 'm' },
             { "append-mapping", no_argument, 0, 'a' },
@@ -184,7 +183,7 @@ int main_prune(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long(argc, argv, "k:e:s:M:Pruvxg:m:apt:dh?", long_options, &option_index);
+        c = getopt_long(argc, argv, "k:e:s:M:Pruvg:m:apt:dh?", long_options, &option_index);
         if (c == -1) { break; } // End of options.
 
         switch (c)
@@ -216,9 +215,6 @@ int main_prune(int argc, char** argv) {
             break;
         case 'v':
             verify_paths = true;
-            break;
-        case 'x': // no longer needed
-            logger.warn() << "option --xg-name is no longer needed" << std::endl;
             break;
         case 'g':
             gbwt_name = require_exists(logger, optarg);

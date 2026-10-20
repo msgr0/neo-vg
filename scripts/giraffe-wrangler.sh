@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# giraffe-wrangler.sh: Run and profile vg giraffe and analyze the results.
+# giraffe-wrangler.sh: Run and profile nvg giraffe and analyze the results.
 
 set -e
 
@@ -14,7 +14,7 @@ usage() {
     printf "Arguments:\n"
     printf "  FASTA            FASTA reference to run bwa-mem against; may be \"\"\n"
     printf "  XG_INDEX         XG to annotate reads with positions, with corresponding .gg GBWTGraph\n"
-    printf "  GCSA_INDEX       GCSA (with LCP) for running vg map\n"
+    printf "  GCSA_INDEX       GCSA (with LCP) for running nvg map\n"
     printf "  GBWT_INDEX       Haplotypes for mapping with Giraffe\n"
     printf "  MINIMIZER_INDEX  Minimizers for mapping with Giraffe\n"
     printf "  DISTANCE_INDEX   Distances for mapping with Giraffe\n"
@@ -161,11 +161,11 @@ if [[ ! -z "${REAL_FASTQ}" ]] ; then
         # Record profile.
         # Do this first because perf is likely to be misconfigured and we want to fail fast.
         
-        # If we don't strip bin/vg to make it small, the addr2line calls that perf
+        # If we don't strip bin/nvg to make it small, the addr2line calls that perf
         # script makes take forever because the binary is huge
-        strip -d bin/vg
+        strip -d bin/nvg
         
-        ${NUMA_PREFIX} perf record -F 100 --call-graph dwarf -o "${WORK}/perf.data"  vg giraffe "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/perf.gam"
+        ${NUMA_PREFIX} perf record -F 100 --call-graph dwarf -o "${WORK}/perf.data"  nvg giraffe "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/perf.gam"
         perf script -i "${WORK}/perf.data" >"${WORK}/out.perf"
         deps/FlameGraph/stackcollapse-perf.pl "${WORK}/out.perf" >"${WORK}/out.folded"
         deps/FlameGraph/flamegraph.pl "${WORK}/out.folded" > "${WORK}/profile.svg"
@@ -176,22 +176,22 @@ if [[ ! -z "${SIM_GAM}" ]] ; then
     # Do simulated reads
 
     # Run simulated reads, with stats
-    ${NUMA_PREFIX} vg giraffe --track-correctness -x "${XG_INDEX}" "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -G "${SIM_GAM}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/mapped.gam"
+    ${NUMA_PREFIX} nvg giraffe --track-correctness -x "${XG_INDEX}" "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -G "${SIM_GAM}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/mapped.gam"
 
     # And map to compare with them
-    ${NUMA_PREFIX} vg map -x "${XG_INDEX}" -g "${GCSA_INDEX}" -G "${SIM_GAM}" -t "${THREAD_COUNT}" "${MAP_OPTS[@]}" >"${WORK}/mapped-map.gam"
+    ${NUMA_PREFIX} nvg map -x "${XG_INDEX}" -g "${GCSA_INDEX}" -G "${SIM_GAM}" -t "${THREAD_COUNT}" "${MAP_OPTS[@]}" >"${WORK}/mapped-map.gam"
 
     # Annotate and compare against truth
-    vg annotate -p -x "${XG_INDEX}" -a "${WORK}/mapped.gam" >"${WORK}/annotated.gam"
-    vg annotate -p -x "${XG_INDEX}" -a "${WORK}/mapped-map.gam" >"${WORK}/annotated-map.gam"
+    nvg annotate -p -x "${XG_INDEX}" -a "${WORK}/mapped.gam" >"${WORK}/annotated.gam"
+    nvg annotate -p -x "${XG_INDEX}" -a "${WORK}/mapped-map.gam" >"${WORK}/annotated-map.gam"
 
     # GAM compare against truth. Use gamcompare to count correct reads to save a JSON scan.
-    CORRECT_COUNT="$(vg gamcompare -r 100 "${WORK}/annotated.gam" "${SIM_GAM}" 2>&1 >/dev/null | sed 's/[^0-9]//g')"
-    CORRECT_COUNT_MAP="$(vg gamcompare -r 100 "${WORK}/annotated-map.gam" "${SIM_GAM}" 2>&1 >/dev/null | sed 's/[^0-9]//g')"
+    CORRECT_COUNT="$(nvg gamcompare -r 100 "${WORK}/annotated.gam" "${SIM_GAM}" 2>&1 >/dev/null | sed 's/[^0-9]//g')"
+    CORRECT_COUNT_MAP="$(nvg gamcompare -r 100 "${WORK}/annotated-map.gam" "${SIM_GAM}" 2>&1 >/dev/null | sed 's/[^0-9]//g')"
 
     # Compute identity of mapped reads
-    MEAN_IDENTITY="$(vg view -aj "${WORK}/mapped.gam" | jq -c 'select(.path) | .identity' | awk '{x+=$1} END {print x/NR}')"
-    MEAN_IDENTITY_MAP="$(vg view -aj "${WORK}/mapped-map.gam" | jq -c 'select(.path) | .identity' | awk '{x+=$1} END {print x/NR}')"
+    MEAN_IDENTITY="$(nvg view -aj "${WORK}/mapped.gam" | jq -c 'select(.path) | .identity' | awk '{x+=$1} END {print x/NR}')"
+    MEAN_IDENTITY_MAP="$(nvg view -aj "${WORK}/mapped-map.gam" | jq -c 'select(.path) | .identity' | awk '{x+=$1} END {print x/NR}')"
 
     # Compute loss stages
     # Let giraffe facts errors out
@@ -210,7 +210,7 @@ if [[ ! -z "${REAL_FASTQ}" ]] ; then
     ((REAL_READ_COUNT /= 4))
 
     # Get RPS for Giraffe
-    ${NUMA_PREFIX} vg giraffe -p "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/real.gam" 2>"${WORK}/log.txt"
+    ${NUMA_PREFIX} nvg giraffe -p "${GIRAFFE_GRAPH[@]}" -m "${MINIMIZER_INDEX}" -H "${GBWT_INDEX}" -d "${DISTANCE_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${GIRAFFE_OPTS[@]}" >"${WORK}/real.gam" 2>"${WORK}/log.txt"
 
     GIRAFFE_RPS="$(cat "${WORK}/log.txt" | grep "reads per second" | sed 's/[^0-9.]//g')"
 
@@ -228,18 +228,18 @@ if [[ ! -z "${REAL_FASTQ}" ]] ; then
     fi
 
     # Align the real reads with map, ignoring speed
-    ${NUMA_PREFIX} vg map -x "${XG_INDEX}" -g "${GCSA_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${MAP_OPTS[@]}" >"${WORK}/real-map.gam"
+    ${NUMA_PREFIX} nvg map -x "${XG_INDEX}" -g "${GCSA_INDEX}" -f "${REAL_FASTQ}" -t "${THREAD_COUNT}" "${MAP_OPTS[@]}" >"${WORK}/real-map.gam"
 
     # Compute stats for giraffe and map on real reads
     echo "Real read stats:" >"${WORK}/real-stats.txt"
     echo "Giraffe:" >>"${WORK}/real-stats.txt"
-    vg stats -a "${WORK}/real.gam" >>"${WORK}/real-stats.txt" 2>&1
+    nvg stats -a "${WORK}/real.gam" >>"${WORK}/real-stats.txt" 2>&1
     echo "Map:" >>"${WORK}/real-stats.txt"
-    vg stats -a "${WORK}/real-map.gam" >>"${WORK}/real-stats.txt" 2>&1
+    nvg stats -a "${WORK}/real-map.gam" >>"${WORK}/real-stats.txt" 2>&1
 fi
 
 
-echo "==== Giraffe Wrangler Report for vg $(vg version -s) ===="
+echo "==== Giraffe Wrangler Report for vg $(nvg version -s) ===="
 
 if [[ "${NUMA_WARNING}" == "1" ]] ; then
     echo "WARNING! Unable to restrict to a single NUMA node! Results may have high variance!"

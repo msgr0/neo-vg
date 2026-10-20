@@ -70,7 +70,7 @@ if [[ ! -e "${INPUT_GBZ_PATH}" ]] ; then
         mv "${INPUT_GBWT_PATH}.tmp" "${INPUT_GBWT_PATH}"
     fi
     
-    time vg gbwt -x "${INPUT_XG_PATH}" "${INPUT_GBWT_PATH}" --gbz-format -g "${INPUT_GBZ_PATH}.tmp"
+    time nvg gbwt -x "${INPUT_XG_PATH}" "${INPUT_GBWT_PATH}" --gbz-format -g "${INPUT_GBZ_PATH}.tmp"
     mv "${INPUT_GBZ_PATH}.tmp" "${INPUT_GBZ_PATH}"
 fi
 
@@ -88,24 +88,24 @@ echo "Working in ${WORK_DIR}"
 
 if [[ ! -e "${WORK_DIR}/possible.txt" ]] ; then
     # Get the list of all reads with ref positions set, and which are thus possible to get right
-    vg view -aj "${INPUT_READ_PATH}" | jq -r 'select(.refpos) | .name' > "${WORK_DIR}/possible.txt.tmp"
+    nvg view -aj "${INPUT_READ_PATH}" | jq -r 'select(.refpos) | .name' > "${WORK_DIR}/possible.txt.tmp"
     mv "${WORK_DIR}/possible.txt.tmp" "${WORK_DIR}/possible.txt"
 fi
 
 if [[ ! -e "${WORK_DIR}/annotated.gam" ]] ; then
     # Map reads using correctness tracking.
     # Make sure to apply multi-position annotation which Giraffe won't do.
-    /usr/bin/time -v vg giraffe -G "${INPUT_READ_PATH}" -t 16 -B 8 --align-from-chains -Z "${INPUT_GBZ_PATH}" -d "${INPUT_DIST_PATH}" -m "${INPUT_MIN_PATH}" -x "${INPUT_XG_PATH}" --track-provenance --track-correctness --progress | /usr/bin/time -v vg annotate -x "${INPUT_XG_PATH}" -a - --multi-position -l 100 >"${WORK_DIR}/annotated.gam.tmp"
+    /usr/bin/time -v nvg giraffe -G "${INPUT_READ_PATH}" -t 16 -B 8 --align-from-chains -Z "${INPUT_GBZ_PATH}" -d "${INPUT_DIST_PATH}" -m "${INPUT_MIN_PATH}" -x "${INPUT_XG_PATH}" --track-provenance --track-correctness --progress | /usr/bin/time -v nvg annotate -x "${INPUT_XG_PATH}" -a - --multi-position -l 100 >"${WORK_DIR}/annotated.gam.tmp"
     mv "${WORK_DIR}/annotated.gam.tmp" "${WORK_DIR}/annotated.gam"
 fi
 
 # Compute general stats
-vg stats -a "${WORK_DIR}/annotated.gam" >"${OUT_DIR}/stats.txt"
+nvg stats -a "${WORK_DIR}/annotated.gam" >"${OUT_DIR}/stats.txt"
 
 if [[ ! -e "${WORK_DIR}/benchmark.tsv" ]] ; then
     # See if reads get close enough to be correct
-    # TODO: vg gamcompare announces a correctness count, which we should save
-    vg gamcompare -r 200 "${WORK_DIR}/annotated.gam" "${INPUT_READ_PATH}" --aligner lrgiraffe --tsv >"${WORK_DIR}/benchmark.tsv.tmp"
+    # TODO: nvg gamcompare announces a correctness count, which we should save
+    nvg gamcompare -r 200 "${WORK_DIR}/annotated.gam" "${INPUT_READ_PATH}" --aligner lrgiraffe --tsv >"${WORK_DIR}/benchmark.tsv.tmp"
     mv "${WORK_DIR}/benchmark.tsv.tmp" "${WORK_DIR}/benchmark.tsv"
 fi
 

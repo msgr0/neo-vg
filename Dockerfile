@@ -40,11 +40,11 @@ RUN apt-get -qq -y update && \
 RUN apt-get -qq -y update && apt-get -y install --no-upgrade \
     make git build-essential protobuf-compiler libprotoc-dev libjansson-dev libbz2-dev \
     libncurses5-dev automake gettext autopoint libtool jq bsdmainutils bc rs parallel npm \
-    samtools curl unzip redland-utils librdf-dev cmake pkg-config wget gtk-doc-tools \
-    raptor2-utils rasqal-utils bison flex gawk libgoogle-perftools-dev liblz4-dev liblzma-dev \
-    libffi-dev libfontconfig-dev libfreetype-dev libglib2.0-dev libpcre2-dev libpng-dev \
+    samtools curl unzip cmake pkg-config wget gtk-doc-tools \
+    bison flex gawk libgoogle-perftools-dev liblz4-dev liblzma-dev \
+    libffi-dev \
     libprotobuf-dev libboost-all-dev tabix bcftools libzstd-dev pybind11-dev \
-    python3-pybind11 pandoc libssl-dev libjitterentropy3-dev kmc meson
+    python3-pybind11 pandoc libssl-dev libjitterentropy3-dev kmc
 ###DEPS_END###
 # TODO: libjitterentropy3-dev ought to be a dependency of libssl-dev, since the
 # static libcrypto.a library in libssl-dev needs it, but as of 3.5.5-1ubuntu3.2
@@ -77,7 +77,7 @@ COPY src /vg/src
 RUN CXXFLAGS="$(if [ -z "${TARGETARCH}" ] || [ "${TARGETARCH}" = "amd64" ] ; then echo " -march=nehalem "; fi) -Wno-cast-user-defined" make -j $((THREADS < $(nproc) ? THREADS : $(nproc))) objs
 
 # Do the final build and link, knowing the version. Trim down the resulting binary but make sure to include enough debug info for profiling.
-RUN CXXFLAGS="$(if [ -z "${TARGETARCH}" ] || [ "${TARGETARCH}" = "amd64" ] ; then echo " -march=nehalem "; fi) -Wno-cast-user-defined" make -j $((THREADS < $(nproc) ? THREADS : $(nproc))) static && strip -d bin/vg
+RUN CXXFLAGS="$(if [ -z "${TARGETARCH}" ] || [ "${TARGETARCH}" = "amd64" ] ; then echo " -march=nehalem "; fi) -Wno-cast-user-defined" make -j $((THREADS < $(nproc) ? THREADS : $(nproc))) static && strip -d bin/nvg
 
 # Ship the scripts
 COPY scripts /vg/scripts
@@ -93,7 +93,7 @@ RUN echo test > /stage.txt
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qq -y install nodejs && npm install -g txm@7.4.5
 
 # Fail if any non-portable instructions were used
-RUN /bin/bash -e -c 'if objdump -d /vg/bin/vg | grep vperm2i128 ; then exit 1 ; else exit 0 ; fi'
+RUN /bin/bash -e -c 'if objdump -d /vg/bin/nvg | grep vperm2i128 ; then exit 1 ; else exit 0 ; fi'
 
 # Bring in the tests and docs, which have doctests
 COPY test /vg/test
@@ -144,7 +144,7 @@ RUN ls -lah /vg && \
     time \
     && apt-get -qq -y clean
     
-COPY --from=build /vg/bin/vg /vg/bin/
+COPY --from=build /vg/bin/nvg /vg/bin/
 
 COPY --from=build /vg/scripts/* /vg/scripts/
 # Make sure we have the flame graph scripts so we can do self-profiling

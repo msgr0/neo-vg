@@ -12,7 +12,7 @@ Thank you for helping us make `vg` better! Below are some ways to help:
     If the command being run is significantly different, then you have a new bug.
 2. Collect debugging details. If we can reproduce the problem ourselves,
     then it is much easier for us to help you.
-    - What **version** are you running? Find this out with `vg version`.
+    - What **version** are you running? Find this out with `nvg version`.
     - How much **memory** does your system have? Both disk space and RAM.
     This is often relevant during indexing operations, especially for GCSA.
     - What **commands** did you run? This includes both the command that led to the error,
@@ -121,13 +121,13 @@ You can call individual functions for direct C++ testing. These live in `src/uni
 Run with
 
 ```bash
-vg test
+nvg test
 ```
 
 Or, to run tests for a particular tag:
 
 ```bash
-vg test [chain_items]
+nvg test [chain_items]
 ```
 
 Our unit tests use the Catch v2 framework. Put `#include "catch.hpp"` at the top of your `.cpp` test file.
@@ -184,13 +184,13 @@ It also has two sections, `"left end is detached without bonus"` and `"left end 
 The code is run from top to bottom. To run the entire test case:
 
 ```bash
-vg test "Full-length bonus can hold down the left end"
+nvg test "Full-length bonus can hold down the left end"
 ```
 
 To run only the first section (plus the setup code before the sections):
 
 ```bash
-vg test "Full-length bonus can hold down the left end" --section "left end is detached without bonus"
+nvg test "Full-length bonus can hold down the left end" --section "left end is detached without bonus"
 ```
 
 Unit test files can also have helper functions which are called by the unit tests.
@@ -198,7 +198,7 @@ For an example of this see `src/unittest/chain_items.cpp`.
 
 ### Subcommands
 
-Functionality within `vg` is split up over many subcommands, e.g. `vg convert` converts between file types.
+Functionality within `vg` is split up over many subcommands, e.g. `nvg convert` converts between file types.
 Subcommands are the command-line user interface. Thus, we have strict rules about how they are set up.
 These rules are enforced by a unit test defined by `scripts/lint.py`.
 You can run this script yourself to check in advance of opening a PR.
@@ -210,9 +210,9 @@ Each subcommand has a file in `src/subcommand/`. Make sure to `#include "subcomm
 - All subcommands must be in the autocomplete files `autocomplete.sh` and `autocomp.bash`.
 Each has a line `opts="cmd1 cmd2"` etc. When adding or removing a subcommand, update the list.
 - Non-deprecated subcommands must be included in the manpage generators:
-    - The lists `doc/vgmanmd.desc.md` must have at least one instance of the subcommand.
+    - The lists `doc/nvgmanmd.desc.md` must have at least one instance of the subcommand.
     Make sure to format the links properly or they won't be accepted.
-    - The `cmds` list at the top of `doc/vgmanmd.py` must have the subcommand.
+    - The `cmds` list at the top of `doc/nvgmanmd.py` must have the subcommand.
 
 #### Helptext
 
@@ -221,7 +221,7 @@ or by using the `--help`/`-h`/`-?` command-line options.
 (Having all of those options work is required by `scripts/lint.py`.)
 
 ```
-usage: vg gamcompare aln.gam truth.gam >output.gam
+usage: nvg gamcompare aln.gam truth.gam >output.gam
 
 options:
   -d, --distance-index FILE  use distances from this distance index
@@ -266,7 +266,7 @@ In order to correctly set up a command-line option it must be put in four separa
     Shortforms may repeat, and the first longform is retained. This is to allow longform aliases.
 - **`getopt_long` string**: all options with a shortform must appear here. Order does not matter.
 Options which take an argument must have a `:` after their shortform.
-The `vg gamcompare` one is `"h?d:r:I:n:o:Ta:st:"`.
+The `nvg gamcompare` one is `"h?d:r:I:n:o:Ta:st:"`.
 - **`switch(c)` block**: all options must appear here. The default case must exit/abort. Fallthroughs are handled.
     - Each case must be of the form `case <shortform>:` or `default:`.
     - The shortform must be a single character or an `ALL_CAPS` variable name.

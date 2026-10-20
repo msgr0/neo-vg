@@ -1,6 +1,6 @@
 /** \file paths_main.cpp
  *
- * Defines the "vg paths" subcommand, which reads paths in the graph.
+ * Defines the "nvg paths" subcommand, which reads paths in the graph.
  */
 
 
@@ -63,7 +63,7 @@ void help_paths(char** argv) {
          << "  -p, --paths-file FILE     select paths named in a file (one per line)" << endl
          << "  -Q, --paths-by STR        select paths with the given name prefix" << endl
          << "  -S, --sample STR          select haplotypes or reference paths for this sample" << endl
-         << "  -a, --variant-paths       select variant paths added by 'vg construct -a'" << endl
+         << "  -a, --variant-paths       select variant paths added by 'nvg construct -a'" << endl
          << "  -G, --generic-paths       select generic, non-reference, non-haplotype paths" << endl
          << "  -R, --reference-paths     select reference paths" << endl
          << "  -H, --haplotype-paths     select haplotype paths" << endl
@@ -118,7 +118,7 @@ unordered_map<PathSense, string> SENSE_TO_STRING {
 };
 
 int main_paths(int argc, char** argv) {
-    Logger logger("vg paths");
+    Logger logger("nvg paths");
 
     if (argc == 2) {
         help_paths(argv);
@@ -169,7 +169,6 @@ int main_paths(int argc, char** argv) {
             {"vg", required_argument, 0, 'v'},
             {"xg", required_argument, 0, 'x'},
             {"gbwt", required_argument, 0, 'g'},
-            {"extract-vg", no_argument, 0, 'V'},
             {"drop-paths", no_argument, 0, 'd'},
             {"retain-paths", no_argument, 0, 'r'},
             {"normalize-paths", no_argument, 0, 'n'},
@@ -194,7 +193,6 @@ int main_paths(int argc, char** argv) {
             {"verbose", no_argument, 0, OPT_PROGRESS},
 
             // Hidden options for backward compatibility.
-            {"threads-old", no_argument, 0, 'T'},
             {"threads-by", required_argument, 0, 'q'},
 
             // Gref options
@@ -207,7 +205,7 @@ int main_paths(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?LXv:x:g:Q:VEMCFAS:drnaGRHp:coTq:t:ul:",
+        c = getopt_long (argc, argv, "h?LXv:x:g:Q:EMCFAS:drnaGRHp:coq:t:ul:",
                 long_options, &option_index);
 
         // Detect the end of the options.
@@ -228,10 +226,6 @@ int main_paths(int argc, char** argv) {
             ++input_formats;
             break;
 
-        case 'V':
-            logger.error() << "-V/--extract-vg has been removed" << endl;
-            break;
-                
         case 'd':
             drop_paths = true;
             output_formats++;
@@ -324,10 +318,6 @@ int main_paths(int argc, char** argv) {
 
         case 'o':
             overlay = true;
-            break;
-
-        case 'T':
-            logger.warn() << "option -T/--threads-old is obsolete; use -t/--threads" << std::endl;
             break;
 
         case 'q':
@@ -497,8 +487,8 @@ int main_paths(int argc, char** argv) {
                            << " is in a read-only format (such as GBZ or XG)." << std::endl
                            << "         Convert it to a mutable format first, for example:"
                            << std::endl
-                           << "           vg convert -p " << graph_file << " > graph.pg" << std::endl
-                           << "           vg paths -x graph.pg --compute-gref ..." << std::endl;
+                           << "           nvg convert -p " << graph_file << " > graph.pg" << std::endl
+                           << "           nvg paths -x graph.pg --compute-gref ..." << std::endl;
             return 1;
         }
 
@@ -554,7 +544,7 @@ int main_paths(int argc, char** argv) {
                                    /*size_limit=*/0,
                                    /*only_top_level_chain_distances=*/true);
             if (progress) {
-                cerr << "[vg paths] built the snarl decomposition in "
+                cerr << "[nvg paths] built the snarl decomposition in "
                      << std::chrono::duration<double>(
                             std::chrono::steady_clock::now() - start_time).count()
                      << " s" << endl;

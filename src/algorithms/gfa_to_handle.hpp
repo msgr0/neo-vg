@@ -64,41 +64,18 @@ struct GFAIDMapInfo : public NamedNodeBackTranslation {
 
 };
 
-/// Read a text GFA file for a blunt-ended graph into a HandleGraph.
+/// Read a text GFA file for a blunt-ended graph into a PathHandleGraph,
+/// including path elements from the text GFA.
 /// Give "-" as a filename for stdin.
 ///
 /// Throws GFAFormatError if the file is not acceptable, and
 /// std::ios_base::failure if an IO operation fails.
-/// Does not give max ID hints, and so might be very slow when loading into an ODGI graph.
-void gfa_to_handle_graph(const string& filename,
-                         MutableHandleGraph* graph,
-                         GFAIDMapInfo* translation = nullptr);
-
-/// Overload which serializes its translation to a file internally.
-void gfa_to_handle_graph(const string& filename,
-                         MutableHandleGraph* graph,
-                         const string& translation_filename);
-
-/// Load a GFA from a stream (assumed not to be seekable or reopenable) into a HandleGraph.
-void gfa_to_handle_graph(istream& in,
-                         MutableHandleGraph* graph,
-                         GFAIDMapInfo* translation = nullptr);
-
-
-/// Same as gfa_to_handle_graph but also adds path elements from the text GFA to the graph.
 void gfa_to_path_handle_graph(const string& filename,
                               MutablePathMutableHandleGraph* graph,
                               GFAIDMapInfo* translation = nullptr,
                               int64_t max_rgfa_rank = numeric_limits<int64_t>::max(),
                               unordered_set<PathSense>* ignore_sense = nullptr);
 
-/// Overload which serializes its translation to a file internally.
-void gfa_to_path_handle_graph(const string& filename,
-                              MutablePathMutableHandleGraph* graph,
-                              int64_t max_rgfa_rank,
-                              const string& translation_filename,
-                              unordered_set<PathSense>* ignore_sense = nullptr);
-                              
 /// Load a GFA from a stream (assumed not to be seekable or reopenable) into a PathHandleGraph.
 void gfa_to_path_handle_graph(istream& in,
                               MutablePathMutableHandleGraph* graph,

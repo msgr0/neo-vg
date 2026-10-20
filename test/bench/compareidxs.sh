@@ -19,15 +19,15 @@ pan_gcsa=$6
 mkdir -p $prefix
 
 echo mapping $prefix against linear graph
-vg map -x $linear_xg -g $linear_gcsa $input -u 1 -L 10 -a >$prefix/linear.gam
+nvg map -x $linear_xg -g $linear_gcsa $input -u 1 -L 10 -a >$prefix/linear.gam
 
 echo mapping $prefix against pan graph
-vg map -x $pan_xg -g $pan_gcsa $input -u 1 -L 10 -a >$prefix/pan.gam
+nvg map -x $pan_xg -g $pan_gcsa $input -u 1 -L 10 -a >$prefix/pan.gam
 
 # join the results (identity, score, mapping quality) on read name
 echo comparing results
 ( echo group name ref.identity ref.score ref.mapq pan.identity pan.score pan.mapq
   join -j 1 \
-       <(vg view -a $prefix/linear.gam | jq '[.name, .identity, .score, .mapping_quality] | @sh' | sed 's/"//g' | sed "s/'//g" | sed 's/ null/ 0/g' | sort) \
-       <(vg view -a $prefix/pan.gam | jq '[.name, .identity, .score, .mapping_quality] | @sh' | sed 's/"//g' | sed "s/'//g" | sed 's/ null/ 0/g' | sort) \
+       <(nvg view -a $prefix/linear.gam | jq '[.name, .identity, .score, .mapping_quality] | @sh' | sed 's/"//g' | sed "s/'//g" | sed 's/ null/ 0/g' | sort) \
+       <(nvg view -a $prefix/pan.gam | jq '[.name, .identity, .score, .mapping_quality] | @sh' | sed 's/"//g' | sed "s/'//g" | sed 's/ null/ 0/g' | sort) \
       | while read line; do echo $prefix $line; done ) | tr ' ' '\t' | gzip >$prefix/vs.tsv.gz

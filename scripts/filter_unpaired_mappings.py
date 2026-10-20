@@ -9,7 +9,7 @@ the first and second fragment for a given read.  Input must be sorted by name
 Examples:
 
   # Note: GAM sorting with jq takes loads of memory
-  vg view -a unsorted.gam | jq -s -c 'sort_by(.name)[]' | filter_unpaired_mappings.py - json-gam | vg view -JaG - > interleaved.gam
+  nvg view -a unsorted.gam | jq -s -c 'sort_by(.name)[]' | filter_unpaired_mappings.py - json-gam | nvg view -JaG - > interleaved.gam
 
   samtools sort -n unsorted.bam | filter_unpaired_mappings.py - sam | samtools view - -O BAM > interleaved.bam
 
@@ -93,7 +93,7 @@ def filter_sam(options):
 
 def filter_json_gam(options):
     """
-    process gam json made with vg view -a my.gam | jq -s -c 'sort_by(.name)[]'
+    process gam json made with nvg view -a my.gam | jq -s -c 'sort_by(.name)[]'
     """
 
     in_file = sys.stdin if options.input == '-' else open(options.input, 'r')
@@ -120,7 +120,7 @@ def filter_json_gam(options):
 
         if prev_name and gam['name'] < prev_name:
             raise RuntimeError('Records not sorted by name: {} {}\n'.format(prev_name, gam['name']) + 
-                               'Use vg view -a {} | jq -s -c \'sort_by(.name)[]\''.format(options.input))
+                               'Use nvg view -a {} | jq -s -c \'sort_by(.name)[]\''.format(options.input))
 
             
         prev_name = gam['name']

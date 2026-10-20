@@ -334,7 +334,7 @@ int32_t Transcriptome::add_reference_transcripts(vector<istream *> transcript_st
 
     if (transcripts.empty() && lines_parsed != 0) {
 
-        cerr << "\tERROR: No transcripts parsed (remember to set feature type \"-y\" in vg rna or \"-f\" in vg autoindex)" << endl;
+        cerr << "\tERROR: No transcripts parsed (remember to set feature type \"-y\" in nvg rna or \"-f\" in nvg autoindex)" << endl;
         exit(1);        
     }
 
@@ -427,7 +427,7 @@ int32_t Transcriptome::add_haplotype_transcripts(vector<istream *> transcript_st
 
     if (transcripts.empty() && lines_parsed != 0) {
 
-        cerr << "\tERROR: No transcripts parsed (remember to set feature type \"-y\" in vg rna or \"-f\" in vg autoindex)" << endl;
+        cerr << "\tERROR: No transcripts parsed (remember to set feature type \"-y\" in nvg rna or \"-f\" in nvg autoindex)" << endl;
         exit(1);        
     }
     

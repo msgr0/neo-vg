@@ -1,13 +1,5 @@
 #include "three_edge_connected_components.hpp"
 
-extern "C" {
-#include "sonLib/sonLibList.h"
-#include "sonLib/sonLibTuples.h"
-#include "sonLib/3_Absorb3edge2x.h"
-}
-
-#include <structures/union_find.hpp>
-
 #include <limits>
 #include <cassert>
 #include <iostream>

@@ -1,6 +1,6 @@
 /** \file circularize_main.cpp
  *
- * Defines the "vg circularize" subcommand
+ * Defines the "nvg circularize" subcommand
  */
 
 
@@ -36,7 +36,7 @@ void help_circularize(char** argv) {
 }
 
 int main_circularize(int argc, char** argv) {
-    Logger logger("vg circularize");
+    Logger logger("nvg circularize");
     if (argc == 2){
         help_circularize(argv);
         exit(1);
@@ -59,13 +59,12 @@ int main_circularize(int argc, char** argv) {
             {"pathfile", required_argument, 0, 'P'},
             {"head", required_argument, 0, 'a'},
             {"tail", required_argument, 0, 'z'},
-            {"describe", no_argument, 0, 'd'},
             {0,0,0,0}
         };
 
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?dp:P:a:z:",
+        c = getopt_long (argc, argv, "h?p:P:a:z:",
                         long_options, &option_index);
         if (c == -1) {
             break;
@@ -83,10 +82,6 @@ int main_circularize(int argc, char** argv) {
                 break;
             case 'P':
                 pathfile = require_exists(logger, optarg);
-                break;
-            case 'd':
-                logger.error() << "vg circularize --describe has been removed."
-                               << " Use vg paths --list" << std::endl;
                 break;
             case 'h':
             case '?':

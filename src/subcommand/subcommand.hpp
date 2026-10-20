@@ -12,9 +12,9 @@
  * units, which have to be explicitly linked into the binary (they won't be
  * pulled out of a library if nothing references their symbols).
  *
- * Subcommands are responsible for printing their own help; we can do "vg help"
+ * Subcommands are responsible for printing their own help; we can do "nvg help"
  * and print all the subcommands that exist (via a help subcommand), but we
- * can't do "vg help subcommand" and have that be equivalent to "vg subcommand
+ * can't do "nvg help subcommand" and have that be equivalent to "vg subcommand
  * --help" (because the help subcommand doesn't know how to get help info on the
  * others).
  *
@@ -67,7 +67,7 @@ enum CommandCategory {
 };
 
 const static std::map<std::string, std::string> REMOVED_CMD_MESSAGES{
-    {"explode", std::string("Please use \"vg chunk -C source.vg -b part_dir/component\" "
+    {"explode", std::string("Please use \"nvg chunk -C source.vg -b part_dir/component\" "
                             "for the same* functionality as \"vg explode source.vg part_dir\"\n"
                             "* (unlike explode, the output directory must already exist when running chunk)")
     },
@@ -175,11 +175,6 @@ private:
     CommandCategory category;
     int priority;
     std::function<int(int, char**)> main_function;
-    
-    /**
-     * Get the main function of a subcommand.
-     */
-    const std::function<int(int, char**)>& get_main() const;
 };
 
 }

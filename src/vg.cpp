@@ -8,8 +8,6 @@
 #include "cactus_snarl_finder.hpp"
 #include "augment.hpp"
 #include "algorithms/prune.hpp"
-#include <raptor2/raptor2.h>
-#include <sonLib/stPinchGraphs.h>
 
 #include <handlegraph/util.hpp>
 
@@ -1046,30 +1044,6 @@ VG::VG(set<Node*>& nodes, set<Edge*>& edges) {
 }
 
 
-nid_t VG::get_node_at_nucleotide(string pathname, int nuc){
-    Path p = paths.path(pathname);
-
-    int nt_start = 0;
-    int nt_end = 0;
-    for (int i = 0; i < p.mapping_size(); i++){
-        Mapping m = p.mapping(i);
-        Position pos = m.position();
-        nid_t n_id = pos.node_id();
-        Node* node = get_node(n_id);
-        nt_end += node->sequence().length();
-        if (nuc < nt_end && nuc >= nt_start){
-            return n_id;
-        }
-        nt_start += node->sequence().length();
-        if (nt_start > nuc && nt_end > nuc){
-            throw std::out_of_range("Nucleotide position not found in path.");
-        }
-    }
-    
-    throw std::out_of_range("Nucleotide position not found in path.");
-
-}
-
 void VG::add_nodes(const set<Node*>& nodes) {
     for (auto node : nodes) {
         add_node(*node);
@@ -1259,130 +1233,6 @@ vector<Edge*> VG::edges_of(Node* node) {
     vector<Edge*> edges;
     edges_of_node(node, edges);
     return edges;
-}
-
-void VG::edges_of_nodes(set<Node*>& nodes, set<Edge*>& edges) {
-    for (set<Node*>::iterator n = nodes.begin(); n != nodes.end(); ++n) {
-        vector<Edge*> ev;
-        edges_of_node(*n, ev);
-        for (vector<Edge*>::iterator e = ev.begin(); e != ev.end(); ++e) {
-            edges.insert(*e);
-        }
-    }
-}
-
-set<pair<NodeSide, bool>> VG::sides_context(nid_t node_id) {
-    // return the side we're going to and if we go from the start or end to get there
-    set<pair<NodeSide, bool>> all;
-    for (auto& s : sides_to(NodeSide(node_id, false))) {
-        all.insert(make_pair(s, false));
-    }
-    for (auto& s : sides_to(NodeSide(node_id, true))) {
-        all.insert(make_pair(s, true));
-    }
-    for (auto& s : sides_from(NodeSide(node_id, false))) {
-        all.insert(make_pair(s, false));
-    }
-    for (auto& s : sides_from(NodeSide(node_id, true))) {
-        all.insert(make_pair(s, true));
-    }
-    return all;
-}
-
-bool VG::same_context(nid_t n1, nid_t n2) {
-    auto c1 = sides_context(n1);
-    auto c2 = sides_context(n2);
-    bool same = true;
-    for (auto& s : c1) {
-        if (!c2.count(s)) { same = false; break; }
-    }
-    return same;
-}
-
-bool VG::is_ancestor_prev(nid_t node_id, nid_t candidate_id) {
-    set<nid_t> seen;
-    return is_ancestor_prev(node_id, candidate_id, seen);
-}
-
-bool VG::is_ancestor_prev(nid_t node_id, nid_t candidate_id, set<nid_t>& seen, size_t steps) {
-    if (node_id == candidate_id) return true;
-    if (!steps) return false;
-    for (auto& side : sides_to(NodeSide(node_id, false))) {
-        if (seen.count(side.node)) continue;
-        seen.insert(side.node);
-        if (is_ancestor_prev(side.node, candidate_id, seen, steps-1)) return true;
-    }
-    return false;
-}
-
-bool VG::is_ancestor_next(nid_t node_id, nid_t candidate_id) {
-    set<nid_t> seen;
-    return is_ancestor_next(node_id, candidate_id, seen);
-}
-
-bool VG::is_ancestor_next(nid_t node_id, nid_t candidate_id, set<nid_t>& seen, size_t steps) {
-    if (node_id == candidate_id) return true;
-    if (!steps) return false;
-    for (auto& side : sides_from(NodeSide(node_id, true))) {
-        if (seen.count(side.node)) continue;
-        seen.insert(side.node);
-        if (is_ancestor_next(side.node, candidate_id, seen, steps-1)) return true;
-    }
-    return false;
-}
-
-nid_t VG::common_ancestor_prev(nid_t id1, nid_t id2, size_t steps) {
-    // arbitrarily step back from node 1 asking if we are prev-ancestral to node 2
-    auto scan = [this](nid_t id1, nid_t id2, size_t steps) -> nid_t {
-        set<nid_t> to_visit;
-        to_visit.insert(id1);
-        for (size_t i = 0; i < steps; ++i) {
-            // collect nodes to visit
-            set<nid_t> to_visit_next;
-            for (auto& id : to_visit) {
-                if (is_ancestor_prev(id2, id)) return id;
-                for (auto& side : sides_to(NodeSide(id, false))) {
-                    to_visit_next.insert(side.node);
-                }
-            }
-            to_visit = to_visit_next;
-            if (to_visit.empty()) return -1; // we hit the end of the graph
-        }
-        return 0;
-    };
-    nid_t id3 = scan(id1, id2, steps);
-    if (id3) {
-        return id3;
-    } else {
-        return scan(id2, id1, steps);
-    }
-}
-
-nid_t VG::common_ancestor_next(nid_t id1, nid_t id2, size_t steps) {
-    // arbitrarily step forward from node 1 asking if we are next-ancestral to node 2
-    auto scan = [this](nid_t id1, nid_t id2, size_t steps) -> nid_t {
-        set<nid_t> to_visit;
-        to_visit.insert(id1);
-        for (size_t i = 0; i < steps; ++i) {
-            // collect nodes to visit
-            set<nid_t> to_visit_next;
-            for (auto& id : to_visit) {
-                if (is_ancestor_next(id2, id)) return id;
-                for (auto& side : sides_from(NodeSide(id, true))) {
-                    to_visit_next.insert(side.node);
-                }
-            }
-            to_visit = to_visit_next;
-            if (to_visit.empty()) return -1; // we hit the end of the graph
-        }
-        return 0;
-    };
-    nid_t id3 = scan(id1, id2, steps);
-    if (id3) {
-        return id3;
-    } else {
-        return scan(id2, id1, steps);
-    }
 }
 
 set<NodeSide> VG::sides_of(NodeSide side) {
@@ -1920,15 +1770,6 @@ void VG::clear_indexes_no_resize(void) {
 #endif
 }
 
-void VG::resize_indexes(void) {
-    node_index.resize(graph.node_size());
-    node_by_id.resize(graph.node_size());
-    edge_by_sides.resize(graph.edge_size());
-    edge_index.resize(graph.edge_size());
-    edges_on_start.resize(graph.node_size());
-    edges_on_end.resize(graph.node_size());
-}
-
 void VG::rebuild_indexes(void) {
     clear_indexes_no_resize();
     build_indexes_no_init_size();
@@ -1956,24 +1797,6 @@ bool VG::has_node(nid_t id) const {
     return node_by_id.find(id) != node_by_id.end();
 }
 
-Node* VG::find_node_by_name_or_add_new(string name) {
-//TODO we need to have real names on id's;
-  int namespace_end = name.find_last_of("/#");
-
-    string id_s = name.substr(namespace_end+1, name.length()-2);
-    nid_t id = stoll(id_s);
-
-    if (has_node(id)){
-       return get_node(id);
-    } else {
-        Node* new_node = graph.add_node();
-        new_node->set_id(id);
-        node_by_id[new_node->id()] = new_node;
-        node_index[new_node] = graph.node_size()-1;
-        return new_node;
-    }
-}
-
 bool VG::has_edge(Edge* edge) const {
     return edge && has_edge(*edge);
 }
@@ -1988,38 +1811,6 @@ bool VG::has_edge(const NodeSide& side1, const NodeSide& side2) const {
 
 bool VG::has_edge(const pair<NodeSide, NodeSide>& sides) const {
     return has_edge(sides.first, sides.second);
-}
-
-bool VG::has_inverting_edge(Node* n) {
-    for (auto e : edges_of(n)) {
-        if ((e->from_start() || e->to_end())
-            && !(e->from_start() && e->to_end())) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool VG::has_inverting_edge_from(Node* n) {
-    for (auto e : edges_of(n)) {
-        if (e->from() == n->id()
-            && (e->from_start() || e->to_end())
-            && !(e->from_start() && e->to_end())) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool VG::has_inverting_edge_to(Node* n) {
-    for (auto e : edges_of(n)) {
-        if (e->to() == n->id()
-            && (e->from_start() || e->to_end())
-            && !(e->from_start() && e->to_end())) {
-            return true;
-        }
-    }
-    return false;
 }
 
 // remove duplicated nodes and edges that would occur if we merged the graphs
@@ -2046,48 +1837,6 @@ void VG::remove_duplicated_in(VG& g) {
          e != edges_to_destroy.end(); ++e) {
         // Find and destroy the edge that does the same thing in g.
         destroy_edge(g.get_edge(NodeSide::pair_from_edge(*e)));
-    }
-}
-
-void VG::remove_duplicates(void) {
-    map<nid_t, size_t> node_counts;
-    for (size_t i = 0; i < graph.node_size(); ++i) {
-        Node* n = graph.mutable_node(i);
-        node_counts[n->id()]++;
-    }
-    vector<Node*> nodes_to_destroy;
-    for (size_t i = 0; i < graph.node_size(); ++i) {
-        Node* n = graph.mutable_node(i);
-        auto f = node_counts.find(n->id());
-        if (f != node_counts.end()
-            && f->second > 1) {
-            --f->second;
-            nodes_to_destroy.push_back(n);
-        }
-    }
-    for (vector<Node*>::iterator n = nodes_to_destroy.begin();
-         n != nodes_to_destroy.end(); ++n) {
-        destroy_node(get_node((*n)->id()));
-    }
-
-    map<pair<NodeSide, NodeSide>, size_t> edge_counts;
-    for (nid_t i = 0; i < graph.edge_size(); ++i) {
-        edge_counts[NodeSide::pair_from_edge(graph.edge(i))]++;
-    }
-    vector<Edge*> edges_to_destroy;
-    for (nid_t i = 0; i < graph.edge_size(); ++i) {
-        Edge* e = graph.mutable_edge(i);
-        auto f = edge_counts.find(NodeSide::pair_from_edge(*e));
-        if (f != edge_counts.end()
-            && f->second > 1) {
-            --f->second;
-            edges_to_destroy.push_back(e);
-        }
-    }
-    for (vector<Edge*>::iterator e = edges_to_destroy.begin();
-         e != edges_to_destroy.end(); ++e) {
-        // Find and destroy the edge that does the same thing in g.
-        destroy_edge(get_edge(NodeSide::pair_from_edge(*e)));
     }
 }
 
@@ -2277,10 +2026,6 @@ void VG::increment_node_ids(nid_t increment) {
     paths.increment_node_ids(increment);
 }
 
-void VG::decrement_node_ids(nid_t decrement) {
-    increment_node_ids(-decrement);
-}
-
 void VG::swap_node_id(nid_t node_id, nid_t new_id) {
     swap_node_id(node_by_id[node_id], new_id);
 }
@@ -2411,159 +2156,6 @@ void VG::set_id_increment(const nid_t& min_id) {
     // no-op
 }
 
-map<nid_t, vcflib::Variant> VG::get_node_nid_to_variant(vcflib::VariantCallFile vfile){
-    map<nid_t, vcflib::Variant> ret;
-    vcflib::Variant var;
-
-    while(vfile.getNextVariant(var)){
-        long nuc = var.position;
-        nid_t node_id = get_node_at_nucleotide(var.sequenceName, nuc);
-        ret[node_id] = var;
-    }
-
-    return ret;
-}
-
-string VG::trav_sequence(const NodeTraversal& trav) {
-    string seq = trav.node->sequence();
-    if (trav.backward) {
-        return reverse_complement(seq);
-    } else {
-        return seq;
-    }
-}
-\
-
-static
-void
-triple_to_vg(void* user_data, raptor_statement* triple)
-{
-    auto tuple=(std::tuple<VG*, Paths*, string>*) user_data;
-    VG* vg = std::get<0>(*tuple);
-    Paths* paths = std::get<1>(*tuple);
-    const string base_uri = std::get<2>(*tuple);
-    const string vg_ns ="<http://biohackathon.org/resource/vg#";
-    const string vg_node_p = vg_ns + "node>" ;
-    const string vg_step_p = vg_ns + "step>" ;
-    const string vg_path_p = vg_ns + "path>" ;
-    const string vg_reverse_of_node_p = vg_ns + "reverseOfNode>" ;
-    const string vg_rank_p = vg_ns + "rank" ;
-    const string vg_linkrr_p = vg_ns + "linksReverseToReverse>";
-    const string vg_linkrf_p = vg_ns + "linksReverseToForward>";
-    const string vg_linkfr_p = vg_ns + "linksForwardToReverse>";
-    const string vg_linkff_p = vg_ns + "linksForwardToForward>";
-    const string sub(reinterpret_cast<char*>(raptor_term_to_string(triple->subject)));
-    const string pred(reinterpret_cast<char*>(raptor_term_to_string(triple->predicate)));
-    const string obj(reinterpret_cast<char*>(raptor_term_to_string(triple->object)));
-
-    bool reverse = pred == vg_reverse_of_node_p;
-    if (pred == (vg_node_p) || reverse) {
-        Node* node = vg->find_node_by_name_or_add_new(obj);
-        Mapping* mapping = new Mapping(); //TODO will this cause a memory leak
-        const string pathname = sub.substr(base_uri.length()+6, sub.length()-sub.find_last_of('-'));
-
-        //TODO we are using a nasty trick here, which needs to be fixed.
-        //We are using knowledge about the uri format to determine the rank of the step.
-#ifdef debug
-#endif
-        try {
-            int rank = stoi(sub.substr(sub.find_last_of("-")+1, sub.length()-2));
-            mapping->set_rank(rank);
-        } catch(exception& e) {
-            cerr << "[vg view] assumption about rdf structure was wrong, parsing failed" << endl;
-            exit(1);
-        }
-        Position* p = mapping->mutable_position();
-        p->set_offset(0);
-        p->set_node_id(node->id());
-        p->set_is_reverse(reverse);
-        paths->append_mapping(pathname, *mapping);
-    } else if (pred=="<http://www.w3.org/1999/02/22-rdf-syntax-ns#value>"){
-        Node* node = vg->find_node_by_name_or_add_new(sub);
-        node->set_sequence(obj.substr(1,obj.length()-2));
-    } else if (pred == vg_linkrr_p){
-        Node* from = vg->find_node_by_name_or_add_new(sub);
-        Node* to = vg->find_node_by_name_or_add_new(obj);
-        vg->create_edge(from, to, true, true);
-    } else if (pred == vg_linkrf_p){
-        Node* from = vg->find_node_by_name_or_add_new(sub);
-        Node* to = vg->find_node_by_name_or_add_new(obj);
-        vg->create_edge(from, to, false, true);
-    } else if (pred == vg_linkfr_p){
-        Node* from = vg->find_node_by_name_or_add_new(sub);
-        Node* to = vg->find_node_by_name_or_add_new(obj);
-        vg->create_edge(from, to, true, false);
-    } else if (pred == vg_linkff_p){
-        Node* from = vg->find_node_by_name_or_add_new(sub);
-        Node* to = vg->find_node_by_name_or_add_new(obj);
-        vg->create_edge(from, to, false, false);
-    }
-}
-
-void VG::from_turtle(string filename, string base_uri, bool showp) {
-    raptor_world* world;
-    world = raptor_new_world();
-    if(!world)
-    {
-        cerr << "[vg view] we could not start the rdf environment needed for parsing" << endl;
-        exit(1);
-    }
-    int st =  raptor_world_open (world);
-
-    if (st!=0) {
-    cerr << "[vg view] we could not start the rdf parser " << endl;
-    exit(1);
-    }
-    raptor_parser* rdf_parser;
-    const unsigned char *filename_uri_string;
-    raptor_uri  *uri_base, *uri_file;
-    rdf_parser = raptor_new_parser(world, "turtle");
-    //We use a paths object with its convience methods to build up path objects.
-    Paths* paths = new Paths();
-    std::tuple<VG*, Paths*, string> user_data = make_tuple(this, paths, base_uri);
-
-    //The user_data is cast in the triple_to_vg method.
-    raptor_parser_set_statement_handler(rdf_parser, &user_data, triple_to_vg);
-
-
-    const  char *file_name_string = reinterpret_cast<const char*>(filename.c_str());
-    filename_uri_string = raptor_uri_filename_to_uri_string(file_name_string);
-    uri_file = raptor_new_uri(world, filename_uri_string);
-    uri_base = raptor_new_uri(world, reinterpret_cast<const unsigned char*>(base_uri.c_str()));
-
-    // parse the file indicated by the uri, given an uir_base .
-    raptor_parser_parse_file(rdf_parser, uri_file, uri_base);
-    // free the different C allocated structures
-    raptor_free_uri(uri_base);
-    raptor_free_uri(uri_file);
-    raptor_free_parser(rdf_parser);
-    raptor_free_world(world);
-    //sort the mappings in the path
-    paths->sort_by_mapping_rank();
-    //we need to make sure that we don't have inner mappings
-    //we need to do this after collecting all node sequences
-    //that can only be ensured by doing this when parsing ended
-    paths->for_each_mapping([this](mapping_t& mapping){
-        Node* node =this->get_node(mapping.node_id());
-        //every mapping in VG RDF matches a whole mapping
-        mapping.length = node->sequence().length();
-    });
-    ///Add the paths that we parsed into the vg object
-    paths->for_each([this](const Path& path){
-        this->include(path);
-    });
-
-}
-
-void VG::print_edges(void) {
-    for (int i = 0; i < graph.edge_size(); ++i) {
-        Edge* e = graph.mutable_edge(i);
-        nid_t f = e->from();
-        nid_t t = e->to();
-        cerr << f << "->" << t << " ";
-    }
-    cerr << endl;
-}
 
 // depth first search across node traversals with interface to traversal tree via callback
 void VG::dfs(
@@ -2777,14 +2369,6 @@ vector<Edge> VG::break_cycles(void) {
     }
     sort();
     return removed;
-}
-    
-void VG::identity_translation(unordered_map<nid_t, pair<nid_t, bool>>& node_translation) {
-    node_translation.clear();
-    for (size_t i = 0; i < graph.node_size(); i++) {
-        nid_t id = graph.node(i).id();
-        node_translation[id] = make_pair(id, false);
-    }
 }
     
 VG VG::reverse_complement_graph(unordered_map<nid_t, pair<nid_t, bool>>& node_translation) {
@@ -3257,19 +2841,6 @@ void VG::destroy_node(Node* node) {
     //if (!is_valid()) { cerr << "graph is invalid after destroy_node" << endl; exit(1); }
 }
 
-void VG::remove_null_nodes(void) {
-    vector<nid_t> to_remove;
-    for (int i = 0; i < graph.node_size(); ++i) {
-        Node* node = graph.mutable_node(i);
-        if (node->sequence().size() == 0) {
-            to_remove.push_back(node->id());
-        }
-    }
-    for (vector<nid_t>::iterator n = to_remove.begin(); n != to_remove.end(); ++n) {
-        destroy_node(*n);
-    }
-}
-
 void VG::remove_null_nodes_forwarding_edges(void) {
     vector<Node*> to_remove;
     int i = 0;
@@ -3371,11 +2942,6 @@ void VG::keep_paths(const set<string>& path_names, set<string>& kept_names, bool
 
     // Throw out all the paths data for paths we don't want to keep.
     paths.keep_paths(kept_names);
-}
-
-void VG::keep_path(const string& path_name) {
-    set<string> s,k; s.insert(path_name);
-    keep_paths(s, k);
 }
 
 // divide a node into two pieces at the given offset
@@ -3600,41 +3166,6 @@ void VG::divide_node(Node* node, vector<int>& positions, vector<Node*>& parts) {
 
 }
 
-// for dividing a path of nodes with an underlying coordinate system
-void VG::divide_path(map<long, nid_t>& path, long pos, Node*& left, Node*& right) {
-
-    map<long, nid_t>::iterator target = path.upper_bound(pos);
-    --target; // we should now be pointing to the target ref node
-
-    long node_pos = target->first;
-    Node* old = get_node(target->second);
-
-    // nothing to do
-    if (node_pos == pos) {
-        map<long, nid_t>::iterator n = target; --n;
-        left = get_node(n->second);
-        right = get_node(target->second);
-    } else {
-        // divide the target node at our pos
-        int diff = pos - node_pos;
-        divide_node(old, diff, left, right);
-        // left
-        path[node_pos] = left->id();
-        // right
-        path[pos] = right->id();
-    }
-}
-
-set<NodeTraversal> VG::travs_of(NodeTraversal node) {
-    auto tos = travs_to(node);
-    auto froms = travs_from(node);
-    set<NodeTraversal> ofs;
-    std::set_union(tos.begin(), tos.end(),
-                   froms.begin(), froms.end(),
-                   std::inserter(ofs, ofs.begin()));
-    return ofs;
-}
-
 // traversals before this node on the same strand
 set<NodeTraversal> VG::travs_to(NodeTraversal node) {
     set<NodeTraversal> tos;
@@ -3687,18 +3218,6 @@ vector<NodeTraversal> VG::nodes_next(NodeTraversal n) {
     return nodes;
 }
 
-int VG::node_count_prev(NodeTraversal n) {
-    vector<NodeTraversal> nodes;
-    nodes_prev(n, nodes);
-    return nodes.size();
-}
-
-int VG::node_count_next(NodeTraversal n) {
-    vector<NodeTraversal> nodes;
-    nodes_next(n, nodes);
-    return nodes.size();
-}
-
 // path utilities
 // these are in this class because attributes of the path (such as its sequence) are a property of the graph
 
@@ -3712,25 +3231,6 @@ Path VG::create_path(const list<NodeTraversal>& nodes) {
         // TODO: Is it OK if we say we're at a mapping at offset 0 of this node, backwards? Or should we offset ourselves to the end?
     }
     return path;
-}
-
-void VG::expand_path(const list<NodeTraversal>& path, vector<NodeTraversal>& expanded) {
-    for (list<NodeTraversal>::const_iterator n = path.begin(); n != path.end(); ++n) {
-        NodeTraversal node = *n;
-        int s = node.node->sequence().size();
-        for (int i = 0; i < s; ++i) {
-            expanded.push_back(node);
-        }
-    }
-}
-
-void VG::expand_path(list<NodeTraversal>& path, vector<list<NodeTraversal>::iterator>& expanded) {
-    for (list<NodeTraversal>::iterator n = path.begin(); n != path.end(); ++n) {
-        int s = (*n).node->sequence().size();
-        for (int i = 0; i < s; ++i) {
-            expanded.push_back(n);
-        }
-    }
 }
 
 // The correct way to edit the graph
@@ -3942,93 +3442,6 @@ vector<Translation> VG::edit_fast(const Path& path, set<NodeSide>& dangling, siz
     // TODO: maybe we should also add translations to anchor completely novel nodes?
 
     return translations;
-}
-
-void VG::node_starts_in_path(const list<NodeTraversal>& path,
-                             map<Node*, int>& node_start) {
-    int i = 0;
-    for (list<NodeTraversal>::const_iterator n = path.begin(); n != path.end(); ++n) {
-        node_start[(*n).node] = i;
-        int l = (*n).node->sequence().size();
-        i += l;
-    }
-}
-
-void VG::node_starts_in_path(list<NodeTraversal>& path,
-                             map<NodeTraversal*, int>& node_start) {
-    int i = 0;
-    for (list<NodeTraversal>::iterator n = path.begin(); n != path.end(); ++n) {
-        node_start[&(*n)] = i;
-        int l = (*n).node->sequence().size();
-        i += l;
-    }
-}
-
-// todo record as an alignment rather than a string
-Alignment VG::random_read(size_t read_len,
-                          mt19937& rng,
-                          nid_t min_id,
-                          nid_t max_id,
-                          bool either_strand) {
-    // this is broken as it should be scaled by the sequence space
-    // not node space
-    // TODO BROKEN
-    uniform_int_distribution<nid_t> int64_dist(min_id, max_id);
-    nid_t id = int64_dist(rng);
-    // We start at the node in its local forward orientation
-    NodeTraversal node(get_node(id), false);
-    int32_t start_pos = 0;
-    if (node.node->sequence().size() > 1) {
-        uniform_int_distribution<uint32_t> uint32_dist(0,node.node->sequence().size()-1);
-        start_pos = uint32_dist(rng);
-    }
-    string read = node.node->sequence().substr(start_pos);
-    Alignment aln;
-    Path* path = aln.mutable_path();
-    Mapping* mapping = path->add_mapping();
-    Position* position = mapping->mutable_position();
-    position->set_offset(start_pos);
-    position->set_node_id(node.node->id());
-    Edit* edit = mapping->add_edit();
-    //edit->set_sequence(read);
-    edit->set_from_length(read.size());
-    edit->set_to_length(read.size());
-    while (read.size() < read_len) {
-        // pick a random downstream node
-        vector<NodeTraversal> next_nodes;
-        nodes_next(node, next_nodes);
-        if (next_nodes.empty()) break;
-        uniform_int_distribution<int> next_dist(0, next_nodes.size()-1);
-        node = next_nodes.at(next_dist(rng));
-        // Put in the node sequence in the correct relative orientation
-        string addition = (node.backward
-                           ? reverse_complement(node.node->sequence()) : node.node->sequence());
-        read.append(addition);
-        mapping = path->add_mapping();
-        position = mapping->mutable_position();
-        position->set_offset(0);
-        position->set_node_id(node.node->id());
-        edit = mapping->add_edit();
-        //edit->set_sequence(addition);
-        edit->set_from_length(addition.size());
-        edit->set_to_length(addition.size());
-    }
-    aln.set_sequence(read);
-    // fix up the length
-    read = read.substr(0, read_len);
-    size_t to_len = alignment_to_length(aln);
-    if ((int)to_len - (int)read_len > 0) {
-        aln = strip_from_end(aln, (int)to_len - (int)read_len);
-    }
-    uniform_int_distribution<int> binary_dist(0, 1);
-    if (either_strand && binary_dist(rng) == 1) {
-        // We can flip to the other strand (i.e. node's local reverse orientation).
-        aln = reverse_complement_alignment(aln,
-                                           (function<nid_t(nid_t)>) ([this](nid_t id) {
-                                                   return get_node(id)->sequence().size();
-                                               }));
-    }
-    return aln;
 }
 
 bool VG::is_valid(bool check_nodes,
@@ -4852,34 +4265,6 @@ void VG::to_turtle(ostream& out, const string& rdf_base_uri, bool precompress) {
     }
 }
 
-void VG::connect_node_to_nodes(Node* node, vector<Node*>& nodes, bool from_start) {
-    for (vector<Node*>::iterator n = nodes.begin(); n != nodes.end(); ++n) {
-        // Connect them left to right, unless instructed otherwise
-        create_edge(node, (*n), from_start, false);
-    }
-}
-
-void VG::connect_nodes_to_node(vector<Node*>& nodes, Node* node, bool to_end) {
-    for (vector<Node*>::iterator n = nodes.begin(); n != nodes.end(); ++n) {
-        // Connect them left to right, unless instructed otherwise
-        create_edge((*n), node, false, to_end);
-    }
-}
-
-void VG::connect_node_to_nodes(NodeTraversal node, vector<NodeTraversal>& nodes) {
-    for (vector<NodeTraversal>::iterator n = nodes.begin(); n != nodes.end(); ++n) {
-        // Connect them left to right
-        create_edge(node, (*n));
-    }
-}
-
-void VG::connect_nodes_to_node(vector<NodeTraversal>& nodes, NodeTraversal node) {
-    for (vector<NodeTraversal>::iterator n = nodes.begin(); n != nodes.end(); ++n) {
-        // Connect them left to right
-        create_edge((*n), node);
-    }
-}
-
 void VG::add_start_end_markers(int length,
                                char start_char, char end_char,
                                Node*& start_node, Node*& end_node,
@@ -5375,77 +4760,6 @@ const string VG::hash(void) {
 }
 
 
-int VG::path_edge_count(list<NodeTraversal>& path, int32_t offset, int path_length) {
-    int edge_count = 0;
-    // starting from offset in the first node
-    // how many edges do we cross?
-
-    // This is the remaining path length
-    int l = path_length;
-
-    // This is the next node we are looking at.
-    list<NodeTraversal>::iterator pitr = path.begin();
-
-    // How many bases of the first node can we use?
-    int available_in_first_node = (*pitr).node->sequence().size() - offset;
-
-    if(available_in_first_node >= l) {
-        // Cross no edges
-        return 0;
-    }
-
-    l -= available_in_first_node;
-    pitr++;
-    while (l > 0) {
-        // Now we can ignore node orientation
-        ++edge_count;
-        l -= (*pitr++).node->sequence().size();
-    }
-    return edge_count;
-}
-
-int VG::path_end_node_offset(list<NodeTraversal>& path, int32_t offset, int path_length) {
-    // This is the remaining path length
-    int l = path_length;
-
-    // This is the next node we are looking at.
-    list<NodeTraversal>::iterator pitr = path.begin();
-
-    // How many bases of the first node can we use?
-    int available_in_first_node = (*pitr).node->sequence().size() - offset;
-
-    if(available_in_first_node >= l) {
-        // Cross no edges
-        return available_in_first_node - l;
-    }
-
-    l -= available_in_first_node;
-    pitr++;
-    while (l > 0) {
-        l -= (*pitr++).node->sequence().size();
-    }
-    // Now back out the last node we just took.
-    l += (*--pitr).node->sequence().size();
-
-    // Measure from the far end of the last node.
-    l = (*pitr).node->sequence().size() - l - 1;
-
-    return l;
-}
-
-const vector<Alignment> VG::paths_as_alignments(void) {
-    vector<Alignment> alns;
-    paths.for_each([this,&alns](const Path& path) {
-            alns.emplace_back();
-            auto& aln = alns.back();
-            *aln.mutable_path() = path; // copy the path
-            // now reconstruct the sequence
-            aln.set_sequence(this->path_sequence(path));
-            aln.set_name(path.name());
-        });
-    return alns;
-}
-
 const string VG::path_sequence(const Path& path) {
     string seq;
     for (size_t i = 0; i < path.mapping_size(); ++i) {
@@ -5455,62 +4769,6 @@ const string VG::path_sequence(const Path& path) {
     return seq;
 }
 
-double VG::path_identity(const Path& path1, const Path& path2) {
-    // convert paths to sequences
-    string seq1 = path_sequence(path1);
-    string seq2 = path_sequence(path2);
-    // align the two path sequences with ssw
-    SSWAligner aligner;
-    Alignment aln = aligner.align(seq1, seq2);
-    // compute best possible score (which is everything matches)
-    int max_len = max(seq1.length(), seq2.length());
-    int best_score = max_len * aligner.match;
-    // return fraction of score over best_score
-    return best_score == 0 ? 0 : (double)aln.score() / (double)best_score;
-}
-
-
-void VG::collect_subgraph(Node* start_node, set<Node*>& subgraph) {
-
-    // add node to subgraph
-    subgraph.insert(start_node);
-
-    set<Node*> checked;
-    set<Node*> to_check;
-    to_check.insert(start_node);
-
-    while (!to_check.empty()) {
-        // for each predecessor of node
-        set<Node*> curr_check = to_check;
-        to_check.clear();
-        for (auto* node : curr_check) {
-            if (checked.count(node)) {
-                continue;
-            } else {
-                checked.insert(node);
-            }
-            vector<NodeTraversal> prev;
-            nodes_prev(NodeTraversal(node), prev);
-            for (vector<NodeTraversal>::iterator p = prev.begin(); p != prev.end(); ++p) {
-            // if it's not already been examined, collect its neighborhood
-                if (!subgraph.count((*p).node)) {
-                    subgraph.insert((*p).node);
-                    to_check.insert((*p).node);
-                }
-            }
-            // for each successor of node
-            vector<NodeTraversal> next;
-            nodes_next(NodeTraversal(node), next);
-            for (vector<NodeTraversal>::iterator n = next.begin(); n != next.end(); ++n) {
-                if (!subgraph.count((*n).node)) {
-                    subgraph.insert((*n).node);
-                    to_check.insert((*n).node);
-                }
-            }
-        }
-    }
-    //cerr << "node " << start_node->id() << " subgraph size " << subgraph.size() << endl;
-}
 
 bool VG::is_head_node(nid_t id) {
     return is_head_node(get_node(id));
@@ -5558,22 +4816,6 @@ vector<Node*> VG::tail_nodes(void) {
     vector<Node*> tails;
     tail_nodes(tails);
     return tails;
-}
-
-void VG::wrap_with_null_nodes(void) {
-    vector<Node*> heads;
-    head_nodes(heads);
-    Node* head = create_node("");
-    for (vector<Node*>::iterator h = heads.begin(); h != heads.end(); ++h) {
-        create_edge(head, *h);
-    }
-
-    vector<Node*> tails;
-    tail_nodes(tails);
-    Node* tail = create_node("");
-    for (vector<Node*>::iterator t = tails.begin(); t != tails.end(); ++t) {
-        create_edge(*t, tail);
-    }
 }
 
 VG VG::unfold(uint32_t max_length,
@@ -5842,30 +5084,6 @@ VG VG::unfold(uint32_t max_length,
     }
     
     return unfolded;
-}
-
-bool VG::has_inverting_edges(void) {
-    for (nid_t i = 0; i < graph.edge_size(); ++i) {
-        auto& edge = graph.edge(i);
-        if (!(edge.from_start() && edge.to_end())
-            && (edge.from_start() || edge.to_end())) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void VG::remove_inverting_edges(void) {
-    set<pair<NodeSide, NodeSide>> edges;
-    for_each_edge([this,&edges](Edge* edge) {
-            if (!(edge->from_start() && edge->to_end())
-                && (edge->from_start() || edge->to_end())) {
-                edges.insert(NodeSide::pair_from_edge(edge));
-            }
-        });
-    for (auto edge : edges) {
-        destroy_edge(edge);
-    }
 }
 
 bool VG::is_self_looping(Node* node) {

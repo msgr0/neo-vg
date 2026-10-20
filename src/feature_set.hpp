@@ -23,7 +23,7 @@ using namespace std;
  * replaced with a segment of length W". Updates the positions and boundaries of
  * features appropriately.
  *
- * Originally designed to allow BED files to be carried through "vg simplify",
+ * Originally designed to allow BED files to be carried through "nvg simplify",
  * but could be used for other annotation liftover tasks.
  */
 class FeatureSet {

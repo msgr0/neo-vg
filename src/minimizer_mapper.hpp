@@ -1065,13 +1065,6 @@ protected:
     void extension_to_alignment(const GaplessExtension& extension, Alignment& alignment) const;
     
     /**
-     * Convert a WFAAlignment into a vg Alignment. This assumes that the
-     * WFAAlignment is a full-length alignment and that the sequence field of
-     * the vg Alignment has been set.
-     */
-    void wfa_alignment_to_alignment(const WFAAlignment& wfa_alignment, Alignment& alignment) const;
-   
-    /**
      * Clip out the part of the graph between the given positions (left facing
      * into the region to be extracted and right facing out), and dagify it
      * from the perspective of the anchors. If a left anchor is set, all heads
@@ -1317,14 +1310,6 @@ protected:
     /// We define a type for shared-tail lists of Mappings, to avoid constantly
     /// copying Path objects.
     using ImmutablePath = structures::ImmutableList<Mapping>;
-    
-    /**
-     * Get the from length of an ImmutabelPath.
-     *
-     * Can't be called path_from_length or it will shadow the one for Paths
-     * instead of overloading.
-     */
-    static size_t immutable_path_from_length(const ImmutablePath& path);
     
     /**
      * Convert an ImmutablePath to a Path.

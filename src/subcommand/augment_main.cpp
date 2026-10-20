@@ -1,6 +1,6 @@
 /** \file augment_main.cpp
  *
- * Defines the "vg augment" subcommand, which augments a graph using a GAM as a first
+ * Defines the "nvg augment" subcommand, which augments a graph using a GAM as a first
  * step before computing sites and calling variants.
  *
  * It presently only supports augmentation via pileup (as originally used by vg call).  
@@ -73,7 +73,7 @@ void help_augment(char** argv, ConfigurableParser& parser) {
 }
 
 int main_augment(int argc, char** argv) {
-    Logger logger("vg augment");
+    Logger logger("nvg augment");
 
     // Write the translations (as protobuf) to this path
     string translation_file_name;
@@ -134,13 +134,10 @@ int main_augment(int argc, char** argv) {
     bool verbose = false;
 
     static const struct option long_options[] = {
-        // Deprecated Options
-        {"augmentation-mode", required_argument, 0, 'a'},
         // General Options
         {"translation", required_argument, 0, 'Z'},
         {"alignment-out", required_argument, 0, 'A'},
         {"include-paths", no_argument, 0, 'i'},
-        {"cut-softclips", no_argument, 0, 'C'},
         {"keep-softclips", no_argument, 0, 'S'},
         {"label-paths", no_argument, 0, 'B'},
         {"subgraph", no_argument, 0, 's'},
@@ -160,7 +157,7 @@ int main_augment(int argc, char** argv) {
         {"include-gt", required_argument, 0, 'L'},
         {0, 0, 0, 0}
     };
-    static const char* short_options = "a:Z:A:iCSBh?pvt:l:L:sm:c:q:Q:N:EF";
+    static const char* short_options = "Z:A:iSBh?pvt:l:L:sm:c:q:Q:N:EF";
     optind = 2; // force optind past command positional arguments
 
     // This is our command-line parser
@@ -168,10 +165,6 @@ int main_augment(int argc, char** argv) {
         // Parse all the options we have defined here.
         switch (c)
         {
-            // Deprecated.
-        case 'a':
-            logger.warn() << "-a / --augmentation-mode option is deprecated" << endl;
-            break;
             // General Options
         case 'Z':
             translation_file_name = ensure_writable(logger, optarg);
@@ -181,10 +174,6 @@ int main_augment(int argc, char** argv) {
             break;
         case 'i':
             include_paths = true;
-            break;
-        case 'C':
-            logger.warn() << "-C / --cut-softclips option is deprecated "
-                          << "(now enabled by default)" << endl;
             break;
         case 'S':
             include_softclips = true;

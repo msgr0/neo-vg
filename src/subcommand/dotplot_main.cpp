@@ -1,6 +1,6 @@
 /** \file dotplot_main.cpp
  *
- * Defines the "vg dotplot" subcommand, which renders dotplots from an xg index relating the embedded paths
+ * Defines the "nvg dotplot" subcommand, which renders dotplots from an xg index relating the embedded paths
  */
 
 
@@ -33,7 +33,7 @@ void help_dotplot(char** argv) {
 }
 
 int main_dotplot(int argc, char** argv) {
-    Logger logger("vg dotplot");
+    Logger logger("nvg dotplot");
 
     if (argc == 2) {
         help_dotplot(argv);

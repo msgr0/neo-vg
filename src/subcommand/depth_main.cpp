@@ -35,7 +35,7 @@ void help_depth(char** argv) {
     cerr << "usage: " << argv[0] << " depth [options] <graph>" << endl
          << "options:" << endl
          << "packed coverage depth (print 1-based positional depths along path):" << endl
-         << "  -k, --pack FILE        supports created from vg pack for given input graph" << endl
+         << "  -k, --pack FILE        supports created from nvg pack for given input graph" << endl
          << "  -d, --count-dels       count deletion edges within the bin" << endl
          << "                         as covering reference positions" << endl
          << "GAM/GAF coverage depth (print <mean> <stddev> for depth):" << endl
@@ -61,7 +61,7 @@ void help_depth(char** argv) {
 }
 
 int main_depth(int argc, char** argv) {
-    Logger logger("vg depth");
+    Logger logger("nvg depth");
 
     if (argc == 2) {
         help_depth(argv);

@@ -50,9 +50,6 @@ path_offset_collection_t nearest_offsets_in_paths(const PathPositionHandleGraph*
 /// that directly touch the position, and returns the paths by name.
 map<string, vector<pair<size_t, bool>>> offsets_in_paths(const PathPositionHandleGraph* graph, const pos_t& pos);
 
-/// A "simple" model for path position getting for debugging
-path_offset_collection_t simple_offsets_in_paths(const PathPositionHandleGraph* graph, pos_t pos);
-    
 
 }
 }

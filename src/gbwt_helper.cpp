@@ -17,13 +17,13 @@ std::vector<std::string> parseGenotypes(const std::string& vcf_line, size_t num_
     for (int i = 0; i < 8; i++) {
         size_t pos = vcf_line.find('\t', offset);
         if (pos == std::string::npos) {
-            std::cerr << "error: [vg index] VCF line does not contain genotype information" << std::endl;
+            std::cerr << "error: [nvg index] VCF line does not contain genotype information" << std::endl;
             std::exit(EXIT_FAILURE);
         }
         offset = pos + 1;
     }
     if (vcf_line.substr(offset, 2) != "GT") {
-        std::cerr << "error: [vg index] VCF line does not contain genotype information" << std::endl;
+        std::cerr << "error: [nvg index] VCF line does not contain genotype information" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
@@ -40,7 +40,7 @@ std::vector<std::string> parseGenotypes(const std::string& vcf_line, size_t num_
     }
 
     if (result.size() != num_samples) {
-        std::cerr << "error: [vg index] expected " << num_samples << " samples, got " << result.size() << std::endl;
+        std::cerr << "error: [nvg index] expected " << num_samples << " samples, got " << result.size() << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
@@ -278,212 +278,11 @@ void GBWTHandler::clear() {
 
 //------------------------------------------------------------------------------
 
-// Partition the GBWT seqeuences between jobs by the first node.
-std::vector<std::vector<gbwt::size_type>> partition_gbwt_sequences(const gbwt::GBWT& gbwt_index, const std::unordered_map<nid_t, size_t>& node_to_job, size_t num_jobs) {
-    std::vector<std::vector<gbwt::size_type>> result(num_jobs);
-    for (gbwt::size_type sequence = 0; sequence < gbwt_index.sequences(); sequence += 2) {
-        gbwt::edge_type start = gbwt_index.start(sequence);
-        if (start != gbwt::invalid_edge()) {
-            nid_t node = gbwt::Node::id(start.first);
-            auto iter = node_to_job.find(node);
-            if (iter != node_to_job.end()) {
-                result[iter->second].push_back(sequence);
-            } else if (start.first == gbwt::ENDMARKER) {
-                result[0].push_back(sequence);
-            }
-        }
-    }
-    return result;
-}
-
-// Build a GBWT by inserting the specified sequences and applying the specified mappings.
-gbwt::GBWT rebuild_gbwt_job(const gbwt::GBWT& gbwt_index, const RebuildJob& job, size_t job_id, const std::vector<gbwt::size_type>& sequences, const RebuildParameters& parameters) {
-
-    // Partition the mappings by the first node and determine node width.
-    gbwt::size_type node_width = sdsl::bits::length(gbwt_index.sigma() - 1);
-    std::unordered_map<gbwt::node_type, std::vector<RebuildJob::mapping_type>> mappings_by_first_node;
-    for (auto& mapping : job.mappings) {
-        if (mapping.first.empty() || mapping.first == mapping.second) {
-            continue;
-        }
-        mappings_by_first_node[mapping.first.front()].push_back(mapping);
-        std::pair<gbwt::vector_type, gbwt::vector_type> reverse;
-        gbwt::reversePath(mapping.first, reverse.first);
-        gbwt::reversePath(mapping.second, reverse.second);
-        mappings_by_first_node[reverse.first.front()].push_back(reverse);
-        for (auto node : mapping.second) {
-            node_width = std::max(node_width, static_cast<gbwt::size_type>(sdsl::bits::length(node)));
-        }
-    }
-
-    // Insert the sequences from the original GBWT and apply the mappings.
-    gbwt::GBWTBuilder builder(node_width, parameters.batch_size, parameters.sample_interval);
-    for (gbwt::size_type sequence : sequences) {
-        gbwt::vector_type path = gbwt_index.extract(sequence);
-        gbwt::vector_type mapped;
-        size_t i = 0;
-        while (i < path.size()) {
-            auto iter = mappings_by_first_node.find(path[i]);
-            bool found = false;
-            if (iter != mappings_by_first_node.end()) {
-                for (auto& mapping : iter->second) {
-                    size_t j = 1;
-                    while (j < mapping.first.size() && i + j < path.size() && mapping.first[j] == path[i + j]) {
-                        j++;
-                    }
-                    if (j >= mapping.first.size()) {
-                        // Leave the last node unprocessed if it does not change.
-                        if (mapping.first.size() > 1 && mapping.second.size() > 0 && mapping.first.back() == mapping.second.back()) {
-                            mapped.insert(mapped.end(), mapping.second.begin(), mapping.second.end() - 1);
-                            i += mapping.first.size() - 1;
-                        } else {
-                            mapped.insert(mapped.end(), mapping.second.begin(), mapping.second.end());
-                            i += mapping.first.size();
-                        }
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (!found) {
-                mapped.push_back(path[i]);
-                i++;
-            }
-        }
-        if (parameters.dry_run) {
-            std::string msg =
-                "rebuild_gbwt(): Job " + std::to_string(job_id) +
-                ": Sequence " + std::to_string(sequence) + ": " +
-                std::to_string(path.size()) + " -> " + std::to_string(mapped.size()) + " nodes";
-            #pragma omp critical
-            {
-                std::cerr << msg << std::endl;
-            }
-        } else {
-            builder.insert(mapped, true);
-        }
-    }
-    builder.finish();
-
-    return gbwt::GBWT(builder.index);
-}
-
-// Copy metadata from source to target, but reorder path names according to the merging order.
-void copy_metadata(const gbwt::GBWT& source, gbwt::GBWT& target, const std::vector<std::vector<gbwt::size_type>>& jobs, const std::vector<size_t>& job_order) {
-    if (!source.hasMetadata()) {
-        return;
-    }
-    target.addMetadata();
-    target.metadata = source.metadata;
-    if (source.metadata.hasPathNames()) {
-        target.metadata.clearPathNames();
-        for (size_t job : job_order) {
-            for (gbwt::size_type sequence : jobs[job]) {
-                target.metadata.addPath(source.metadata.path(gbwt::Path::id(sequence)));
-            }
-        }
-    }
-}
-
-gbwt::GBWT rebuild_gbwt(const gbwt::GBWT& gbwt_index,
-                        const std::vector<RebuildJob>& jobs,
-                        const std::unordered_map<nid_t, size_t>& node_to_job,
-                        const RebuildParameters& parameters) {
-
-    if (gbwt_index.empty() || jobs.empty()) {
-        return gbwt_index;
-    }
-    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
-
-    // Sort the jobs in descending order by size.
-    std::vector<size_t> jobs_by_size(jobs.size());
-    for (size_t i = 0; i < jobs_by_size.size(); i++) {
-        jobs_by_size[i] = i;
-    }
-    std::sort(jobs_by_size.begin(), jobs_by_size.end(), [&](size_t a, size_t b) -> bool {
-        return (jobs[a].total_size > jobs[b].total_size);
-    });
-
-    // Build indexes in parallel.
-    if (parameters.show_progress) {
-        std::cerr << "rebuild_gbwt(): Building " << jobs.size() << " partial GBWTs using up to " << parameters.num_jobs << " parallel jobs" << std::endl;
-    }
-    std::vector<gbwt::GBWT> indexes(jobs.size());
-    std::vector<std::vector<gbwt::size_type>> sequences_by_job = partition_gbwt_sequences(gbwt_index, node_to_job, jobs.size());
-    int old_max_threads = omp_get_max_threads();
-    omp_set_num_threads(parameters.num_jobs);
-    #pragma omp parallel for schedule(dynamic, 1)
-    for (size_t i = 0; i < jobs.size(); i++) {
-        size_t job = jobs_by_size[i];
-        if (parameters.show_progress) {
-            #pragma omp critical
-            {
-                std::cerr << "rebuild_gbwt(): Starting job " << job << std::endl;
-            }
-        }
-        indexes[job] = rebuild_gbwt_job(gbwt_index, jobs[job], job, sequences_by_job[job], parameters);
-        if (parameters.show_progress) {
-            #pragma omp critical
-            {
-                std::cerr << "rebuild_gbwt(): Inserted " << sequences_by_job[job].size() << " threads in job " << job << std::endl;
-            }
-        }
-    }
-    omp_set_num_threads(old_max_threads);
-
-    // We can avoid merging if we had only one job.
-    if (indexes.size() == 1) {
-        gbwt::GBWT result(std::move(indexes.front()));
-        if (gbwt_index.hasMetadata()) {
-            result.addMetadata();
-            result.metadata = gbwt_index.metadata;
-        }
-        return result;
-    }
-
-    // Merge the partial GBWTs and copy the metadata.
-    if (parameters.show_progress) {
-        std::cerr << "rebuild_gbwt(): Merging the partial GBWTs" << std::endl;
-    }
-    gbwt::GBWT merged(indexes);
-    indexes.clear();
-    copy_metadata(gbwt_index, merged, sequences_by_job, jobs_by_size);
-
-    return merged;
-}
-
-gbwt::GBWT rebuild_gbwt(const gbwt::GBWT& gbwt_index, const std::vector<RebuildJob::mapping_type>& mappings) {
-    std::vector<RebuildJob> jobs {
-        { mappings, 0 }
-    };
-    std::unordered_map<nid_t, size_t> node_to_job;
-    for (gbwt::size_type i = 0; i < gbwt_index.sequences(); i += 2) {
-        gbwt::edge_type start = gbwt_index.start(i);
-        if (start != gbwt::invalid_edge()) {
-            node_to_job[gbwt::Node::id(start.first)] = 0;
-        }
-    }
-    RebuildParameters parameters;
-    return rebuild_gbwt(gbwt_index, jobs, node_to_job, parameters);
-}
-
-//------------------------------------------------------------------------------
-
 std::vector<gbwt::size_type> threads_for_sample(const gbwt::GBWT& gbwt_index, const std::string& sample_name) {
     if (gbwt_index.hasMetadata() && gbwt_index.metadata.hasSampleNames() && gbwt_index.metadata.hasPathNames()) {
         gbwt::size_type sample_id = gbwt_index.metadata.sample(sample_name);
         if (sample_id < gbwt_index.metadata.samples()) {
             return gbwt_index.metadata.pathsForSample(sample_id);
-        }
-    }
-    return std::vector<gbwt::size_type>();
-}
-
-std::vector<gbwt::size_type> threads_for_contig(const gbwt::GBWT& gbwt_index, const std::string& contig_name) {
-    if (gbwt_index.hasMetadata() && gbwt_index.metadata.hasContigNames() && gbwt_index.metadata.hasPathNames()) {
-        gbwt::size_type contig_id = gbwt_index.metadata.contig(contig_name);
-        if (contig_id < gbwt_index.metadata.contigs()) {
-            return gbwt_index.metadata.pathsForContig(contig_id);
         }
     }
     return std::vector<gbwt::size_type>();
@@ -557,24 +356,6 @@ Path extract_gbwt_path(const HandleGraph& graph, const gbwt::GBWT& gbwt_index, g
     }
 
     return result;
-}
-
-std::string compose_short_path_name(const gbwt::GBWT& gbwt_index, gbwt::size_type id) {
-    if (!gbwt_index.hasMetadata() || !gbwt_index.metadata.hasPathNames() || id >= gbwt_index.metadata.paths()) {
-        return "";
-    }
-
-    auto& metadata = gbwt_index.metadata;
-    const gbwt::PathName& path = metadata.path(id);
-
-    // We want a name with just sample and contig and haplotype.
-    // Spit out a name in reference sense format, which should suffice.
-    return PathMetadata::create_path_name(PathSense::REFERENCE,
-                                          gbwtgraph::get_path_sample_name(metadata, path, PathSense::REFERENCE),
-                                          gbwtgraph::get_path_locus_name(metadata, path, PathSense::REFERENCE),
-                                          gbwtgraph::get_path_haplotype(metadata, path, PathSense::REFERENCE),
-                                          PathMetadata::NO_PHASE_BLOCK,
-                                          PathMetadata::NO_SUBRANGE);
 }
 
 //------------------------------------------------------------------------------

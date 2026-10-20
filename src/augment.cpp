@@ -215,7 +215,7 @@ void augment_impl(MutablePathMutableHandleGraph* graph,
             if (aln_format == "GAF" && has_annotation(aln, "from_cg") && get_annotation<bool>(aln, "from_cg")) {
 #pragma omp critical (cerr)
                 {
-                    cerr << "[vg augment] error: GAF with cg cigars contains insufficient information for augmenting: cs cigars required." << endl;
+                    cerr << "[nvg augment] error: GAF with cg cigars contains insufficient information for augmenting: cs cigars required." << endl;
                 }
                 exit(1);
             }                    
@@ -506,7 +506,7 @@ unordered_map<id_t, set<pos_t>> forwardize_breakpoints(const HandleGraph* graph,
         if (!graph->has_node(node_id)) {
             throw runtime_error("Node from GAM \"" + std::to_string(node_id) + "\" not found in graph.  If you are sure"
                                 " the input graph is a subgraph of that used to create the GAM, you can ignore this error"
-                                " with \"vg augment -s\"");
+                                " with \"nvg augment -s\"");
         }
         assert(graph->has_node(node_id));
         size_t node_length = graph->get_length(graph->get_handle(node_id));

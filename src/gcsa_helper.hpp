@@ -13,15 +13,9 @@ namespace vg {
 //------------------------------------------------------------------------------
 
 /*
-    These are the proper ways of saving and loading GCSA structures.
-    Loading with `vg::io::VPKG::load_one` is also supported.
+    These are the proper ways of saving GCSA structures.
+    Load them with `vg::io::VPKG::load_one`.
 */
-
-/// Load GCSA from the file.
-void load_gcsa(gcsa::GCSA& index, const std::string& filename, bool show_progress = false);
-
-/// Load LCP array from the file.
-void load_lcp(gcsa::LCPArray& lcp, const std::string& filename, bool show_progress = false);
 
 /// Save GCSA to the file.
 void save_gcsa(const gcsa::GCSA& index, const std::string& filename, bool show_progress = false);

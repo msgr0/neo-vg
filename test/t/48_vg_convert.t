@@ -9,97 +9,97 @@ export LC_ALL="C" # force a consistent sort order
 
 plan tests 95
 
-vg construct -r complex/c.fa -v complex/c.vcf.gz > c.vg
-cat <(vg view c.vg | grep ^S | sort) <(vg view c.vg | grep L | uniq | wc -l) <(vg paths -v c.vg -E) > c.info
+nvg construct -r complex/c.fa -v complex/c.vcf.gz > c.vg
+cat <(nvg view c.vg | grep ^S | sort) <(nvg view c.vg | grep L | uniq | wc -l) <(nvg paths -v c.vg -E) > c.info
 
-vg convert c.vg -x > c.xg
-vg convert c.xg -v > c1.vg
-cat <(vg view c1.vg | grep ^S | sort) <(vg view c1.vg | grep L | uniq | wc -l) <(vg paths -v c1.vg -E) > c1.info
+nvg convert c.vg -x > c.xg
+nvg convert c.xg -v > c1.vg
+cat <(nvg view c1.vg | grep ^S | sort) <(nvg view c1.vg | grep L | uniq | wc -l) <(nvg paths -v c1.vg -E) > c1.info
 diff c.info c1.info
-is "$?" 0 "vg convert maintains same nodes throughout xg conversion"
+is "$?" 0 "nvg convert maintains same nodes throughout xg conversion"
 
 rm -f c.xg c1.vg c1.info
 
-vg convert c.vg -a > c.hg
-vg convert c.hg -v > c1.vg
-cat <(vg view c1.vg | grep ^S | sort) <(vg view c1.vg | grep L | uniq | wc -l) <(vg paths -v c1.vg -E) > c1.info
+nvg convert c.vg -a > c.hg
+nvg convert c.hg -v > c1.vg
+cat <(nvg view c1.vg | grep ^S | sort) <(nvg view c1.vg | grep L | uniq | wc -l) <(nvg paths -v c1.vg -E) > c1.info
 diff c.info c1.info
-is "$?" 0 "vg convert maintains same nodes throughout hash-graph conversion"
+is "$?" 0 "nvg convert maintains same nodes throughout hash-graph conversion"
 
 rm -f c.hg c1.vg c1.info
 
-vg convert c.vg -p > c.pg
-vg convert c.pg -v > c1.vg
-cat <(vg view c1.vg | grep ^S | sort) <(vg view c1.vg | grep L | uniq | wc -l) <(vg paths -v c1.vg -E) > c1.info
+nvg convert c.vg -p > c.pg
+nvg convert c.pg -v > c1.vg
+cat <(nvg view c1.vg | grep ^S | sort) <(nvg view c1.vg | grep L | uniq | wc -l) <(nvg paths -v c1.vg -E) > c1.info
 diff c.info c1.info
-is "$?" 0 "vg convert maintains same nodes throughout packed-graph conversion"
+is "$?" 0 "nvg convert maintains same nodes throughout packed-graph conversion"
 
 rm -f c.pg c1.vg c1.info
 
-vg convert c.vg -f > c.gfa
-vg convert -g c.gfa -v > c1.vg
-cat <(vg view c1.vg | grep ^S | sort) <(vg view c1.vg | grep L | uniq | wc -l) <(vg paths -v c1.vg -E) > c1.info
+nvg convert c.vg -f > c.gfa
+nvg convert -g c.gfa -v > c1.vg
+cat <(nvg view c1.vg | grep ^S | sort) <(nvg view c1.vg | grep L | uniq | wc -l) <(nvg paths -v c1.vg -E) > c1.info
 diff c.info c1.info
-is "$?" 0 "vg convert maintains same nodes throughout gfa conversion"
+is "$?" 0 "nvg convert maintains same nodes throughout gfa conversion"
 
 rm -f c.vg c.gfa c1.vg c1.info
 
 # some less rigorous tests I made without noticing that the earlier ones had already been written
-vg construct -r small/x.fa -v small/x.vcf.gz > x.vg
-vg view x.vg > x.gfa
+nvg construct -r small/x.fa -v small/x.vcf.gz > x.vg
+nvg view x.vg > x.gfa
 
-is "$(vg convert -a x.vg | vg view - | wc -l)" "$(wc -l < x.gfa)" "hash graph conversion looks good"
-is "$(vg convert -p x.vg | vg view - | wc -l)" "$(wc -l < x.gfa)" "packed graph conversion looks good"
-is "$(vg convert -v x.vg | vg view - | wc -l)" "$(wc -l < x.gfa)" "vg conversion looks good"
-is "$(vg convert -f x.vg | vg convert -g - | vg view - | wc -l)" "$(wc -l < x.gfa)" "gfa conversion looks good"
-is "$(vg convert -x x.vg | vg find -n 1 -c 300 -x - | vg view - | wc -l)" "$(wc -l < x.gfa)" "xg conversion looks good"
+is "$(nvg convert -a x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "hash graph conversion looks good"
+is "$(nvg convert -p x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "packed graph conversion looks good"
+is "$(nvg convert -v x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "vg conversion looks good"
+is "$(nvg convert -f x.vg | nvg convert -g - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa conversion looks good"
+is "$(nvg convert -x x.vg | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "xg conversion looks good"
 
-is "$(vg convert -g -a x.gfa | vg view - | wc -l)" "$(wc -l < x.gfa)" "on disk gfa conversion looks good"
-is "$(cat x.gfa | vg convert -g -a - | vg view - | wc -l)" "$(wc -l < x.gfa)" "streaming gfa conversion looks good"
-is "$(vg convert -g -x x.gfa | vg find -n 1 -c 300 -x - | vg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to xg conversion looks good"
-is "$(vg convert -g -f x.gfa | vg convert -g - | vg find -n 1 -c 300 -x - | vg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to gfa conversion looks good"
+is "$(nvg convert -g -a x.gfa | nvg view - | wc -l)" "$(wc -l < x.gfa)" "on disk gfa conversion looks good"
+is "$(cat x.gfa | nvg convert -g -a - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "streaming gfa conversion looks good"
+is "$(nvg convert -g -x x.gfa | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to xg conversion looks good"
+is "$(nvg convert -g -f x.gfa | nvg convert -g - | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to gfa conversion looks good"
 
 rm x.vg x.gfa
 rm -f c.vg c.pg c1.vg c.info c1.info
 
-vg construct -r small/x.fa -v small/x.vcf.gz > x.vg
-vg index x.vg -g x.gcsa
-vg sim -x x.vg -n 10 -s 23 -a > sim.gam
-vg map -x x.vg -g x.gcsa -G sim.gam > sim-rm.gam
-vg convert x.vg -G sim-rm.gam -t 1 > sim-rm.gaf
-vg convert x.vg -F sim-rm.gaf -t 1 | vg convert x.vg -G - -t 1 > sim-rm2.gaf
+nvg construct -r small/x.fa -v small/x.vcf.gz > x.vg
+nvg index x.vg -g x.gcsa
+nvg sim -x x.vg -n 10 -s 23 -a > sim.gam
+nvg map -x x.vg -g x.gcsa -G sim.gam > sim-rm.gam
+nvg convert x.vg -G sim-rm.gam -t 1 > sim-rm.gaf
+nvg convert x.vg -F sim-rm.gaf -t 1 | nvg convert x.vg -G - -t 1 > sim-rm2.gaf
 diff sim-rm.gaf sim-rm2.gaf
-is "$?" 0 "vg convert gam -> gaf -> gam -> gaf makes same gaf twice"
+is "$?" 0 "nvg convert gam -> gaf -> gam -> gaf makes same gaf twice"
 
-vg convert x.vg -G sim-rm.gam | vg convert x.vg -F - | vg convert x.vg -G - | sort > sim-rm2-mt-sort.gaf
+nvg convert x.vg -G sim-rm.gam | nvg convert x.vg -F - | nvg convert x.vg -G - | sort > sim-rm2-mt-sort.gaf
 sort sim-rm2.gaf > sim-rm2-sort.gaf
 diff sim-rm2-sort.gaf sim-rm2-mt-sort.gaf
-is "$?" 0 "vg convert gam -> gaf -> gam -> gaf gives same result multithreaded as with -t 1"
+is "$?" 0 "nvg convert gam -> gaf -> gam -> gaf gives same result multithreaded as with -t 1"
 
-vg convert x.vg -G sim-rm.gam | bgzip | vg convert x.vg -F - | vg convert x.vg -G - | sort > sim-rm2-mtbg-sort.gaf
+nvg convert x.vg -G sim-rm.gam | bgzip | nvg convert x.vg -F - | nvg convert x.vg -G - | sort > sim-rm2-mtbg-sort.gaf
 diff sim-rm2-sort.gaf sim-rm2-mtbg-sort.gaf
-is "$?" 0 "vg convert gam -> gaf.gz -> gam -> gaf gives same result multithreaded as with -t 1"
+is "$?" 0 "nvg convert gam -> gaf.gz -> gam -> gaf gives same result multithreaded as with -t 1"
 
 # some snps and indels
-vg map -s "TAATGGATATGTTAAGCTTTTTTTTTCTTTGATTTATTTGAAAAGACGTTTGACAATCTATCGGGTAATGTGGGGAAA" -x x.vg -g x.gcsa > mut.gam
+nvg map -s "TAATGGATATGTTAAGCTTTTTTTTTCTTTGATTTATTTGAAAAGACGTTTGACAATCTATCGGGTAATGTGGGGAAA" -x x.vg -g x.gcsa > mut.gam
 # reverse complement of above
-vg map -s "TTTCCCCACATTACCCGATAGATTGTCAAACGTCTTTTCAAATAAATCAAAGAAAAAAAAAGCTTAACATATCCATTA" -x x.vg -g x.gcsa >> mut.gam
+nvg map -s "TTTCCCCACATTACCCGATAGATTGTCAAACGTCTTTTCAAATAAATCAAAGAAAAAAAAAGCTTAACATATCCATTA" -x x.vg -g x.gcsa >> mut.gam
 
-vg convert x.vg -G mut.gam -t 1 > mut.gaf
-vg convert x.vg -F mut.gaf -t 1 > mut-back.gam
-vg view -a mut.gam | jq .path > mut.path
-vg view -a mut-back.gam | jq .path > mut-back.path
+nvg convert x.vg -G mut.gam -t 1 > mut.gaf
+nvg convert x.vg -F mut.gaf -t 1 > mut-back.gam
+nvg view -a mut.gam | jq .path > mut.path
+nvg view -a mut-back.gam | jq .path > mut-back.path
 # Json comparison that is not order dependent: https://stackoverflow.com/a/31933234
-is $(jq --slurpfile a mut.path --slurpfile b mut-back.path -n 'def post_recurse(f): def r: (f | select(. != null) | r), .; r; def post_recurse: post_recurse(.[]?); ($a | (post_recurse | arrays) |= sort) as $a | ($b | (post_recurse | arrays) |= sort) as $b | $a == $b') true "vg convert gam -> gaf -> gam produces same gam Paths with snps and indels"
+is $(jq --slurpfile a mut.path --slurpfile b mut-back.path -n 'def post_recurse(f): def r: (f | select(. != null) | r), .; r; def post_recurse: post_recurse(.[]?); ($a | (post_recurse | arrays) |= sort) as $a | ($b | (post_recurse | arrays) |= sort) as $b | $a == $b') true "nvg convert gam -> gaf -> gam produces same gam Paths with snps and indels"
 
-vg view -a mut.gam | jq .sequence > mut.seq
-vg view -a mut-back.gam | jq .sequence > mut-back.seq
+nvg view -a mut.gam | jq .sequence > mut.seq
+nvg view -a mut-back.gam | jq .sequence > mut-back.seq
 diff mut.seq mut-back.seq
-is "$?" 0 "vg convert gam -> gaf -> gam preserves sequence"
+is "$?" 0 "nvg convert gam -> gaf -> gam preserves sequence"
 
-vg convert x.vg -G mut-back.gam -t 1 > mut-back.gaf
+nvg convert x.vg -G mut-back.gam -t 1 > mut-back.gaf
 diff mut.gaf mut-back.gaf
-is "$?" 0 "vg convert gam -> gaf -> gam -> gaf makes same gaf twice in presence of indels and snps"
+is "$?" 0 "nvg convert gam -> gaf -> gam -> gaf makes same gaf twice in presence of indels and snps"
   
 #hand-code cg example.  this is (for reference) mut.gaf:
 # Except with the to length fixed (it is 80 bp if you decode the cs tag with https://github.com/lh3/minimap2#cs) 
@@ -108,37 +108,37 @@ printf "*	78	0	78	+	>20>21>23>24>26>27>29>30>32>33>35	102	22	102	71	80	60	AS:i:4
 printf "*	78	0	78	+	>20>21>23>24>26>27>29>30>32>33>35	102	22	102	71	80	60	AS:i:47	cg:Z:13M1X1X8M3I16M1X1X18M5D16M\n" > mut.cg.gaf
 #this is what we expect back, mut.gaf where insertions and snps are converted to Ns:
 printf "*	78	0	78	+	>20>21>23>24>26>27>29>30>32>33>35	102	22	102	71	80	60	AS:i:47	cs:Z::13*GN*GN:8+NNN:16*GN*TN:18-ACTAG:16\n" > mut.cs.exp.gaf
-vg convert x.vg -F mut.cg.gaf -t 1 | vg convert x.vg -G - -t 1 | grep -v "^@" > mut.cs.back.gaf
+nvg convert x.vg -F mut.cg.gaf -t 1 | nvg convert x.vg -G - -t 1 | grep -v "^@" > mut.cs.back.gaf
 diff mut.cs.back.gaf mut.cs.exp.gaf
-is "$?" 0 "vg convert cg-gaf -> gam -> cs-gaf gives expected output (snps converted to matches, insertion converted to Ns)"
+is "$?" 0 "nvg convert cg-gaf -> gam -> cs-gaf gives expected output (snps converted to matches, insertion converted to Ns)"
 rm -f mut.cs.gaf mut.cg.gaf mut.cs.exp.gaf
 
 rm -f x.vg x.gcsa sim.gam sim-rm.gam sim-rm.gaf sim-rm2.gaf sim-rm2-mt-sort.gaf sim-rm2-mtbg-sort.gaf sim-rm2-sort.gaf
 rm -f mut.gam mut-back.gam mut.gaf mut-back.gaf mut.path mut-back.path mut.seq mut-back.seq mut.cs.back.gaf
 
-vg construct -r 1mb1kgp/z.fa -v 1mb1kgp/z.vcf.gz > z.vg 2> /dev/null
-vg sim -n 10000 -s 23 -a -x z.vg > sim.gam
-vg construct -r 1mb1kgp/z.fa > zflat.vg
-vg index zflat.vg -g zflat.gcsa
-vg map -x zflat.vg -g zflat.gcsa -G sim.gam > sim-map.gam
-vg convert zflat.vg -G sim-map.gam | bgzip > sim-map.gaf.gz
-vg convert zflat.vg -F sim-map.gaf.gz > sim-map-back.gam
-vg view -a sim-map.gam | jq .sequence | sort > sim-map.sequence
-vg view -a sim-map-back.gam | jq .sequence | sort > sim-map-back.sequence
+nvg construct -r 1mb1kgp/z.fa -v 1mb1kgp/z.vcf.gz > z.vg 2> /dev/null
+nvg sim -n 10000 -s 23 -a -x z.vg > sim.gam
+nvg construct -r 1mb1kgp/z.fa > zflat.vg
+nvg index zflat.vg -g zflat.gcsa
+nvg map -x zflat.vg -g zflat.gcsa -G sim.gam > sim-map.gam
+nvg convert zflat.vg -G sim-map.gam | bgzip > sim-map.gaf.gz
+nvg convert zflat.vg -F sim-map.gaf.gz > sim-map-back.gam
+nvg view -a sim-map.gam | jq .sequence | sort > sim-map.sequence
+nvg view -a sim-map-back.gam | jq .sequence | sort > sim-map-back.sequence
 diff sim-map.sequence sim-map-back.sequence
-is "$?" 0 "vg convert gam -> gaf -> gam preserves sequences of 1mb1kgp simulated reads"
+is "$?" 0 "nvg convert gam -> gaf -> gam preserves sequences of 1mb1kgp simulated reads"
 
-vg convert zflat.vg -G sim-map-back.gam | sort > sim-map-back.gaf
+nvg convert zflat.vg -G sim-map-back.gam | sort > sim-map-back.gaf
 bgzip -dc sim-map.gaf.gz | sort > sim-map.gaf
 diff sim-map-back.gaf sim-map.gaf
-is "$?" 0 "vg convert gam -> gaf -> gam ->gaf makes same gaf each time on 1mb1kgp simulated reads"
+is "$?" 0 "nvg convert gam -> gaf -> gam ->gaf makes same gaf each time on 1mb1kgp simulated reads"
 
-printf '{"name": "split", "path": {"mapping": [{"edit": [{"from_length": 13, "to_length": 13}], "position": {"node_id": "1", "offset": "10"}}, {"edit": [{"from_length": 2, "to_length": 2}], "position": {"node_id": "3", "offset": "5"}}]}}' | vg view -JaG - > split.gam
-vg convert zflat.vg -G split.gam | grep -v "^@" > split.gaf
+printf '{"name": "split", "path": {"mapping": [{"edit": [{"from_length": 13, "to_length": 13}], "position": {"node_id": "1", "offset": "10"}}, {"edit": [{"from_length": 2, "to_length": 2}], "position": {"node_id": "3", "offset": "5"}}]}}' | nvg view -JaG - > split.gam
+nvg convert zflat.vg -G split.gam | grep -v "^@" > split.gaf
 is "$(awk '{print $13}' split.gaf)" "cs:Z::13-CCAGTGCTCGCATC:2" "split alignment converted using deletions to represent internal offsets"
-vg convert zflat.vg -F split.gaf | vg convert zflat.vg -G - | grep -v "^@" > split-back.gaf
+nvg convert zflat.vg -F split.gaf | nvg convert zflat.vg -G - | grep -v "^@" > split-back.gaf
 diff split.gaf split-back.gaf
-is "$?" 0 "vg convert gam -> gaf ->gam -> gaf makes same gaf each time for split alignment"
+is "$?" 0 "nvg convert gam -> gaf ->gam -> gaf makes same gaf each time for split alignment"
 
 rm -f z.vg zflat.vg zflat.gcsa sim.gam sim-map.gam sim-map-back.gam sim-map.gaf.gz sim-map.sequence
 rm -f sim-map-back.sequence sim-map-back.gaf sim-map.gaf split.gam split.gaf split-back.gaf
@@ -155,45 +155,45 @@ S\t73318\tTCAGCA
 S\t73367\tA
 S\t73271\tA
 S\t73289\tC
-S\t73317\tC\n" | vg convert -g - -p > soft.pg
-printf '{"annotation": {"fragment_length": 242, "mapq_applied_cap": 23.832780374978935, "mapq_extended_cap": 15, "mapq_uncapped": 10.325140756048304, "secondary_scores": [187.15265582416521, 182.4063994408188]}, "identity": 0.89682539682539686, "mapping_quality": 10, "name": "ERR903030.2067", "path": {"mapping": [{"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "72943", "offset": "26"}}, {"edit": [{"from_length": 32, "to_length": 32}], "position": {"is_reverse": true, "node_id": "72942"}, "rank": "1"}, {"edit": [{"from_length": 23, "to_length": 23}], "position": {"is_reverse": true, "node_id": "73255"}, "rank": "2"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73271"}, "rank": "3"}, {"edit": [{"from_length": 8, "to_length": 8}], "position": {"is_reverse": true, "node_id": "72941"}, "rank": "4"}, {"edit": [{"from_length": 7, "to_length": 7}, {"from_length": 1, "sequence": "C", "to_length": 1}, {"from_length": 2, "to_length": 2}, {"from_length": 1, "sequence": "G", "to_length": 1}, {"from_length": 19, "to_length": 19}], "position": {"is_reverse": true, "node_id": "73333"}, "rank": "5"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "72940"}, "rank": "6"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73289"}, "rank": "7"}, {"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "73368"}, "rank": "8"}, {"edit": [{"from_length": 1, "sequence": "G", "to_length": 1}], "position": {"is_reverse": true, "node_id": "73367"}, "rank": "9"}, {"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "73318"}, "rank": "10"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73317"}, "rank": "11"}, {"edit": [{"sequence": "GGGTGGCCTG", "to_length": 10}], "position": {"is_reverse": true, "node_id": "73317", "offset": "1"}, "rank": "12"}]}, "quality": "ISEhISEmJiUmJCYmJSYlJiYmJiYmJCYjJiYdIRsmIyUmJiYmJiElJg4PDx0PDyEkIhsYJCYiECQQJBAcGR0kHx0QGSQPJCImHSElHR0PJA4OGyQbIxwPIg0iHw8PGRwiIR0jAgICAgICAgICAgICAgICAgICAgICAgICAgIC", "sample_name": "HG00514_961a37c_gssw", "score": 106, "sequence": "GTCGCCTGGCCTGGTGACACGTGTGGAGGTCCTCGCCCACCAGAGGGGCCTGCTGAAGAGTTACCTGGCCTGGTGACCCGGGTGGAGGTCCTCGCCCACCGGAGGGGCGTGCTGAGGGGTGGCCTG"}' | vg view -JaG - > soft.gam
-vg convert soft.pg -G soft.gam > soft.gaf
-vg view -a soft.gam | jq .sequence > gam.sequence
-vg convert soft.pg -F soft.gaf | vg view -a - | jq .sequence > gam2.sequence
+S\t73317\tC\n" | nvg convert -g - -p > soft.pg
+printf '{"annotation": {"fragment_length": 242, "mapq_applied_cap": 23.832780374978935, "mapq_extended_cap": 15, "mapq_uncapped": 10.325140756048304, "secondary_scores": [187.15265582416521, 182.4063994408188]}, "identity": 0.89682539682539686, "mapping_quality": 10, "name": "ERR903030.2067", "path": {"mapping": [{"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "72943", "offset": "26"}}, {"edit": [{"from_length": 32, "to_length": 32}], "position": {"is_reverse": true, "node_id": "72942"}, "rank": "1"}, {"edit": [{"from_length": 23, "to_length": 23}], "position": {"is_reverse": true, "node_id": "73255"}, "rank": "2"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73271"}, "rank": "3"}, {"edit": [{"from_length": 8, "to_length": 8}], "position": {"is_reverse": true, "node_id": "72941"}, "rank": "4"}, {"edit": [{"from_length": 7, "to_length": 7}, {"from_length": 1, "sequence": "C", "to_length": 1}, {"from_length": 2, "to_length": 2}, {"from_length": 1, "sequence": "G", "to_length": 1}, {"from_length": 19, "to_length": 19}], "position": {"is_reverse": true, "node_id": "73333"}, "rank": "5"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "72940"}, "rank": "6"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73289"}, "rank": "7"}, {"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "73368"}, "rank": "8"}, {"edit": [{"from_length": 1, "sequence": "G", "to_length": 1}], "position": {"is_reverse": true, "node_id": "73367"}, "rank": "9"}, {"edit": [{"from_length": 6, "to_length": 6}], "position": {"is_reverse": true, "node_id": "73318"}, "rank": "10"}, {"edit": [{"from_length": 1, "to_length": 1}], "position": {"is_reverse": true, "node_id": "73317"}, "rank": "11"}, {"edit": [{"sequence": "GGGTGGCCTG", "to_length": 10}], "position": {"is_reverse": true, "node_id": "73317", "offset": "1"}, "rank": "12"}]}, "quality": "ISEhISEmJiUmJCYmJSYlJiYmJiYmJCYjJiYdIRsmIyUmJiYmJiElJg4PDx0PDyEkIhsYJCYiECQQJBAcGR0kHx0QGSQPJCImHSElHR0PJA4OGyQbIxwPIg0iHw8PGRwiIR0jAgICAgICAgICAgICAgICAgICAgICAgICAgIC", "sample_name": "HG00514_961a37c_gssw", "score": 106, "sequence": "GTCGCCTGGCCTGGTGACACGTGTGGAGGTCCTCGCCCACCAGAGGGGCCTGCTGAAGAGTTACCTGGCCTGGTGACCCGGGTGGAGGTCCTCGCCCACCGGAGGGGCGTGCTGAGGGGTGGCCTG"}' | nvg view -JaG - > soft.gam
+nvg convert soft.pg -G soft.gam > soft.gaf
+nvg view -a soft.gam | jq .sequence > gam.sequence
+nvg convert soft.pg -F soft.gaf | nvg view -a - | jq .sequence > gam2.sequence
 diff gam.sequence gam2.sequence
 is "$?" 0 "convert gam->gaf->gam on softclipped read preserves sequence"
 
-vg convert soft.pg -F soft.gaf | vg convert soft.pg -G - > soft2.gaf
+nvg convert soft.pg -F soft.gaf | nvg convert soft.pg -G - > soft2.gaf
 diff soft.gaf soft2.gaf
 is "$?" 0 "convert gam->gaf->gam->gaf makes same gaf each time of soft clipped alignment" 
 
 rm -f soft.pg soft.gam soft.gaf gam.sequence gam2.sequence soft2.gaf
 
 printf "H\tVN:Z:1.0
-S\t91194329\tAGGAAGGAGAGGGAG\n" | vg convert -g - -p > floating-ins.pg
-printf '{"annotation": {"fragment_length": 1098, "mapq_applied_cap": 46.364361584299516, "mapq_extended_cap": "Infinity", "mapq_uncapped": 1.5051499783199018, "rescued": true, "secondary_scores": [99.415737573445895]}, "mapping_quality": 1, "name": "ERR903030.51990324", "path": {"mapping": [{"edit": [{"sequence": "GGGCACGGTGGCTCACAGCTGTCACCACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN", "to_length": 126}], "position": {"is_reverse": true, "node_id": "91194329", "offset": "15"}, "rank": "1"}]}, "quality": "ISEhICEhJCIkJiYdJiUQJSYmHyMmIxAkJiICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC", "sample_name": "HG00514_961a37c", "sequence": "GGGCACGGTGGCTCACAGCTGTCACCACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"}' | vg view -JaG - > floating-ins.gam
-vg convert floating-ins.pg -G floating-ins.gam > floating-ins.gaf
-vg view -a floating-ins.gam | jq .sequence > gam.sequence
-vg convert floating-ins.pg -F floating-ins.gaf | vg view -a - | jq .sequence > gam2.sequence
+S\t91194329\tAGGAAGGAGAGGGAG\n" | nvg convert -g - -p > floating-ins.pg
+printf '{"annotation": {"fragment_length": 1098, "mapq_applied_cap": 46.364361584299516, "mapq_extended_cap": "Infinity", "mapq_uncapped": 1.5051499783199018, "rescued": true, "secondary_scores": [99.415737573445895]}, "mapping_quality": 1, "name": "ERR903030.51990324", "path": {"mapping": [{"edit": [{"sequence": "GGGCACGGTGGCTCACAGCTGTCACCACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN", "to_length": 126}], "position": {"is_reverse": true, "node_id": "91194329", "offset": "15"}, "rank": "1"}]}, "quality": "ISEhICEhJCIkJiYdJiUQJSYmHyMmIxAkJiICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC", "sample_name": "HG00514_961a37c", "sequence": "GGGCACGGTGGCTCACAGCTGTCACCACNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"}' | nvg view -JaG - > floating-ins.gam
+nvg convert floating-ins.pg -G floating-ins.gam > floating-ins.gaf
+nvg view -a floating-ins.gam | jq .sequence > gam.sequence
+nvg convert floating-ins.pg -F floating-ins.gaf | nvg view -a - | jq .sequence > gam2.sequence
 diff gam.sequence gam2.sequence
 is "$?" 0 "convert gam->gaf->gam on read with floating insertion preserves sequence"
 
-vg convert floating-ins.pg -F floating-ins.gaf | vg convert floating-ins.pg -G - > floating-ins2.gaf
+nvg convert floating-ins.pg -F floating-ins.gaf | nvg convert floating-ins.pg -G - > floating-ins2.gaf
 diff floating-ins.gaf floating-ins2.gaf
 is "$?" 0 "convert gam->gaf->gam->gaf makes same gaf each time of floating insertion alignment" 
 
 rm -f floating-ins.pg floating-ins.gam floating-ins.gaf gam.sequence gam2.sequence floating-ins2.gaf
 
-vg convert -g tiny/tiny.gfa | vg view - | sort > tiny.gfa.gfa
-vg convert -g tiny/tiny.rgfa | vg view - | sort > tiny.rgfa.gfa
+nvg convert -g tiny/tiny.gfa | nvg view - | sort > tiny.gfa.gfa
+nvg convert -g tiny/tiny.rgfa | nvg view - | sort > tiny.rgfa.gfa
 diff tiny.gfa.gfa tiny.rgfa.gfa
 is "$?" 0 "converting gfa and equivalent rgfa produces same output"
 
 rm -f tiny.gfa.gfa tiny.rgfa.gfa
 
-is "$(vg convert -g tiny/tiny.rgfa -r 1 | vg paths -M --paths-by y -x - | grep -v "^#" | cut -f1)" "y[35]" "rank-1 rgfa subpath found"
+is "$(nvg convert -g tiny/tiny.rgfa -r 1 | nvg paths -M --paths-by y -x - | grep -v "^#" | cut -f1)" "y[35]" "rank-1 rgfa subpath found"
 
-vg convert -g tiny/tiny.rgfa -T gfa-id-mapping.tsv > /dev/null
+nvg convert -g tiny/tiny.rgfa -T gfa-id-mapping.tsv > /dev/null
 grep ^S tiny/tiny.rgfa  | awk '{print $2}' | sort > rgfa_nodes
 grep ^S tiny/tiny.gfa  | awk '{print $2}' | sort > gfa_nodes
 awk '{print $2}' gfa-id-mapping.tsv | sort > rgfa_translated_nodes
@@ -205,10 +205,10 @@ is "$?" 0 "3rd column of gfa id translation file contains all gfa nodes"
 
 rm -f  gfa-id-mapping.tsv rgfa_nodes gfa_nodes rgfa_translated_nodes gfa_translated_nodes
 
-vg convert -g tiny/tiny.gfa -v | vg convert - -f -P x > tiny.gfa.rgfa
+nvg convert -g tiny/tiny.gfa -v | nvg convert - -f -P x > tiny.gfa.rgfa
 is "$(grep ^P tiny.gfa.rgfa | wc -l)" 0 "rgfa output wrote no P-lines"
-vg convert -g tiny/tiny.gfa -v | vg convert - -f | sort > tiny.gfa.gfa
-vg convert -g tiny.gfa.rgfa -f | sort > tiny.gfa.rgfa.gfa
+nvg convert -g tiny/tiny.gfa -v | nvg convert - -f | sort > tiny.gfa.gfa
+nvg convert -g tiny.gfa.rgfa -f | sort > tiny.gfa.rgfa.gfa
 diff tiny.gfa.gfa tiny.gfa.rgfa.gfa
 is "$?" 0 "rgfa export roundtrips back to normal P-lines"
 
@@ -219,16 +219,16 @@ rm -f tiny.gfa.rgfa tiny.gfa.gfa tiny.gfa.rgfa.gfa
 #####
 
 # GFA to GBZ to HashGraph to GFA
-vg gbwt -g components.gbz --gbz-format -G graphs/components_walks.gfa
-vg convert -a components.gbz > components.hg 2> /dev/null
+nvg gbwt -g components.gbz --gbz-format -G graphs/components_walks.gfa
+nvg convert -a components.gbz > components.hg 2> /dev/null
 is $? 0 "GBZ to HashGraph conversion"
 grep "^S" graphs/components_walks.gfa | sort > sorted.gfa
-vg view components.hg | grep "^S" | sort > converted.gfa
+nvg view components.hg | grep "^S" | sort > converted.gfa
 cmp sorted.gfa converted.gfa
 is $? 0 "GFA -> GBZ -> HashGraph -> GFA conversion maintains segments"
 
 # GBZ to GFA with walks (needs 1 thread)
-vg convert -f -t 1 components.gbz > extracted.gfa
+nvg convert -f -t 1 components.gbz > extracted.gfa
 is $? 0 "GBZ to GFA conversion with walks, GBWTGraph algorithm"
 is "$(grep -c '^H.*NM:Z' extracted.gfa)" 1 "graph name was copied from GBZ to GFA"
 cmp extracted.gfa graphs/components_walks.gfa
@@ -239,10 +239,10 @@ is $? 0 "GBZ to GFA conversion with GBWTGraph algorithm creates the correct norm
 #####
 
 # GFA to HashGraph to GFA with walks and paths
-vg convert -g graphs/components_paths_walks.gfa -a > components.hg
+nvg convert -g graphs/components_paths_walks.gfa -a > components.hg
 is $? 0 "GFA to HashGraph conversion"
 sort graphs/components_paths_walks.gfa > correct.gfa
-vg view components.hg | sort > converted.gfa
+nvg view components.hg | sort > converted.gfa
 cmp correct.gfa converted.gfa
 is $? 0 "GFA -> HashGraph -> GFA conversion maintains segments, links, walks, and paths"
 
@@ -252,64 +252,64 @@ rm -f sorted.gfa converted.gfa correct.gfa
 rm -f extracted.gfa
 
 # GFA to GBZ with paths and walks
-vg gbwt -g components.gbz --gbz-format -G graphs/components_paths_walks.gfa
-vg convert -g -a graphs/components_paths_walks.gfa > direct.hg
-vg paths --generic-paths -v direct.hg -A | sort > correct_paths.gaf
-vg paths --sample "sample" -v direct.hg -A | sort > correct_haplotypes.gaf
+nvg gbwt -g components.gbz --gbz-format -G graphs/components_paths_walks.gfa
+nvg convert -g -a graphs/components_paths_walks.gfa > direct.hg
+nvg paths --generic-paths -v direct.hg -A | sort > correct_paths.gaf
+nvg paths --sample "sample" -v direct.hg -A | sort > correct_haplotypes.gaf
 sort graphs/components_paths_walks.gfa > correct.gfa
 
 # GBZ to HashGraph with paths and walks
-vg convert -a components.gbz > components.hg
+nvg convert -a components.gbz > components.hg
 is $? 0 "GBZ to HashGraph conversion with generic paths"
-vg paths --generic-paths -A -v components.hg | sort > gbz_hg_paths.gaf
+nvg paths --generic-paths -A -v components.hg | sort > gbz_hg_paths.gaf
 cmp gbz_hg_paths.gaf correct_paths.gaf
 is $? 0 "GBZ to HashGraph conversion creates the correct generic paths"
-vg paths --sample "sample" -v components.hg -A | sort > gbz_hg_haplotypes.gaf
+nvg paths --sample "sample" -v components.hg -A | sort > gbz_hg_haplotypes.gaf
 cmp gbz_hg_haplotypes.gaf correct_haplotypes.gaf
 is $? 0 "GBZ to HashGraph conversion creates the correct haplotype paths"
 
 # GBZ to XG with paths and walks
-vg convert -x components.gbz > components.xg
+nvg convert -x components.gbz > components.xg
 is $? 0 "GBZ to XG conversion with generic paths"
-vg paths --generic-paths -A -v components.xg | sort > gbz_xg_paths.gaf
+nvg paths --generic-paths -A -v components.xg | sort > gbz_xg_paths.gaf
 cmp gbz_xg_paths.gaf correct_paths.gaf
 is $? 0 "GBZ to XG conversion creates the correct generic paths"
-vg paths --sample "sample" -v components.xg -A | sort > gbz_xg_haplotypes.gaf
+nvg paths --sample "sample" -v components.xg -A | sort > gbz_xg_haplotypes.gaf
 cmp gbz_xg_haplotypes.gaf correct_haplotypes.gaf
 is $? 0 "GBZ to XG conversion creates the correct haplotype paths"
 
 # GBZ to HashGraph and XG while dropping haplotypes
-vg convert -x --drop-haplotypes components.gbz > no_haplotypes.xg
+nvg convert -x --drop-haplotypes components.gbz > no_haplotypes.xg
 is $? 0 "GBZ to XG conversion while dropping haplotypes"
-is "$(vg paths -L -x no_haplotypes.xg | wc -l)" "2" "No haplotypes in the converted graph"
-vg convert -xa --drop-haplotypes components.gbz > no_haplotypes.hg
+is "$(nvg paths -L -x no_haplotypes.xg | wc -l)" "2" "No haplotypes in the converted graph"
+nvg convert -xa --drop-haplotypes components.gbz > no_haplotypes.hg
 is $? 0 "GBZ to HashGraph conversion while dropping haplotypes"
-is "$(vg paths -L -x no_haplotypes.hg | wc -l)" "2" "No haplotypes in the converted graph"
+is "$(nvg paths -L -x no_haplotypes.hg | wc -l)" "2" "No haplotypes in the converted graph"
 
 # GBZ to GFA with paths and walks (needs 1 thread)
-vg convert --gbwtgraph-algorithm -f -t 1 components.gbz | grep -v "^H.*NM:Z" > gbz.gfa
+nvg convert --gbwtgraph-algorithm -f -t 1 components.gbz | grep -v "^H.*NM:Z" > gbz.gfa
 is $? 0 "GBZ to GFA conversion with paths and walks, GBWTGraph algorithm"
 cmp gbz.gfa graphs/components_paths_walks.gfa
 is $? 0 "GBZ to GFA conversion with GBWTGraph algorithm creates the correct normalized GFA file"
 
 # GBZ to GFA with only generic paths (needs 1 thread)
-vg convert --gbwtgraph-algorithm -f -t 1 --drop-haplotypes components.gbz | grep -v "^H.*NM:Z" > gbz-generic.gfa
+nvg convert --gbwtgraph-algorithm -f -t 1 --drop-haplotypes components.gbz | grep -v "^H.*NM:Z" > gbz-generic.gfa
 is $? 0 "GBZ to GFA conversion with only generic paths, GBWTGraph algorithm"
 grep -v "^W" graphs/components_paths_walks.gfa > generic.gfa
 cmp gbz-generic.gfa generic.gfa
 is $? 0 "GBZ to GFA conversion with GBWTGraph algorithm creates the correct normalized GFA file with only generic paths"
 
 # Multithreaded GBZ to GFA with paths and walks
-vg convert -f components.gbz | grep -v "^H.*NM:Z" | sort > sorted.gfa
+nvg convert -f components.gbz | grep -v "^H.*NM:Z" | sort > sorted.gfa
 cmp sorted.gfa correct.gfa
 is $? 0 "GBZ to GFA conversion works with multiple threads"
 
 # GFA extraction from GBZ with/without translation.
-vg gbwt --gbz-format -g chopping.gbz --max-node 2 -G graphs/chopping_walks.gfa
-vg convert -f -t 1 chopping.gbz > with-translation.gfa
+nvg gbwt --gbz-format -g chopping.gbz --max-node 2 -G graphs/chopping_walks.gfa
+nvg convert -f -t 1 chopping.gbz > with-translation.gfa
 is $? 0 "GBZ to GFA with translation"
 is "$(grep -c "^S" with-translation.gfa)" "8" "8 segments"
-vg convert -f -t 1 --no-translation chopping.gbz > no-translation.gfa
+nvg convert -f -t 1 --no-translation chopping.gbz > no-translation.gfa
 is $? 0 "GBZ to GFA without translation"
 is "$(grep -c "^S" no-translation.gfa)" "9" "9 segments"
 
@@ -327,47 +327,47 @@ rm -f chopping.gbz with-translation.gfa no-translation.gfa
 #####
 
 # GFA to GBZ to GFA with reference paths
-vg paths -M -x graphs/gfa_with_reference.gfa | sort >paths.truth.txt
-vg gbwt -G graphs/gfa_with_reference.gfa --gbz-format -g gfa_with_reference.gbz
-vg paths -M -x gfa_with_reference.gbz | sort >paths.gbz.txt
+nvg paths -M -x graphs/gfa_with_reference.gfa | sort >paths.truth.txt
+nvg gbwt -G graphs/gfa_with_reference.gfa --gbz-format -g gfa_with_reference.gbz
+nvg paths -M -x gfa_with_reference.gbz | sort >paths.gbz.txt
 cmp paths.gbz.txt paths.truth.txt
 is "${?}" "0" "GFA -> GBZ conversion preserves path metadata"
-vg convert -f gfa_with_reference.gbz >extracted.gfa
-vg paths -M -x extracted.gfa | sort >paths.gfa.txt
+nvg convert -f gfa_with_reference.gbz >extracted.gfa
+nvg paths -M -x extracted.gfa | sort >paths.gfa.txt
 cmp paths.gfa.txt paths.truth.txt
 is "${?}" "0" "GFA -> GBZ -> GFA conversion preserves path metadata"
-vg convert -g graphs/gfa_with_reference.gfa -a > gfa_with_reference.hg
-vg paths -M -x gfa_with_reference.hg | sort >paths.hg.txt
+nvg convert -g graphs/gfa_with_reference.gfa -a > gfa_with_reference.hg
+nvg paths -M -x gfa_with_reference.hg | sort >paths.hg.txt
 cmp paths.hg.txt paths.truth.txt
 is "${?}" "0" "GFA -> HashGraph conversion preserves path metadata"
-vg convert gfa_with_reference.hg -f > extracted.gfa
-vg paths -M -x extracted.gfa | sort >paths.gfa.txt
+nvg convert gfa_with_reference.hg -f > extracted.gfa
+nvg paths -M -x extracted.gfa | sort >paths.gfa.txt
 cmp paths.gfa.txt paths.truth.txt
 is "${?}" "0" "GFA -> HashGraph -> GFA conversion preserves path metadata"
 
 # We can't do rGFA to GBZ directly until the GBWTGraph GFA parser learns to read tags
 # rGFA to HashGraph to GBZ to GFA
-vg paths -M -x graphs/rgfa_with_reference.rgfa | sort >paths.truth.txt
-vg convert -a graphs/rgfa_with_reference.rgfa > rgfa_with_reference.hg
-vg gbwt -x rgfa_with_reference.hg -E --gbz-format -g rgfa_with_reference.gbz
-vg paths -M -x rgfa_with_reference.gbz | sort >paths.gbz.txt
+nvg paths -M -x graphs/rgfa_with_reference.rgfa | sort >paths.truth.txt
+nvg convert -a graphs/rgfa_with_reference.rgfa > rgfa_with_reference.hg
+nvg gbwt -x rgfa_with_reference.hg -E --gbz-format -g rgfa_with_reference.gbz
+nvg paths -M -x rgfa_with_reference.gbz | sort >paths.gbz.txt
 cmp paths.gbz.txt paths.truth.txt
 is "${?}" "0" "rGFA -> HashGraph -> GBZ conversion preserves path metadata"
-vg convert -f rgfa_with_reference.gbz >extracted.gfa
-vg paths -M -x extracted.gfa | sort >paths.gfa.txt
+nvg convert -f rgfa_with_reference.gbz >extracted.gfa
+nvg paths -M -x extracted.gfa | sort >paths.gfa.txt
 cmp paths.gfa.txt paths.truth.txt
 is "${?}" "0" "rGFA -> HashGraph -> GBZ -> GFA conversion preserves path metadata"
 
 # We should be able to handle GFA where the P lines and rGFA tags are redundant
 # and cover the same paths, like in HPRC release graphs.
-vg convert -a graphs/components_paths_rgfa.gfa > components_paths_rgfa.hg
+nvg convert -a graphs/components_paths_rgfa.gfa > components_paths_rgfa.hg
 is "${?}" "0" "GFA -> HashGraph conversion works with redundant paths"
-is "$(vg paths --list -x components_paths_rgfa.hg | wc -l)" "1" "GFA -> HashGraph conversion with redundant paths keeps one copy of the redundant path"
+is "$(nvg paths --list -x components_paths_rgfa.hg | wc -l)" "1" "GFA -> HashGraph conversion with redundant paths keeps one copy of the redundant path"
 
 # We should be able to handle pseudo-PanSN paths where there is no haplotype
-vg convert -a graphs/gfa_two_part_reference.gfa > gfa_two_part_reference.hg
+nvg convert -a graphs/gfa_two_part_reference.gfa > gfa_two_part_reference.hg
 is "${?}" "0" "GFA -> HashGraph conversion works with two-part reference path names"
-is "$(vg paths -M -x gfa_two_part_reference.hg | grep REFERENCE | wc -l)" "2" "GFA -> HashGraph conversion with with two-part reference path names gets the right paths"
+is "$(nvg paths -M -x gfa_two_part_reference.hg | grep REFERENCE | wc -l)" "2" "GFA -> HashGraph conversion with with two-part reference path names gets the right paths"
 
 rm -f paths.truth.txt paths.gbz.txt paths.gfa.txt paths.hg.txt
 rm -f gfa_with_reference.gbz rgfa_with_reference.gbz gfa_with_reference.hg components_paths_rgfa.hg gfa_two_part_reference.hg rgfa_with_reference.hg extracted.gfa 
@@ -376,64 +376,64 @@ rm -f gfa_with_reference.gbz rgfa_with_reference.gbz gfa_with_reference.hg compo
 # GFA Streaming
 #####
 
-vg convert -g tiny/tiny.gfa -p | vg convert -f - | sort > tiny.roundtrip.gfa
-vg convert tiny/tiny.gfa -p | vg convert -f - | sort > tiny.roundtrip2.gfa
+nvg convert -g tiny/tiny.gfa -p | nvg convert -f - | sort > tiny.roundtrip.gfa
+nvg convert tiny/tiny.gfa -p | nvg convert -f - | sort > tiny.roundtrip2.gfa
 diff tiny.roundtrip.gfa tiny.roundtrip2.gfa
 is $? 0 "No difference roundtripping a GFA if it's loaded as a GFA or HandleGraph"
 
-vg convert -g tiny/tiny.gfa -p > tiny.gfa.input.pg
-vg convert -g tiny/tiny.gfaz -p -t 1 > tiny.gfaz.input.pg
-diff <(vg paths -v tiny.gfa.input.pg -E | sort) <(vg paths -v tiny.gfaz.input.pg -E | sort)
+nvg convert -g tiny/tiny.gfa -p > tiny.gfa.input.pg
+nvg convert -g tiny/tiny.gfaz -p -t 1 > tiny.gfaz.input.pg
+diff <(nvg paths -v tiny.gfa.input.pg -E | sort) <(nvg paths -v tiny.gfaz.input.pg -E | sort)
 is $? 0 "GFAZ conversion preserves path sequences from equivalent GFA input"
 
-vg convert tiny.gfaz.input.pg -f | sort > tiny.gfaz.roundtrip.gfa
-vg convert -g tiny/tiny.gfaz -p -t 1 | vg convert -f - | sort > tiny.gfaz.input.norm.gfa
+nvg convert tiny.gfaz.input.pg -f | sort > tiny.gfaz.roundtrip.gfa
+nvg convert -g tiny/tiny.gfaz -p -t 1 | nvg convert -f - | sort > tiny.gfaz.input.norm.gfa
 diff <(grep '^S' tiny.roundtrip.gfa | cut -f3 | sort) <(grep '^S' tiny.gfaz.input.norm.gfa | cut -f3 | sort)
 is $? 0 "GFAZ conversion preserves segment sequences from equivalent GFA input"
 
-vg convert tiny/tiny.gfaz -p -t 1 | vg convert -f - | sort > tiny.gfaz.roundtrip.auto.gfa
+nvg convert tiny/tiny.gfaz -p -t 1 | nvg convert -f - | sort > tiny.gfaz.roundtrip.auto.gfa
 diff tiny.gfaz.roundtrip.gfa tiny.gfaz.roundtrip.auto.gfa
 is $? 0 "GFAZ input is auto-detected through the registry loader"
 
-cat tiny/tiny.gfaz | vg convert -p - -t 1 | vg convert -f - | sort > tiny.gfaz.roundtrip.stdin.gfa
+cat tiny/tiny.gfaz | nvg convert -p - -t 1 | nvg convert -f - | sort > tiny.gfaz.roundtrip.stdin.gfa
 diff tiny.gfaz.roundtrip.gfa tiny.gfaz.roundtrip.stdin.gfa
 is $? 0 "GFAZ input is loaded directly from an unseekable stream"
 
-vg convert -g tiny/tiny.gfaz -p -t 4 | vg convert -f - | sort > tiny.gfaz.roundtrip.mt.gfa
+nvg convert -g tiny/tiny.gfaz -p -t 4 | nvg convert -f - | sort > tiny.gfaz.roundtrip.mt.gfa
 diff tiny.gfaz.roundtrip.gfa tiny.gfaz.roundtrip.mt.gfa
 is $? 0 "GFAZ roundtrip output is stable across thread counts"
 
-vg convert -g tiny/tiny.gfaz -x > tiny.gfaz.input.xg
-diff <(vg paths -v tiny.gfa.input.pg -E | sort) <(vg paths -v tiny.gfaz.input.xg -E | sort)
+nvg convert -g tiny/tiny.gfaz -x > tiny.gfaz.input.xg
+diff <(nvg paths -v tiny.gfa.input.pg -E | sort) <(nvg paths -v tiny.gfaz.input.xg -E | sort)
 is $? 0 "GFAZ conversion through XG preserves path sequences from equivalent GFA input"
 
-vg convert -g tiny/tiny.gfaz -T tiny.gfaz.trans -p > /dev/null
+nvg convert -g tiny/tiny.gfaz -T tiny.gfaz.trans -p > /dev/null
 is $(wc -l < tiny.gfaz.trans) 0 "GFAZ import writes no translation lines for dense numeric segment IDs"
 
 grep -v "S	6" tiny/tiny.gfa > tiny.unsort.gfa
 grep "S	6" tiny/tiny.gfa >> tiny.unsort.gfa
-cat tiny.unsort.gfa | vg convert -p - 2> tiny.roundtrip3.stderr | vg convert -f - | sort > tiny.roundtrip3.gfa
+cat tiny.unsort.gfa | nvg convert -p - 2> tiny.roundtrip3.stderr | nvg convert -f - | sort > tiny.roundtrip3.gfa
 diff tiny.roundtrip.gfa tiny.roundtrip3.gfa
 is $? 0 "Streaming an unsorted GFA gives same output as sorted"
 is $(grep -i "warning:\[gfa" tiny.roundtrip3.stderr | wc -l) 1 "Warning given when falling back to temp GFA buffer file"
 
-cat tiny/tiny.gfa | vg convert -p - 2> tiny.roundtrip4.stderr | vg convert -f - | sort > tiny.roundtrip4.gfa
+cat tiny/tiny.gfa | nvg convert -p - 2> tiny.roundtrip4.stderr | nvg convert -f - | sort > tiny.roundtrip4.gfa
 diff tiny.roundtrip.gfa tiny.roundtrip4.gfa
 is $? 0 "Streaming an sorted GFA gives same output as reading from file"
 is $(cat tiny.roundtrip4.stderr | wc -l) 0 "No warnings given when streamed GFA is sorted"
 
-vg convert -g tiny/tiny.gfa | vg mod - -X 3 | vg convert -f - | vg ids -s - | sort > tiny.chop3.gfa
-vg mod -X 3 tiny/tiny.gfa | vg ids -s - | sort > tiny.chop3.1.gfa
+nvg convert -g tiny/tiny.gfa | nvg mod - -X 3 | nvg convert -f - | nvg ids -s - | sort > tiny.chop3.gfa
+nvg mod -X 3 tiny/tiny.gfa | nvg ids -s - | sort > tiny.chop3.1.gfa
 diff tiny.chop3.gfa tiny.chop3.1.gfa
 is $? 0 "Modding GFA directly produces same output as going through convert"
-cat tiny/tiny.gfa | vg mod -X 3 - | vg ids -s - | sort > tiny.chop3.2.gfa
+cat tiny/tiny.gfa | nvg mod -X 3 - | nvg ids -s - | sort > tiny.chop3.2.gfa
 diff tiny.chop3.gfa tiny.chop3.2.gfa
 is $? 0 "Modding sorted GFA stream produces same output as going through convert"
-cat tiny.unsort.gfa | vg mod -X 3 - 2> tiny.chop3.3.stderr | vg ids -s - | sort > tiny.chop3.3.gfa
+cat tiny.unsort.gfa | nvg mod -X 3 - 2> tiny.chop3.3.stderr | nvg ids -s - | sort > tiny.chop3.3.gfa
 diff tiny.chop3.gfa tiny.chop3.3.gfa
 is $? 0 "Modding unsorted GFA stream produces same output as going through convert"
 is $(grep -i "warning:\[gfa" tiny.chop3.3.stderr | wc -l) 1 "Warning given when falling back to temp GFA buffer file in mod"
-vg mod -X 3 tiny.unsort.gfa 2> tiny.chop3.4.stderr | vg ids -s - | sort > tiny.chop3.4.gfa
+nvg mod -X 3 tiny.unsort.gfa 2> tiny.chop3.4.stderr | nvg ids -s - | sort > tiny.chop3.4.gfa
 diff tiny.chop3.gfa tiny.chop3.4.gfa
 is $? 0 "Modding unsorted GFA file produces same output as going through convert"
 is $(cat tiny.chop3.4.stderr | wc -l) 0 "No warnings given when input GFA file is unsorted"
@@ -447,8 +447,8 @@ rm -f tiny.unsort.gfa
 rm -f tiny.chop3.gfa tiny.chop3.1.gfa  tiny.chop3.2.gfa  tiny.chop3.3.gfa tiny.chop3.4.gfa
 rm -f tiny.chop3.3.stderr tiny.chop3.4.stderr
 
-vg view tiny/tiny.rgfa | sort > tiny.rgfa.1
-cat tiny/tiny.rgfa | vg view - | sort > tiny.rgfa.2
+nvg view tiny/tiny.rgfa | sort > tiny.rgfa.1
+cat tiny/tiny.rgfa | nvg view - | sort > tiny.rgfa.2
 diff tiny.rgfa.1 tiny.rgfa.2
 is $? 0 "rGFA handled consistently when streaming as when loaded from file"
 
@@ -456,29 +456,29 @@ rm -f tiny.rgfa.1 tiny.rgfa.2
 
 printf ">a\nAATTGGGATGGGGGTTATGCTAGACGTTGACGTATACGCAAGGTATTACGTCTGAATTGCCTCTGGGGCCAGTGGGGGCGTACACCCCTCGGCTCAATATTAATGAAGGGGGTGTTCTCCCACTCAAAGTCCACCTCGGAGCCACGCTTGGAGGTTGCAAGGACCACCATCCTATCCCGAGTTAGGACGCTGTTTACGCAGATACCTGCTCGGACGACACGTTAAGAGTCCTCGGGTAAATCATTTGTGAGTCGTTCAGGGGCTCCGCTGCGCAACATTGGCAAGGGCCCGAGTGCGGGCATGAAATAAAGTGAGATGGCACGAGCGTCC\n" > ref.fa
 printf ">b\nTATGGGATGGGGTTTGCTAGACGTTGACGTATACCAAGGTATTACTCAAGTCTCGGCAGTGGGGGCGTACACCCCTCGGTCAATTATGAAGGGGGGTCTCCGACTCAAATCACTCGGAGCACGCTGGAGGTTGCAAGGCACCACCTATCCGAGTTAACGCTGTTACGCAGATACCTGCTCGGAGAACGTTAAGATCGGTAAATCATTTTCGTTCAGGGGCTACGGCGCAACATGAGGGCCCGAGGCGGGCATGAAATAAGTGAGATGGCACGCTC\n" > query.fa
-vg construct -r ref.fa > ref.vg
-vg index -g ref.gcsa -k 16 ref.vg
-vg map -f query.fa -x ref.vg -g ref.gcsa  > out.gam
-vg convert ref.vg -G out.gam > out.gaf
-vg convert ref.vg -F out.gaf > out2.gam
-vg convert ref.vg -G out2.gam > out2.gaf
+nvg construct -r ref.fa > ref.vg
+nvg index -g ref.gcsa -k 16 ref.vg
+nvg map -f query.fa -x ref.vg -g ref.gcsa  > out.gam
+nvg convert ref.vg -G out.gam > out.gaf
+nvg convert ref.vg -F out.gaf > out2.gam
+nvg convert ref.vg -G out2.gam > out2.gaf
 diff out.gaf out2.gaf
 is $? 0 "GAF-GAM double roundtrip works on deletion problem case for chunked vg output (GAF check)"
-vg validate ref.vg -a out2.gam
+nvg validate ref.vg -a out2.gam
 is $? 0 "GAF-GAM double roundtrip works on deletion problem case for chunked vg output (GAM check)"
 
 rm -f ref.vg ref.gcsa out.gam out.gaf out2.gam
 
-vg construct -r ref.fa -m 1000 > ref.vg
-vg construct -r ref.fa > ref.vg
-vg index -g ref.gcsa -k 16 ref.vg
-vg map -f query.fa -x ref.vg -g ref.gcsa  > out.gam
-vg convert ref.vg -G out.gam > out.gaf
-vg convert ref.vg -F out.gaf > out2.gam
-vg convert ref.vg -G out2.gam > out2.gaf
+nvg construct -r ref.fa -m 1000 > ref.vg
+nvg construct -r ref.fa > ref.vg
+nvg index -g ref.gcsa -k 16 ref.vg
+nvg map -f query.fa -x ref.vg -g ref.gcsa  > out.gam
+nvg convert ref.vg -G out.gam > out.gaf
+nvg convert ref.vg -F out.gaf > out2.gam
+nvg convert ref.vg -G out2.gam > out2.gaf
 diff out.gaf out2.gaf
 is $? 0 "GAF-GAM double roundtrip works on deletion problem case for chunked vg output for long node (GAF check)"
-vg validate ref.vg -a out2.gam
+nvg validate ref.vg -a out2.gam
 is $? 0 "GAF-GAM double roundtrip works on deletion problem case for chunked vg output for long node (GAM check)"
 rm -f ref.fa query.fa ref.vg ref.gcsa out.gam out.gaf out2.gam out2.gaf
 
@@ -489,12 +489,12 @@ S\t2\tTA
 S\t3\tCA
 S\t4\tGAT
 S\t5\tTA\n" > reference.gfa
-vg convert --gfa-in reference.gfa > reference.vg
+nvg convert --gfa-in reference.gfa > reference.vg
 printf "read\t10\t0\t10\t+\t>1>2>3>4>5\t12\t0\t12\t9\t12\t60\tcs:Z::2?C:2!2:5\n" > v1.1.gaf
 printf "read\t10\t0\t10\t+\t>1>2>3>4>5\t12\t0\t12\t9\t12\t60\tcs:Z::2*TC:2-CA:5\n" > v1.0.gaf
-vg convert --gaf-to-gam v1.1.gaf reference.vg > read.gam
+nvg convert --gaf-to-gam v1.1.gaf reference.vg > read.gam
 is $? 0 "GAF version 1.1 can be converted to GAM"
-vg convert --gam-to-gaf read.gam reference.vg | grep -v "^@" > read.gaf
+nvg convert --gam-to-gaf read.gam reference.vg | grep -v "^@" > read.gaf
 cmp read.gaf v1.0.gaf
 is $? 0 "GAF version 1.1 was parsed correctly"
 rm -f reference.gfa reference.vg v1.1.gaf v1.0.gaf read.gam read.gaf

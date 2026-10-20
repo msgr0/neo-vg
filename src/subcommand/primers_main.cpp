@@ -70,7 +70,7 @@ void print_tabular(const string& genome_name, const PrimerPair& primer_pair) {
 }
 
 int main_primers(int argc, char** argv) {
-    Logger logger("vg primers");
+    Logger logger("nvg primers");
     
     if (argc == 2) {
         help_primers(argv);
@@ -83,7 +83,6 @@ int main_primers(int argc, char** argv) {
     string gbz_path;
     string min_path;
     string zip_path;
-    bool zero_variation = false;
     bool all_primers   = false;
     int  tolerance     = 10;
     double variation_threshold = 0.8;

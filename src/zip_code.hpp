@@ -245,9 +245,6 @@ class ZipCode {
         /* Functions to get the values out of the zipcode for one code
            The decoded code might not have all the values set*/
 
-        // Get a node_code_t for the given level
-        //For a root node, use a chain
-        node_code_t unpack_node_code(size_t zipcode_level) const;
         //Return a chain_code_t that will represent the chain in the zip code
         //The actual values being stored, not the raw values
         chain_code_t unpack_chain_code(size_t zipcode_level) const;
@@ -372,7 +369,6 @@ class ZipCode {
         /// Get an identifier for the snarl tree node at this depth. If the snarl tree node at this depth
         /// would be the node, also include the node id
         net_identifier_t get_identifier(size_t depth) const;
-        const static net_identifier_t get_parent_identifier(const net_identifier_t& child);
 
 };
 

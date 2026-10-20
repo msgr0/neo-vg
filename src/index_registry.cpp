@@ -401,13 +401,6 @@ static void init_out(ofstream& out, const string& name) {
     out.open(name);
 }
 
-static void init_in_out(fstream& strm, const string& name) {
-    strm.open(name);
-    if (!strm) {
-        error(context) << "could not open '" << name << "'" << endl;
-    }
-}
-
 static auto init_mutable_graph() -> unique_ptr<MutablePathDeletableHandleGraph> {
     unique_ptr<MutablePathDeletableHandleGraph> graph;
     switch (IndexingParameters::mut_graph_impl) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # plot_chains.sh: plot read vs. path dotplots for Giraffe chaining dumps
 
-# To use this script, run vg giraffe with --track-correctness or --set-refpos,
+# To use this script, run nvg giraffe with --track-correctness or --set-refpos,
 # and --show-work.
 #
 # It will dump a bunch of expalantion_<READNAME> firectories with chaining

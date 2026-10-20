@@ -78,14 +78,12 @@ void help_find(char** argv) {
          << "  -Y, --max-mem N             maximum length of the MEM [GCSA2 order]" << endl
          << "  -Z, --min-mem N             minimum length of the MEM [1]" << endl
          << "  -D, --distance              return distance on path between pair of nodes (-n)" << endl
-         << "                              if -P not used, best path chosen heurstically" << endl
-         << "  -Q, --paths-named STR       return all paths with name prefix STR (may repeat)" << endl
-         << "                              (deprecated)" << endl;
+         << "                              if -P not used, best path chosen heurstically" << endl;
 
 }
 
 int main_find(int argc, char** argv) {
-    Logger logger("vg find");
+    Logger logger("nvg find");
 
     if (argc == 2) {
         help_find(argv);
@@ -98,7 +96,6 @@ int main_find(int argc, char** argv) {
     string node_list_file, node_mapping_file;
     int context_size=0;
     bool use_length = false;
-    bool kmer_table = false;
     vector<string> targets_str;
     vector<Region> targets;
     string path_name;
@@ -111,7 +108,6 @@ int main_find(int argc, char** argv) {
     bool use_fast_reseed = true;
     string sorted_gam_name;
     string sorted_gaf_name;
-    bool get_mappings = false;
     string aln_on_id_range;
     vg::id_t start_id = 0;
     vg::id_t end_id = 0;
@@ -123,10 +119,6 @@ int main_find(int argc, char** argv) {
     int max_mem_length = 0;
     int min_mem_length = 1;
     string to_graph_file;
-    bool extract_threads = false;
-    vector<string> extract_thread_patterns;
-    bool extract_paths = false;
-    vector<string> extract_path_patterns;
     bool list_path_names = false;
     bool path_dag = false;
     string bed_targets_file;
@@ -166,7 +158,6 @@ int main_find(int argc, char** argv) {
                 {"node-range", required_argument, 0, 'r'},
                 {"sorted-gam", required_argument, 0, 'l'},
                 {"sorted-gaf", required_argument, 0, 'F'},
-                {"mappings", no_argument, 0, 'm'},
                 {"alns-on", required_argument, 0, 'o'},
                 {"distance", no_argument, 0, 'D'},
                 {"gam", required_argument, 0, 'G'},
@@ -176,7 +167,6 @@ int main_find(int argc, char** argv) {
                 {"to-graph", required_argument, 0, 'A'},
                 {"max-mem", required_argument, 0, 'Y'},
                 {"min-mem", required_argument, 0, 'Z'},
-                {"paths-named", required_argument, 0, 'Q'},
                 {"list-paths", no_argument, 0, 'I'},
                 {"subgraph-k", required_argument, 0, 'K'},
                 {"gbwt", required_argument, 0, 'H'},
@@ -185,7 +175,7 @@ int main_find(int argc, char** argv) {
             };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "x:n:e:s:o:h?c:LS:p:P:r:l:F:mg:M:B:fDG:N:A:Y:Z:IQ:ER:W:K:H:",
+        c = getopt_long (argc, argv, "x:n:e:s:o:h?c:LS:p:P:r:l:F:g:M:B:fDG:N:A:Y:Z:IER:W:K:H:",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -296,21 +286,12 @@ int main_find(int argc, char** argv) {
             list_path_names = true;
             break;
 
-        case 'm':
-            get_mappings = true;
-            break;
-
         case 'o':
             aln_on_id_range = optarg;
             break;
 
         case 'D':
             pairwise_distance = true;
-            break;
-
-        case 'Q':
-            extract_paths = true;
-            extract_path_patterns.push_back(optarg);
             break;
 
         case 'G':
@@ -816,24 +797,6 @@ int main_find(int argc, char** argv) {
                 vg_graph->remove_orphan_edges();
             }
             vg::io::save_handle_graph(&graph, cout);
-        }
-        if (extract_paths) {
-            logger.warn() << "vg paths -Q/--paths-named is deprecated due to the partial Protobuf graph output format. Consider vg paths --extract-fasta instead." << std::endl;
-            for (auto& pattern : extract_path_patterns) {
-            
-                // We want to write uncompressed protobuf Graph objects containing our paths.
-                vg::io::ProtobufEmitter<Graph> out(cout, false);
-            
-                xindex->for_each_path_handle([&](path_handle_t path_handle) {
-                        string path_name = xindex->get_path_name(path_handle);
-                        if (pattern.length() <= path_name.length() && path_name.compare(0, pattern.length(), pattern) == 0) {
-                            // We need a Graph for serialization purposes.
-                            Graph g;
-                            *g.add_path() = path_from_path_handle(*xindex, path_handle);
-                            out.write(std::move(g));
-                        }
-                    });
-            }
         }
         if (!gam_file.empty()) {
             set<vg::id_t> nodes;

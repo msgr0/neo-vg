@@ -106,19 +106,6 @@ int hts_for_each_parallel(string& filename, function<void(Alignment&)> lambda) {
     return hts_for_each_parallel(filename, lambda, nullptr);
 }
 
-bam_hdr_t* hts_file_header(string& filename, string& header) {
-    samFile *in = hts_open(filename.c_str(), "r");
-    if (in == NULL) {
-        cerr << "[vg::alignment] could not open " << filename << endl;
-        exit(1);
-    }
-    bam_hdr_t *hdr = sam_hdr_read(in);
-    header = hdr->text;
-    bam_hdr_destroy(hdr);
-    hts_close(in);
-    return hdr;
-}
-
 bam_hdr_t* hts_string_header(string& header,
                              const SequenceDictionary& sequence_dictionary,
                              const map<string, string>& rg_sample) {
@@ -2828,9 +2815,6 @@ string graph_CS_cigar_internal(const Alignment& aln, const HandleGraph& graph, b
     return strm.str();
 }
 
-string graph_CS_cigar(const Alignment& aln, const HandleGraph& graph, bool rev_strand) {
-    return graph_CS_cigar_internal(aln, graph, rev_strand, true);
-}
 string graph_cs_cigar(const Alignment& aln, const HandleGraph& graph, bool rev_strand) {
     return graph_CS_cigar_internal(aln, graph, rev_strand, false);
 }
@@ -3214,24 +3198,6 @@ Alignment strip_from_end(const Alignment& aln, size_t drop) {
     return res;
 }
 
-Alignment trim_alignment(const Alignment& aln, const Position& pos1, const Position& pos2) {
-    // cut the alignment into 3 (possibly empty) pieces
-    auto p = cut_path(aln.path(), pos1);
-    auto path1 = p.first;
-    p = cut_path(p.second, pos2);
-    auto path2 = p.first;
-    auto path3 = p.second;
-    // measure the length of the left and right bits, and use this to trim the current alignment
-    auto trimmed = aln;
-    if (path1.mapping_size()) {
-        trimmed = strip_from_start(trimmed, path_to_length(path1));
-    }
-    if (path3.mapping_size()) {
-        trimmed = strip_from_end(trimmed, path_to_length(path3));
-    }
-    return trimmed;
-}
-
 vector<Alignment> alignment_ends(const Alignment& aln, size_t len1, size_t len2) {
     vector<Alignment> ends;
     ends.push_back(strip_from_end(aln, aln.sequence().size()-len1));
@@ -3303,14 +3269,6 @@ std::vector<Alignment> alignment_pieces_within(const Alignment& aln, const std::
     }
 
     return pieces;
-}
-
-vector<Alignment> reverse_complement_alignments(const vector<Alignment>& alns, const function<int64_t(nid_t)>& node_length) {
-    vector<Alignment> revalns;
-    for (auto& aln : alns) {
-        revalns.push_back(reverse_complement_alignment(aln, node_length));
-    }
-    return revalns;
 }
 
 Alignment reverse_complement_alignment(const Alignment& aln,
@@ -3429,50 +3387,6 @@ void translate_nodes(Alignment& a, const unordered_map<nid_t, pair<nid_t, bool> 
             }
         }
     }
-}
-
-void flip_nodes(Alignment& a, const set<int64_t>& ids, const std::function<size_t(int64_t)>& node_length) {
-    Path* path = a.mutable_path();
-    for(size_t i = 0; i < path->mapping_size(); i++) {
-        // Grab each mapping (includes its position)
-        Mapping* mapping = path->mutable_mapping(i);
-        if(ids.count(mapping->position().node_id())) {
-            // We need to flip this mapping
-            *mapping = reverse_complement_mapping(*mapping, node_length);
-        } 
-    }
-}
-
-int non_match_start(const Alignment& alignment) {
-    int length = 0;
-    auto& path = alignment.path();
-    for (int i = 0; i < path.mapping_size(); ++i) {
-        auto& mapping = path.mapping(i);
-        for (int j = 0; j < mapping.edit_size(); ++j) {
-            auto& edit = mapping.edit(j);
-            if (edit_is_match(edit)) {
-                return length;
-            }
-            length += edit.to_length();
-        }
-    }
-    return length;
-}
-
-int non_match_end(const Alignment& alignment) {
-    int length = 0;
-    auto& path = alignment.path();
-    for (int i = path.mapping_size()-1; i >= 0; --i) {
-        auto& mapping = path.mapping(i);
-        for (int j = mapping.edit_size()-1; j >= 0; --j) {
-            auto& edit = mapping.edit(j);
-            if (edit_is_match(edit)) {
-                return length;
-            }
-            length += edit.to_length();
-        }
-    }
-    return length;
 }
 
 int softclip_start(const Alignment& alignment) {
@@ -3607,22 +3521,6 @@ int edit_count(const Alignment& alignment) {
         i += path.mapping(j).edit_size();
     }
     return i;
-}
-
-size_t to_length_after_pos(const Alignment& aln, const Position& pos) {
-    return path_to_length(cut_path(aln.path(), pos).second);
-}
-
-size_t from_length_after_pos(const Alignment& aln, const Position& pos) {
-    return path_from_length(cut_path(aln.path(), pos).second);
-}
-
-size_t to_length_before_pos(const Alignment& aln, const Position& pos) {
-    return path_to_length(cut_path(aln.path(), pos).first);
-}
-
-size_t from_length_before_pos(const Alignment& aln, const Position& pos) {
-    return path_from_length(cut_path(aln.path(), pos).first);
 }
 
 const string hash_alignment(const Alignment& aln) {
@@ -3857,23 +3755,6 @@ void convert_Us_to_Ts(Alignment& alignment) {
 
 void convert_Ts_to_Us(Alignment& alignment) {
     convert_alignment_char(alignment, 'T', 'U');
-}
-
-map<nid_t, int> alignment_quality_per_node(const Alignment& aln) {
-    map<nid_t, int> quals;
-    int to_pos = 0; // offset in quals
-    for (size_t i = 0; i < aln.path().mapping_size(); ++i) {
-        auto& mapping = aln.path().mapping(i);
-        auto to_len = mapping_to_length(mapping);
-        if (mapping.has_position()) {
-            auto& q = quals[mapping.position().node_id()];
-            for (size_t j = 0; j < to_len; ++j) {
-                q += aln.quality()[to_pos + j];
-            }
-        }
-        to_pos += mapping_to_length(mapping);
-    }
-    return quals;
 }
 
 string middle_signature(const Alignment& aln, int len) {
@@ -4476,16 +4357,6 @@ Position alignment_start(const Alignment& aln) {
     Position pos;
     if (aln.path().mapping_size()) {
         pos = aln.path().mapping(0).position();
-    }
-    return pos;
-}
-
-Position alignment_end(const Alignment& aln) {
-    Position pos;
-    if (aln.path().mapping_size()) {
-        auto& last = aln.path().mapping(aln.path().mapping_size()-1);
-        pos = last.position();
-        pos.set_offset(pos.offset() + mapping_from_length(last));
     }
     return pos;
 }

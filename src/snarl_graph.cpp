@@ -1,5 +1,4 @@
 #include "snarl_graph.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"

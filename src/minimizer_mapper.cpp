@@ -8,7 +8,6 @@
 #include "crash.hpp"
 #include "annotation.hpp"
 #include "gbwtgraph_helper.hpp"
-#include "path_subgraph.hpp"
 #include "multipath_alignment.hpp"
 #include "split_strand_graph.hpp"
 #include "subgraph.hpp"
@@ -17,9 +16,7 @@
 #include "interval_union.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
 #include "algorithms/count_covered.hpp"
-#include "algorithms/intersect_path_offsets.hpp"
 #include "algorithms/extract_containing_graph.hpp"
-#include "algorithms/extract_connecting_graph.hpp"
 #include "algorithms/chain_items.hpp"
 #include "algorithms/sample_minimal.hpp"
 #include "algorithms/pad_band.hpp"
@@ -5860,15 +5857,6 @@ vector<TreeSubgraph> MinimizerMapper::get_tail_forest(const GaplessExtension& ex
 #endif
     
     // Now we have all the trees!
-    return to_return;
-}
-
-size_t MinimizerMapper::immutable_path_from_length(const ImmutablePath& path) {
-    size_t to_return = 0;
-    for (auto& m : path) {
-        // Sum up the from lengths of all the component Mappings
-        to_return += mapping_from_length(m);
-    }
     return to_return;
 }
 

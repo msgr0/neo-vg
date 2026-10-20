@@ -32,15 +32,15 @@ def parse_args(args):
                         help="amount of overlap between chunks")
     parser.add_argument("--filter_opts", type=str,
                         default="-r 0.9 -fu -s 2 -o 0 -q 15 --defray-ends 999",
-                        help="options to pass to vg filter. wrap in \"\"")
+                        help="options to pass to nvg filter. wrap in \"\"")
     parser.add_argument("--pileup_opts", type=str,
                         default="-q 10",
                         help="options to pass to vg pileup. wrap in \"\"")
     parser.add_argument("--call_opts", type=str,
                         default="",
-                        help="options to pass to vg call. wrap in \"\"")
+                        help="options to pass to nvg call. wrap in \"\"")
     parser.add_argument("--threads", type=int, default=20,
-                        help="number of threads to use in vg call and vg pileup")
+                        help="number of threads to use in nvg call and vg pileup")
     parser.add_argument("--overwrite", action="store_true",
                         help="always overwrite existing files")
                         
@@ -49,7 +49,7 @@ def parse_args(args):
     return parser.parse_args(args)
 
 def merge_call_opts(contig, offset, length, call_opts, sample_name):
-    """ combine input vg call  options with generated options, by adding user offset
+    """ combine input nvg call  options with generated options, by adding user offset
     and overriding contigs, sample and sequence lenght"""
     user_opts = call_opts.split()
     user_offset, user_contig, user_ref, user_sample, user_length  = None, None, None, None, None
@@ -114,31 +114,31 @@ def chunk_base_name(path_name, out_dir, chunk_i = None, tag= ""):
     return "{}{}".format(bn, tag)
 
 def chunk_gam(gam_path, xg_path, path_name, out_dir, chunks, filter_opts, threads, overwrite):
-    """ use vg filter to chunk up the gam """
+    """ use nvg filter to chunk up the gam """
     # make bed chunks
     chunk_path = os.path.join(out_dir, path_name + "_chunks.bed")
     with open(chunk_path, "w") as f:
         for chunk in chunks:
             f.write("{}\t{}\t{}\n".format(chunk[0], chunk[1], chunk[2]))
-    # run vg filter on the gam
+    # run nvg filter on the gam
     if overwrite or not any(
             os.path.isfile(chunk_base_name(path_name, out_dir, i, ".gam")) \
                for i in range(len(chunks))):
-        run("vg filter {} -x {} -R {} -B {} {} -t {}".format(
+        run("nvg filter {} -x {} -R {} -B {} {} -t {}".format(
             gam_path, xg_path, chunk_path,
             os.path.join(out_dir, path_name + "-chunk"), filter_opts, threads))
 
 def xg_path_node_id(xg_path, path_name, offset):
-    """ use vg find to get the node containing a given path position """
-    #NOTE: vg find -p range offsets are 0-based inclusive.  
-    stdout, stderr = run("vg find -x {} -p {}:{}-{} | vg mod -o - | vg view -j - | jq .node[0].id".format(
+    """ use nvg find to get the node containing a given path position """
+    #NOTE: nvg find -p range offsets are 0-based inclusive.  
+    stdout, stderr = run("nvg find -x {} -p {}:{}-{} | nvg mod -o - | nvg view -j - | jq .node[0].id".format(
         xg_path, path_name, offset, offset),
                          proc_stdout=subprocess.PIPE)
     return int(stdout)
 
 def xg_path_predecessors(xg_path, path_name, node_id, context = 1):
     """ get nodes before given node in a path. """
-    stdout, stderr = run("vg find -x {} -n {} -c {} | vg view -j -".format(
+    stdout, stderr = run("nvg find -x {} -n {} -c {} | nvg view -j -".format(
         xg_path, node_id, context), proc_stdout=subprocess.PIPE)
 
     # get our json graph
@@ -158,7 +158,7 @@ def xg_path_predecessors(xg_path, path_name, node_id, context = 1):
     return out_ids
 
 def chunk_vg(xg_path, path_name, out_dir, chunks, chunk_i, overwrite):
-    """ use vg find to make one chunk of the graph """
+    """ use nvg find to make one chunk of the graph """
     chunk = chunks[chunk_i]
     vg_chunk_path = chunk_base_name(chunk[0], out_dir, chunk_i, ".vg")
     if overwrite or not os.path.isfile(vg_chunk_path):
@@ -168,7 +168,7 @@ def chunk_vg(xg_path, path_name, out_dir, chunks, chunk_i, overwrite):
         last_node = xg_path_node_id(xg_path, chunk[0], chunk[2] - 1)
         assert first_node > 0 and last_node >= first_node
         # todo: would be cleaner to not have to pad context here
-        run("vg find -x {} -r {}:{} -c 1 > {}".format(
+        run("nvg find -x {} -r {}:{} -c 1 > {}".format(
             xg_path, first_node, last_node, vg_chunk_path))
         # but because we got a context, manually go in and make sure
         # our path starts at first_node by deleting everything before
@@ -176,7 +176,7 @@ def chunk_vg(xg_path, path_name, out_dir, chunks, chunk_i, overwrite):
                                                  context = 1)
         for destroy_id in left_path_padding:
             # destroy should take node list
-            run("vg mod -y {} {} | vg mod -o - > {}".format(
+            run("nvg mod -y {} {} | nvg mod -o - > {}".format(
                 destroy_id, vg_chunk_path, vg_chunk_path + ".destroy"))
             run("mv {} {}".format(
                 vg_chunk_path + ".destroy", vg_chunk_path))
@@ -188,7 +188,7 @@ def xg_path_node_offset(xg_path, path_name, offset):
     node_id = xg_path_node_id(xg_path, path_name, offset)
 
     # now we find the offset of the beginning of the node
-    stdout, stderr = run("vg find -x {} -P {} -n {}".format(
+    stdout, stderr = run("nvg find -x {} -P {} -n {}".format(
         xg_path, path_name, node_id),
                          proc_stdout=subprocess.PIPE)
     toks = stdout.split()
@@ -235,7 +235,7 @@ def call_chunk(xg_path, path_name, out_dir, chunks, chunk_i, path_size, overlap,
     
     if overwrite or not all(os.path.isfile(f) for f in [
             aug_graph_path, support_path, translation_path]):
-        run("vg augment -a pileup {} {} -t {} {} -Z {} -S {}  > {}".format(
+        run("nvg augment -a pileup {} {} -t {} {} -Z {} -S {}  > {}".format(
             vg_path, gam_path, threads, pileup_opts, translation_path,
             support_path, aug_graph_path))
 
@@ -245,7 +245,7 @@ def call_chunk(xg_path, path_name, out_dir, chunks, chunk_i, path_size, overlap,
         offset = xg_path_node_offset(xg_path, chunk[0], chunk[1])
         merged_call_opts = merge_call_opts(chunk[0], offset, path_size,
                                            call_options, sample_name)
-        run("vg call {} -b {} -s {} -z {} -t {} {} > {}".format(
+        run("nvg call {} -b {} -s {} -z {} -t {} {} > {}".format(
             aug_graph_path, vg_path, support_path, translation_path,
             threads, merged_call_opts, vcf_path + ".us"))
         sort_vcf(vcf_path + ".us", vcf_path)

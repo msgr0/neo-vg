@@ -74,7 +74,7 @@ void help_cluster(char** argv) {
 }
 
 int main_cluster(int argc, char** argv) {
-    Logger logger("vg cluster");
+    Logger logger("nvg cluster");
 
     if (argc == 2) {
         help_cluster(argv);

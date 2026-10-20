@@ -41,17 +41,17 @@ SKIP_SUBCMDS = {'test', 'help'}
 """Subcommands to skip in the consistency check."""
 AUTOCOMP_FILES = ['autocomp.bash', 'autocomplete.sh']
 """Where to double-check subcommand autocomplete existence."""
-MANPAGE_HEADER_FILE = 'doc/vgmanmd.desc.md'
+MANPAGE_HEADER_FILE = 'doc/nvgmanmd.desc.md'
 """File with header added to the manpage."""
-MANPAGE_MAKER_FILE = 'doc/vgmanmd.py'
+MANPAGE_MAKER_FILE = 'doc/nvgmanmd.py'
 """Script that generates an updated manpage."""
 
 HELPTEXT_FUNCTION = r'void\shelp_\w+\s*\(char\*\* argv.*\) \{'
 """Regex to match the start of a helptext function."""
 HELP_DESC = 'print this help message to stderr and exit'
 """Expected description for the --help option."""
-VG_SUBCMD_REGEX = r'vg ([-\w]+)'
-"""REGEX to match `vg <subcommand>`, e.g. vg autoindex."""
+VG_SUBCMD_REGEX = r'nvg ([-\w]+)'
+"""REGEX to match `nvg <subcommand>`, e.g. nvg autoindex."""
 
 ANNOTATE_EXCEPTIONS = {'xg-name', 'bed-name'}
 """annotate_main.cpp lets these appear twice in helptext."""
@@ -461,7 +461,7 @@ def extract_getopt_string(text: str) -> Dict[str, bool]:
     if match:
         opts_str = match.group(1)
 
-    # Second try to catch vg giraffe/augment weirdness
+    # Second try to catch nvg giraffe/augment weirdness
     if not match:
         match = re.search(r'short_options = "([^"]+)"', text)
         if match:
@@ -880,9 +880,9 @@ def check_autocomplete_file(filepath: str, subcommands_truth: Set[str]) -> bool:
                 if seen_not_truth or truth_not_seen:
                     # Something's off. Complain.
                     for cmd in seen_not_truth:
-                        print(f"{filepath}: vg {cmd} doesn't actually exist")
+                        print(f"{filepath}: nvg {cmd} doesn't actually exist")
                     for cmd in truth_not_seen:
-                        print(f"{filepath}: vg {cmd} exists but isn't here")
+                        print(f"{filepath}: nvg {cmd} exists but isn't here")
                     return False
                 else:
                     return True
@@ -892,7 +892,7 @@ def check_manpage_header(filepath: str, subcommands_truth: Set[str]) -> bool:
     """Check whether the manpage header includes all subcommands.
     
     Each subcommand must have a link linking to its section, i.e.
-        [`vg autoindex`](#autoindex)
+        [`nvg autoindex`](#autoindex)
 
     Parameters
     ----------
@@ -921,9 +921,9 @@ def check_manpage_header(filepath: str, subcommands_truth: Set[str]) -> bool:
                 cur_cmd = match.group(1)
                 seen_set.add(cur_cmd)
 
-                correct_link = f'[`vg {cur_cmd}`](#{cur_cmd})'
+                correct_link = f'[`nvg {cur_cmd}`](#{cur_cmd})'
                 if not correct_link in line:
-                    print(f'vg {cur_cmd} link should be formatted as '
+                    print(f'nvg {cur_cmd} link should be formatted as '
                           f'{correct_link} in {filepath}')
                     ok_so_far = False
 
@@ -933,10 +933,10 @@ def check_manpage_header(filepath: str, subcommands_truth: Set[str]) -> bool:
     if seen_not_truth or truth_not_seen:
         # Something's off. Complain.
         for cmd in seen_not_truth:
-            print(f"{filepath}: vg {cmd} doesn't actually exist "
+            print(f"{filepath}: nvg {cmd} doesn't actually exist "
                    "or it's deprecated")
         for cmd in truth_not_seen:
-            print(f"{filepath}: vg {cmd} exists but isn't here")
+            print(f"{filepath}: nvg {cmd} exists but isn't here")
         return False
     else:
         return ok_so_far
@@ -982,10 +982,10 @@ def check_manpage_maker(filepath: str, subcommands_truth: Set[str]) -> bool:
                 if seen_not_truth or truth_not_seen:
                     # Something's off. Complain.
                     for cmd in seen_not_truth:
-                        print(f"{filepath}: vg {cmd} doesn't actually exist "
+                        print(f"{filepath}: nvg {cmd} doesn't actually exist "
                               "or it's deprecated")
                     for cmd in truth_not_seen:
-                        print(f"{filepath}: vg {cmd} exists but isn't here")
+                        print(f"{filepath}: nvg {cmd} exists but isn't here")
                     return False
                 else:
                     return True

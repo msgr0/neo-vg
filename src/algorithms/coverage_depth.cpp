@@ -1,6 +1,5 @@
 #include "coverage_depth.hpp"
 #include <bdsg/hash_graph.hpp>
-#include "algorithms/subgraph.hpp"
 #include <vg/io/stream.hpp>
 #include "../path.hpp"
 
@@ -288,19 +287,6 @@ pair<double, double> sample_mapping_depth(const HandleGraph& graph, const string
 }
 
 
-
-pair<double, double> sample_gam_depth(const HandleGraph& graph, const vector<Alignment>& alignments, size_t max_nodes, size_t random_seed, size_t min_coverage, size_t min_mapq) {
-    // one node counter per thread
-    vector<unordered_map<nid_t, size_t>> node_coverages(get_thread_count(), sample_nodes(graph, max_nodes, random_seed));
-
-#pragma omp parallel for
-    for (size_t i = 0; i < alignments.size(); ++i) {
-        if (alignments[i].mapping_quality() >= min_mapq) {
-            update_sample_gam_depth(alignments[i], node_coverages[omp_get_thread_num()]);
-        }
-    }
-    return combine_and_average_node_coverages(graph, node_coverages, min_coverage);
-}
 
 void path_depths(const PathHandleGraph& graph, const string& path_name, size_t min_coverage, bool count_cycles, ostream& out_stream) {
     assert(graph.has_path(path_name));

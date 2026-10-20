@@ -1,4 +1,4 @@
-// simplify_main.cpp: define the "vg simplify" subcommand, which removes small variation
+// simplify_main.cpp: define the "nvg simplify" subcommand, which removes small variation
 
 #include <omp.h>
 #include <unistd.h>
@@ -50,7 +50,7 @@ void help_simplify(char** argv) {
 }
 
 int main_simplify(int argc, char** argv) {
-    Logger logger("vg simplify");
+    Logger logger("nvg simplify");
 
     if (argc == 2) {
         help_simplify(argv);

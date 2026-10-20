@@ -1,4 +1,4 @@
-// surject_main.cpp: define the "vg surject" subcommand, which forces alignments into linear space
+// surject_main.cpp: define the "nvg surject" subcommand, which forces alignments into linear space
 
 #include <omp.h>
 #include <unistd.h>
@@ -88,7 +88,6 @@ void help_surject(char** argv) {
          << "                            of the pre-surjected graph alignment in GR tag" << endl
          << "      --off-ref-position    annotate SAM records that become unmapped during" << endl
          << "                            surject with the nearest ref. position in the NR tag" << endl
-         << "  -C, --compression N       level for compression [0-9]" << endl
          << "  -V, --no-validate         skip checking whether alignments plausibly are" << endl
          << "                            against the provided graph" << endl
          << "  -w, --watchdog-timeout N  warn when reads take more than N seconds to surject" << endl
@@ -185,7 +184,7 @@ static void adjacent_but_not_paired_error(const Logger& logger, const string& na
 }
 
 int main_surject(int argc, char** argv) {
-    Logger logger("vg surject");
+    Logger logger("nvg surject");
 
     constexpr int OPT_NO_PRUNE_LOW_CPLX = 1000;
     constexpr int OPT_OFF_REF_POS = 1001;
@@ -207,7 +206,6 @@ int main_surject(int argc, char** argv) {
     std::optional<int32_t> max_frag_len;
     string sample_name;
     string read_group;
-    int compress_level = 9;
     int64_t min_splice_length = 20;
     size_t watchdog_timeout = 10;
     bool subpath_global = true; // force full length alignments in mpmap resolution
@@ -269,7 +267,6 @@ int main_surject(int argc, char** argv) {
             {"read-group", required_argument, 0, 'R'},
             {"list-all-paths", no_argument, 0, 'L'},
             {"graph-aln", no_argument, 0, 'H'},
-            {"compression", required_argument, 0, 'C'},
             {"no-validate", no_argument, 0, 'V'},
             {"watchdog-timeout", required_argument, 0, 'w'},
             {"progress", no_argument, 0, 'r'},
@@ -277,7 +274,7 @@ int main_surject(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?x:p:F:n:lT:g:GmcbsiUf:uBN:R:C:t:D:SPI:a:AE:LHMVw:r",
+        c = getopt_long (argc, argv, "h?x:p:F:n:lT:g:GmcbsiUf:uBN:R:t:D:SPI:a:AE:LHMVw:r",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -336,7 +333,6 @@ int main_surject(int argc, char** argv) {
             break;
 
         case 's':
-            compress_level = -1;
             output_format = "SAM";
             break;
 
@@ -398,10 +394,6 @@ int main_surject(int argc, char** argv) {
             
         case 'R':
             read_group = optarg;
-            break;
-            
-        case 'C':
-            compress_level = parse<int>(optarg);
             break;
             
         case 'V':

@@ -1,5 +1,4 @@
 #include "nested_flow_caller.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"
@@ -154,13 +153,13 @@ bool NestedFlowCaller::call_snarl_recursive(const Snarl& managed_snarl, int max_
                 break;
             } else if (get<2>(ref_interval) == true) {
                 if (!graph.has_previous_step(cur_step)) {
-                    cerr << "Warning [vg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(snarl) << endl;
+                    cerr << "Warning [nvg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(snarl) << endl;
                     return false;
                 }
                 cur_step = graph.get_previous_step(cur_step);
             } else {
                 if (!graph.has_next_step(cur_step)) {
-                    cerr << "Warning [vg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(snarl) << endl;
+                    cerr << "Warning [nvg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(snarl) << endl;
                     return false;
                 }
                 cur_step = graph.get_next_step(cur_step);

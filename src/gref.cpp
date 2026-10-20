@@ -61,16 +61,6 @@ string GrefCover::parse_base_path(const string& gref_name) {
     return gref_name.substr(0, underscore_pos);
 }
 
-int64_t GrefCover::parse_gref_index(const string& gref_name) {
-    if (!is_gref_name(gref_name)) {
-        return -1;
-    }
-    // Extract N from _{N}_alt
-    size_t alt_pos = gref_name.length() - 4;  // position of "_alt"
-    size_t underscore_pos = gref_name.rfind('_', alt_pos - 1);
-    return stoll(gref_name.substr(underscore_pos + 1, alt_pos - underscore_pos - 1));
-}
-
 void GrefCover::set_verbose(bool verbose) {
     this->verbose = verbose;
 }
@@ -1395,7 +1385,7 @@ void GrefCover::copy_base_paths_to_gref(MutablePathMutableHandleGraph* mutable_g
         if (mutable_graph->has_path(new_name)) {
             cerr << "[gref] error: reference path " << ref_name << " maps to gref path "
                  << new_name << ", which already exists. Reference paths must have distinct"
-                 << " gref names; run vg paths --compute-gref on a graph with no gref paths"
+                 << " gref names; run nvg paths --compute-gref on a graph with no gref paths"
                  << " in it." << endl;
             exit(1);
         }

@@ -131,26 +131,6 @@ void load_gbz(gbwtgraph::GBZ& gbz, const std::string& gbwt_name, const std::stri
     gbz.graph.set_gbwt(gbz.index); // We know the GBWT index corresponding to the graph.
 }
 
-void load_minimizer(gbwtgraph::DefaultMinimizerIndex& index, const std::string& filename, bool show_progress) {
-    if (show_progress) {
-        std::cerr << "Loading MinimizerIndex from " << filename << std::endl;
-    }
-
-    // This mimics Simple-SDS serialization.
-    try {
-        std::ifstream in(filename, std::ios_base::binary);
-        if (!in) {
-            throw sdsl::simple_sds::CannotOpenFile(filename, false);
-        }
-        in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-        index.deserialize(in);
-        in.close();
-    } catch (const std::runtime_error& e) {
-        std::cerr << "error: [load_minimizer()] cannot load MinimizerIndex " << filename << ": " << e.what() << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-}
-
 void save_gbwtgraph(const gbwtgraph::GBWTGraph& graph, const std::string& filename, bool show_progress) {
     if (show_progress) {
         std::cerr << "Saving GBWTGraph to " << filename << std::endl;

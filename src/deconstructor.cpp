@@ -1117,7 +1117,7 @@ bool Deconstructor::deconstruct_site(const handle_t& snarl_start, const handle_t
             if (!added) {
                 stringstream ss;
                 ss << v;
-                cerr << "Warning [vg deconstruct]: Skipping variant at " << v.sequenceName << ":" << v.position
+                cerr << "Warning [nvg deconstruct]: Skipping variant at " << v.sequenceName << ":" << v.position
                      << " with ID=" << v.id << " because its line length of " << ss.str().length() << " exceeds vg's limit of "
                      << VCFOutputCaller::max_vcf_line_length << endl;
                 return false;
@@ -1244,7 +1244,7 @@ string Deconstructor::get_vcf_header() {
                     haplotype = 0;
                 }
                 if (haplotype > 10) {
-                    cerr << "Warning [vg deconstruct]: Suspiciously large haplotype, " << haplotype
+                    cerr << "Warning [nvg deconstruct]: Suspiciously large haplotype, " << haplotype
                          << ", parsed from path, " << path_name << ": This will leed to giant GT entries.";
                 }
                 sample_to_haps[sample_name].insert((int)haplotype);
@@ -1275,7 +1275,7 @@ string Deconstructor::get_vcf_header() {
                             phase = 0;
                         }
                         if (phase > 10) {
-                            cerr << "Warning [vg deconstruct]: Suspiciously large haplotype, " << phase
+                            cerr << "Warning [nvg deconstruct]: Suspiciously large haplotype, " << phase
                                  << ", parsed from GBWT thread, " << path_name << ": This will leed to giant GT entries.";
                         }
                         sample_to_haps[sample_name].insert((int)phase);
@@ -1287,9 +1287,9 @@ string Deconstructor::get_vcf_header() {
     }
 
     if (sample_to_haps.empty()) {
-        cerr << "Error [vg deconstruct]: No paths other than selected reference(s) found in the graph, "
+        cerr << "Error [nvg deconstruct]: No paths other than selected reference(s) found in the graph, "
              << "so no alt alleles can be generated. Note that exhaustive path-free traversal finding "
-             << "is no longer supported, and vg deconstruct now only works on embedded paths and GBWT "
+             << "is no longer supported, and nvg deconstruct now only works on embedded paths and GBWT "
              << "threads." << endl;
         exit(1);
     }
@@ -1526,10 +1526,10 @@ void Deconstructor::deconstruct(vector<string> ref_paths, const PathPositionHand
     // Use top-down processing only when star alleles are needed (requires context passing).
     // Otherwise use simpler flat processing which is more memory-efficient.
     if (star_allele) {
-        cerr << "[vg deconstruct] Using top-down processing (star alleles enabled)" << endl;
+        cerr << "[nvg deconstruct] Using top-down processing (star alleles enabled)" << endl;
         deconstruct_graph_top_down(snarl_manager);
     } else {
-        cerr << "[vg deconstruct] Using flat processing" << endl;
+        cerr << "[nvg deconstruct] Using flat processing" << endl;
         deconstruct_graph(snarl_manager);
     }
 

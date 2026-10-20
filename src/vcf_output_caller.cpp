@@ -1,5 +1,4 @@
 #include "vcf_output_caller.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"
@@ -84,8 +83,8 @@ void VCFOutputCaller::write_variants(ostream& out_stream, const SnarlManager* sn
     // memory at once.  Free the buffer as we go for the same reason.
     //
     // This makes write_variants() single-use, which it already effectively was -- a real move
-    // leaves the buffers empty either way.  All three callers (deconstructor.cpp,
-    // call_main.cpp, mcmc_main.cpp) call it exactly once.
+    // leaves the buffers empty either way.  Both callers (deconstructor.cpp,
+    // call_main.cpp) call it exactly once.
     for (auto& buf : output_variants) {
         std::move(buf.begin(), buf.end(), std::back_inserter(all_variants));
         buf.clear();
@@ -642,7 +641,7 @@ void VCFOutputCaller::add_allele_path_to_info(vcflib::Variant& v, int allele, co
         if (translation) {
             auto i = translation->find(node_id);
             if (i == translation->end()) {
-                throw runtime_error("Error [vg deconstruct]: Unable to find node " + node_name + " in translation file");
+                throw runtime_error("Error [nvg deconstruct]: Unable to find node " + node_name + " in translation file");
             }
             if (prev_visit) {
                 nid_t prev_node_id = prev_visit->node_id();
@@ -880,7 +879,7 @@ bool VCFOutputCaller::emit_variant(const PathPositionHandleGraph& graph, SnarlCa
         if (!added) {
             stringstream ss;
             ss << out_variant;
-            cerr << "Warning [vg call]: Skipping variant at " << out_variant.sequenceName << ":" << out_variant.position
+            cerr << "Warning [nvg call]: Skipping variant at " << out_variant.sequenceName << ":" << out_variant.position
                  << " with ID=" << out_variant.id << " because its line length of " << ss.str().length() << " exceeds vg's limit of "
                  << VCFOutputCaller::max_vcf_line_length << endl;
         }

@@ -68,7 +68,7 @@ fetch "${GRAPH_BASE}.${GBWT}.min" "./${GRAPH}.${GBWT}.min"
 cat ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz ./reads.fq.gz >./many-reads.fq.gz
 
 SUDO=$(which sudo 2>/dev/null || true)
-VG=$(which vg 2>/dev/null || echo "bin/vg")
+VG=$(which vg 2>/dev/null || echo "bin/nvg")
 
 timeout -k1 1h bash -c "${SUDO} ${VG} giraffe -x ${GRAPH}.xg -H ${GRAPH}.${GBWT}.gbwt -g ${GRAPH}.${GBWT}.gg -m ${GRAPH}.${GBWT}.min -d ${GRAPH}.dist -f ./many-reads.fq.gz -i -t ${THREAD_COUNT} -p 2>log.txt >mapped.gam" || true
 

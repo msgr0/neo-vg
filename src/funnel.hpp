@@ -169,15 +169,6 @@ public:
     /// allows specifying that the state extends over a range in read space.
     void tag(size_t item, State state, size_t tag_start = 0, size_t tag_length = std::numeric_limits<size_t>::max());
 
-    /// Tag the given item as "correct" at the current stage. Future items that
-    /// derive from it will also be tagged as correct.
-    /// Optionally allows specifying that the correctness extends over a range
-    /// in read space, so correctness can be tracked as a property of regions
-    /// of the read, rather than the whole read.
-    /// If called multiple times, with different bounds, the correct region
-    /// will enclose all the correct regions provided in the different calls.
-    void tag_correct(size_t item, size_t tag_start = 0, size_t tag_length = std::numeric_limits<size_t>::max());
-    
     /// Return true if the given item at this stage is tagged correct, or
     /// descends from an item that was tagged correct.
     bool is_correct(size_t item) const;

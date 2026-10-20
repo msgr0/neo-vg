@@ -31,7 +31,6 @@ namespace vg {
     class NoAlignmentInBandException : public exception {
         virtual const char* what() const noexcept;
         static const string message;
-        int get_count();
     };
     
     /**

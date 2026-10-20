@@ -4,7 +4,7 @@ if [ $# -ne 6 ];
 then
     echo "usage: "$(basename $0) "[graph.vg] [graph.xg] [chunk_size] [context] [output_pdf] [dot|neato]"
     echo "requires vg, pdfunite (from pdftk) and dot (graphviz)"
-    echo "first index the graph with `vg index -x ...` and then choose a chunk size"
+    echo "first index the graph with `nvg index -x ...` and then choose a chunk size"
     exit
 fi
 
@@ -15,8 +15,8 @@ context=$4
 out=$5
 renderer=$6
 
-h=$(vg view $vg | grep ^S | cut -f 2 | sort -n | head -1)
-t=$(vg view $vg | grep ^S | cut -f 2 | sort -n | tail -1)
+h=$(nvg view $vg | grep ^S | cut -f 2 | sort -n | head -1)
+t=$(nvg view $vg | grep ^S | cut -f 2 | sort -n | tail -1)
 
 echo "generating pdfs"
 for i in $(seq $h $chunk $t);
@@ -26,57 +26,57 @@ do
     echo "generating pdf for $s to $e"
     if [ "$renderer" == "neato" ];
     then
-        vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -dn - \
+        nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -dn - \
             | neato -Tpdf -o $out.tmp.$s
     elif [ "$renderer" == "mars" ];
     then
-        vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -dn - \
+        nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -dn - \
             | mars -g -k $chunk \
             | neato -Tpdf -n -o $out.tmp.$s
     elif [ "$renderer" == "marsnopath" ];
     then
-        vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -d - \
+        nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -d - \
             | mars -g -k $chunk \
             | neato -Tpdf -n -o $out.tmp.$s
     elif [ "$renderer" == "marspath" ];
     then
-         vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -dpn - \
+         nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -dpn - \
             | mars -g -k $chunk \
             | neato -Tpdf -n -o $out.tmp.$s
     elif [ "$renderer" == "marssimple" ];
     then
-         vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -dpS - \
+         nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -dpS - \
             | mars -g -k $chunk \
             | neato -Tpdf -n -o $out.tmp.$s
     elif [ "$renderer" == "dot" ];
     then
-        vg find -x $xg -r $s:$e -c $context \
-            | vg mod -z - \
-            | vg view -dpn - \
+        nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -z - \
+            | nvg view -dpn - \
             | dot -Tpdf -o $out.tmp.$s
     elif [ "$renderer" == "dotnopath" ];
     then
-         vg find -x $xg -r $s:$e -c $context \
-             | vg mod -z - \
-             | vg view -d - \
+         nvg find -x $xg -r $s:$e -c $context \
+             | nvg mod -z - \
+             | nvg view -d - \
              | dot -Tpdf -o $out.tmp.$s
     elif [ "$renderer" == "dotnolabels" ];
     then
-        vg find -x $xg -r $s:$e -c $context \
-            | vg mod -u - \
-            | vg mod -K - \
-            | vg mod -cz - \
-            | vg view -d - \
+        nvg find -x $xg -r $s:$e -c $context \
+            | nvg mod -u - \
+            | nvg mod -K - \
+            | nvg mod -cz - \
+            | nvg view -d - \
             | dot -Tpdf -o $out.tmp.$s
     fi
     #cairosvg $out.tmp.$s -fpdf -o $out.tmp.$s.pdf

@@ -1,6 +1,6 @@
 /** \file vectorize_main.cpp
  *
- * Defines the "vg vectorize" subcommand, which turns graphs into ML vectors.
+ * Defines the "nvg vectorize" subcommand, which turns graphs into ML vectors.
  */
 
 
@@ -51,15 +51,13 @@ void help_vectorize(char** argv) {
 }
 
 int main_vectorize(int argc, char** argv) {
-    Logger logger("vg vectorize");
+    Logger logger("nvg vectorize");
 
     string xg_name;
     string aln_label = "";
     string gcsa_name;
     string wabbit_mapping_file = "";
     bool format = false;
-    bool show_header = false;
-    bool map_alns = false;
     bool annotate = false;
     bool a_hot = false;
     bool output_wabbit = false;
@@ -92,12 +90,11 @@ int main_vectorize(int argc, char** argv) {
             {"mem-hit-max", required_argument, 0, 'H'},
             {"identity-hot", no_argument, 0, 'i'},
             {"aln-label", required_argument, 0, 'l'},
-            {"reads", required_argument, 0, 'r'},
             {0, 0, 0, 0}
 
         };
         int option_index = 0;
-        c = getopt_long (argc, argv, "Aaih?wM:fmpx:g:l:H:r:",
+        c = getopt_long (argc, argv, "Aaih?wM:fmpx:g:l:H:",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -108,9 +105,6 @@ int main_vectorize(int argc, char** argv) {
         {
             case 'l':
                 aln_label = optarg;
-                break;
-            case 'r':
-                logger.warn() << "The --reads option is deprecated." << endl;
                 break;
             case '?':
             case 'h':

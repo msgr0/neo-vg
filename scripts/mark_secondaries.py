@@ -3,7 +3,7 @@
 """
 Mark duplicate alignments for a given read name as secondary. Useful for GraphAligner output which does not mark its secondaries. Assumes that the first alignment is the primary alignment, ignoring score.
 
-  vg view -a unmarked.gam mark_secondaries.py | vg view -JaG - > marked.gam
+  nvg view -a unmarked.gam mark_secondaries.py | nvg view -JaG - > marked.gam
 
 """
 import sys
@@ -12,7 +12,7 @@ import json
 
 def filter_json_gam(infile):
     """
-    process gam json made with vg view -a my.gam
+    process gam json made with nvg view -a my.gam
     """
 
     seen_names = set()

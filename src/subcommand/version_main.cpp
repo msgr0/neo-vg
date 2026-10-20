@@ -1,6 +1,6 @@
 /** \file version_main.cpp
  *
- * Defines the "vg version" subcommand, which evaluates graphs and alignments.
+ * Defines the "nvg version" subcommand, which evaluates graphs and alignments.
  */
 
 

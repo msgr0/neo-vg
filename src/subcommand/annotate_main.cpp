@@ -92,7 +92,7 @@ static unordered_set<const string*> find_overlapping(const vector<feature_t>& ra
 }
 
 int main_annotate(int argc, char** argv) { 
-    Logger logger("vg annotate");
+    Logger logger("nvg annotate");
     
     if (argc == 2) {
         help_annotate(argv);

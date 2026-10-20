@@ -1,4 +1,4 @@
-// index.cpp: define the "vg index" subcommand, which makes XG, GCSA2, and distance indexes
+// index.cpp: define the "nvg index" subcommand, which makes XG, GCSA2, and distance indexes
 
 #include <omp.h>
 #include <unistd.h>
@@ -79,7 +79,7 @@ void help_index(char** argv) {
 }
 
 int main_index(int argc, char** argv) {
-    Logger logger("vg index");
+    Logger logger("nvg index");
 
     if (argc == 2) {
         help_index(argv);
@@ -87,7 +87,6 @@ int main_index(int argc, char** argv) {
     }
 
     constexpr int OPT_BUILD_VGI_INDEX = 1000;
-    constexpr int OPT_RENAME_VARIANTS = 1001;
     constexpr int OPT_DISTANCE_SNARL_LIMIT = 1002;
     constexpr int OPT_DISTANCE_NESTING = 1003;
 
@@ -95,7 +94,7 @@ int main_index(int argc, char** argv) {
     bool build_xg = false, build_gcsa = false, build_dist = false;
 
     // Files we should read.
-    string vcf_name, mapping_name;
+    string mapping_name;
     vector<string> dbg_names;
 
     // Files we should write.
@@ -144,24 +143,6 @@ int main_index(int argc, char** argv) {
             {"xg-name", required_argument, 0, 'x'},
             {"xg-alts", no_argument, 0, 'L'},
 
-            // GBWT. These have been removed and will return an error.
-            {"vcf-phasing", required_argument, 0, 'v'},
-            {"ignore-missing", no_argument, 0, 'W'},
-            {"store-threads", no_argument, 0, 'T'},
-            {"store-gam", required_argument, 0, 'M'},
-            {"store-gaf", required_argument, 0, 'F'},
-            {"gbwt-name", required_argument, 0, 'G'},
-            {"actual-phasing", no_argument, 0, 'z'},
-            {"discard-overlaps", no_argument, 0, 'o'},
-            {"batch-size", required_argument, 0, 'B'},
-            {"buffer-size", required_argument, 0, 'u'},
-            {"id-interval", required_argument, 0, 'n'},
-            {"range", required_argument, 0, 'R'},
-            {"rename", required_argument, 0, 'r'},
-            {"rename-variants", no_argument, 0, OPT_RENAME_VARIANTS},
-            {"region", required_argument, 0, 'I'},
-            {"exclude", required_argument, 0, 'E'},
-
             // GCSA
             {"gcsa-out", required_argument, 0, 'g'},
             {"dbg-in", required_argument, 0, 'i'},
@@ -187,7 +168,7 @@ int main_index(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "b:t:px:Lv:WTM:F:G:zoB:u:n:R:r:I:E:g:i:f:k:X:Z:Vlj:w:P:h?",
+        c = getopt_long (argc, argv, "b:t:px:Lg:i:f:k:X:Z:Vlj:w:P:h?",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -215,26 +196,6 @@ int main_index(int argc, char** argv) {
             break;
         case 'L':
             xg_alts = true;
-            break;
-
-        // GBWT. The options remain, but they are no longer supported.
-        case 'v': // Fall through
-        case 'W': // Fall through
-        case 'T': // Fall through
-        case 'M': // Fall through
-        case 'F': // Fall through
-        case 'G': // Fall through
-        case 'z': // Fall through
-        case 'o': // Fall through
-        case 'B': // Fall through
-        case 'u': // Fall through
-        case 'n': // Fall through
-        case 'R': // Fall through
-        case 'r': // Fall through
-        case OPT_RENAME_VARIANTS: // Fall through
-        case 'I': // Fall through
-        case 'E':
-            logger.error() << "GBWT construction options have been removed; use vg gbwt instead" << endl;
             break;
 
         // GCSA

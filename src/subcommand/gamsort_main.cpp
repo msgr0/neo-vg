@@ -1,6 +1,6 @@
 /** \file gamsort_main.cpp
  *
- * Defines the "vg gamsort" subcommand for sorting and shuffling GAM and GAF files.
+ * Defines the "nvg gamsort" subcommand for sorting and shuffling GAM and GAF files.
  */
 
 #include "subcommand.hpp"
@@ -62,12 +62,11 @@ void help_gamsort(char** argv) {
 //------------------------------------------------------------------------------
 
 int main_gamsort(int argc, char **argv) {
-    Logger logger("vg gamsort");
+    Logger logger("nvg gamsort");
     // General options.
     string input_format = "GAM";
 
     // GAM sorting options.
-    size_t num_threads = GAM_MAX_THREADS;
     string index_filename;
     bool easy_sort = false;
     bool shuffle = false;

@@ -306,9 +306,6 @@ private:
     /// Perform dynamic programming and store scores in nodes
     void perform_dp();
     
-    /// Fills input vectors with indices of source and sink nodes
-    void identify_sources_and_sinks(vector<size_t>& sources_out, vector<size_t>& sinks_out) const;
-    
     /// Fills the input vector with the indices of a topological sort
     void topological_order(vector<size_t>& order_out) const;
     
@@ -554,11 +551,6 @@ protected:
     vector<unordered_map<size_t, int64_t>> flatten_distance_tree(size_t num_items,
                                                                  const unordered_map<pair<size_t, size_t>, int64_t>& recorded_finite_dists);
     
-    /// Returns a vector containing the number of SMEM beginnings to the left and the number of SMEM
-    /// endings to the right of each read position
-    vector<pair<size_t, size_t>> compute_tail_mem_coverage(const Alignment& alignment,
-                                                           const vector<MaximalExactMatch>& mems);
-    
     /// Concrete implementation of virtual method from MEMClusterer
     HitGraph make_hit_graph(const Alignment& alignment, const vector<MaximalExactMatch>& mems, const GSSWAligner* aligner,
                             size_t min_mem_length, const match_fanouts_t* fanouts);
@@ -622,9 +614,6 @@ public:
                       DistanceHeuristic* upper_bound_heuristic,
                       DistanceHeuristic* lower_bound_heuristic);
     ~TargetValueSearch() = default;
-    
-    /// Does a path exist from pos_1 to pos_2 with length within the tolerance from the target value?
-    bool tv_path_exists(const pos_t& pos_1, const pos_t& pos_2, int64_t target_value, int64_t tolerance);
     
     /// Returns the length of path from pos_1 to pos_2 with length closest to the target value. If there
     /// is no such path within the tolerance of the target value, returns numeric_limits<int64_t>::max().
@@ -760,13 +749,8 @@ protected:
     const int64_t early_stop_number = 2;
 };
 
-/// get the handles that a mem covers
-vector<pair<gcsa::node_type, size_t> > mem_node_start_positions(const HandleGraph& graph, const vg::MaximalExactMatch& mem);
 /// return a containing subgraph connecting the mems
 bdsg::HashGraph cluster_subgraph_containing(const HandleGraph& base, const Alignment& aln, const vector<vg::MaximalExactMatch>& cluster, const GSSWAligner* aligner);
-/// return a subgraph for a cluster of MEMs from the given alignment
-/// use walking to get the hits
-bdsg::HashGraph cluster_subgraph_walk(const HandleGraph& base, const Alignment& aln, const vector<vg::MaximalExactMatch>& mems, double expansion);
 
 }
 

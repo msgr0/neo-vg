@@ -1559,7 +1559,7 @@ bool ReadFilter<Read>::matches_annotation(const Read& read) const {
 
 template<>
 inline void ReadFilter<MultipathAlignment>::emit_tsv(MultipathAlignment& read, std::ostream& out) {
-    std::cerr << "error[vg filter]: TSV output not implemented for MultipathAlignment" << std::endl;
+    std::cerr << "error[nvg filter]: TSV output not implemented for MultipathAlignment" << std::endl;
     exit(1);
 }
 template<>

@@ -18,7 +18,6 @@
 #include <gcsa/gcsa.h>
 #include <gcsa/lcp.h>
 #include "aligner.hpp"
-#include "ssw_aligner.hpp"
 #include "region.hpp"
 #include "path.hpp"
 #include "utility.hpp"
@@ -31,7 +30,6 @@
 #include "hash_map.hpp"
 
 #include "progressive.hpp"
-#include "lru_cache.h"
 
 #include "Variant.h"
 #include "Fasta.h"
@@ -393,7 +391,6 @@ public:
     /// connected by the edge automatically, and silently drops the edge if they
     /// are already connected.
     void set_edge(Edge*);
-    void print_edges(void);
 
     // access the edge indexes through these functions
     
@@ -435,29 +432,6 @@ public:
     /// another graph.
     VG(set<Node*>& nodes, set<Edge*>& edges);
 
-    /// Takes in a VCF file
-    /// and returns a map [node] = vcflib::variant.
-    /// Unfortunately this is specific to a given graph
-    /// and VCF.
-    ///
-    /// It will need to throw warnings if the node or variant
-    /// is not in the graph.
-    ///
-    /// This is useful for VCF masking:
-    /// 
-    ///     if map.find(node) then mask variant
-    ///
-    /// It's also useful for calling known variants
-    /// 
-    ///     for m in alignment.mappings:
-    ///        node = m.Pos.nodeID
-    ///        if node in node_to_vcf:
-    ///            return (alignment supports variant)
-    ///
-    /// It would be nice if this also supported edges (e.g.
-    /// for inversions/transversions/breakpoints?).
-    // TODO: map<edge_id, variant> or map<pair<NodeID, NodeID>, variant>
-    map<nid_t, vcflib::Variant> get_node_nid_to_variant(vcflib::VariantCallFile vfile);
 
     // This index stores the same info as alt_paths, but allows us to annotate nodes
     // that flank the variant nodes and variant paths containing no nodes (e.g. deletion edges).
@@ -487,8 +461,6 @@ public:
               unordered_map<nid_t, pair<nid_t, bool> >& node_translation);
     /// Create the reverse complemented graph with topology preserved. Record translation in provided map.
     VG reverse_complement_graph(unordered_map<nid_t, pair<nid_t, bool>>& node_translation);
-    /// Record the translation of this graph into itself in the provided map.
-    void identity_translation(unordered_map<nid_t, pair<nid_t, bool>>& node_translation);
     
     /// Assume two node translations, the over is based on the under; merge them.
     unordered_map<nid_t, pair<nid_t, bool> > overlay_node_translations(const unordered_map<nid_t, pair<nid_t, bool> >& over,
@@ -506,8 +478,6 @@ public:
     /// Convert edges that are both from_start and to_end to "regular" ones from end to start.
     void flip_doubly_reversed_edges(void);
 
-    /// Build a graph from a Turtle stream.
-    void from_turtle(string filename, string baseuri, bool showp = false);
 
     /// Destructor.
     ~VG(void);
@@ -538,7 +508,6 @@ public:
     void clear_edge_indexes_no_resize(void);
     void clear_indexes(void);
     void clear_indexes_no_resize(void);
-    void resize_indexes(void);
     void rebuild_indexes(void);
     void rebuild_edge_indexes(void);
 
@@ -557,8 +526,6 @@ public:
     void merge_union(VG& g);
     /// Helper to merge_union.
     void remove_duplicated_in(VG& g);
-    /// Remove duplicated nodes and edges.
-    void remove_duplicates(void);
 
     /// Send chunked graphs to a function that will write them somewhere.
     /// Used to internally implement saving to many destinations.
@@ -586,8 +553,6 @@ public:
     /// Squish the node IDs down into as small a space as possible. Fixes up paths itself.
     /// Record translation in provided map.
     void compact_ids(hash_map<nid_t, nid_t> & new_id);
-    /// Subtract the given value from all the node IDs. Must not create a node with 0 or negative IDs. Invalidates the paths.
-    void decrement_node_ids(nid_t decrement);
     /// Change the ID of the node with the first id to the second, new ID not
     /// used by any node. Invalidates any paths containing the node, since they
     /// are not updated.
@@ -722,8 +687,6 @@ public:
     vector<Edge*> edges_from(Node* node);
     /// Get the edges to the specified node
     vector<Edge*> edges_to(Node* node);
-    /// Get the edges of the specified set of nodes, and add them to the given set of edge pointers.
-    void edges_of_nodes(set<Node*>& nodes, set<Edge*>& edges);
 
     /// Get the sides on the other side of edges to this side of the node.
     set<NodeSide> sides_to(NodeSide side);
@@ -736,22 +699,6 @@ public:
     set<NodeSide> sides_to(nid_t id);
     /// Union of sides_to and sides_from.
     set<NodeSide> sides_of(NodeSide side);
-    /// Get all sides connecting to this node.
-    set<pair<NodeSide, bool>> sides_context(nid_t node_id);
-    /// Use sides_from an sides_to to determine if both nodes have the same context.
-    bool same_context(nid_t id1, nid_t id2);
-    /// Determine if the node is a prev ancestor of this one.
-    bool is_ancestor_prev(nid_t node_id, nid_t candidate_id);
-    /// Determine if the node is a prev ancestor of this one by trying to find it in a given number of steps.
-    bool is_ancestor_prev(nid_t node_id, nid_t candidate_id, set<nid_t>& seen, size_t steps = 64);
-    /// Determine if the node is a next ancestor of this one.
-    bool is_ancestor_next(nid_t node_id, nid_t candidate_id);
-    /// Determine if the node is a next ancestor of this one by trying to find it in a given number of steps.
-    bool is_ancestor_next(nid_t node_id, nid_t candidate_id, set<nid_t>& seen, size_t steps = 64);
-    /// Try to find a common ancestor by walking back up to steps from the first node.
-    nid_t common_ancestor_prev(nid_t id1, nid_t id2, size_t steps = 64);
-    /// Try to find a common ancestor by walking forward up to steps from the first node
-    nid_t common_ancestor_next(nid_t id1, nid_t id2, size_t steps = 64);
     
     /// Determine if pos1 occurs directly before pos2.
     bool adjacent(const Position& pos1, const Position& pos2);
@@ -788,8 +735,6 @@ public:
     bool has_node(const Node* node) const;
     /// Determine if the graph contains the given node.
     bool has_node(const Node& node) const;
-    /// Find a node with the given name, or create a new one if none is found.
-    Node* find_node_by_name_or_add_new(string name);
     /// Run the given function on every node.
     void for_each_node(function<void(Node*)> lambda);
     void for_each_node(function<void(const Node*)> lambda) const;
@@ -843,51 +788,21 @@ public:
     /// Generate a digest of the serialized graph.
     const string hash(void);
 
-    /// Remove nodes with no sequence.
-    /// These are created in some cases during the process of graph construction.
-    void remove_null_nodes(void);
     /// Remove a node but connect all of its predecessor and successor nodes with new edges.
     void remove_node_forwarding_edges(Node* node);
     /// Remove null nodes but connect predecessors and successors, preserving structure.
     void remove_null_nodes_forwarding_edges(void);
     /// Remove edges for which one of the nodes is not present.
     void remove_orphan_edges(void);
-    /// Remove edges representing an inversion and edges on the reverse complement.
-    void remove_inverting_edges(void);
-    /// Determine if the graph has inversions.
-    bool has_inverting_edges(void);
 
     /// Keep paths in the given set of path names. Populates kept_names with the names of the paths it actually found to keep.
     /// The paths specified may not overlap. Removes all nodes and edges not used by one of the specified paths.
     /// If invert is true, instead keeps all paths *not* in the given set of path names.
     void keep_paths(const set<string>& path_names, set<string>& kept_names, bool invert = false);
-    void keep_path(const string& path_name);
 
-    /// Path stats.
-    /// Starting from offset in the first node, how many edges do we cross?
-    /// path must be nonempty and longer than the given length. offset is
-    /// interpreted as relative to the first node in its on-path
-    /// orientation, and is inclusive.
-    int path_edge_count(list<NodeTraversal>& path, int32_t offset, int path_length);
-    /// Determine the offset in its last node at which the path starting at this offset in its first node ends.
-    /// path must be nonempty and longer than the given length. offset is
-    /// interpreted as relative to the first node in its on-path
-    /// orientation, and is inclusive. Returned offset is remaining unused length
-    /// in the last node touched.
-    int path_end_node_offset(list<NodeTraversal>& path, int32_t offset, int path_length);
-    /// Convert the stored paths in this graph to alignments.
-    const vector<Alignment> paths_as_alignments(void);
     /// Return sequence string of path.
     const string path_sequence(const Path& path);
-    /// Return percent identity between two paths (# matches / (#matches + #mismatches)).
-    /// Note: uses ssw aligner, so will only work on small paths.
-    double path_identity(const Path& path1, const Path& path2);
-    /// Get the sequence of a NodeTraversal.
-    string trav_sequence(const NodeTraversal& trav);
 
-    /// Takes in a pathname and the nucleotide position (like from a vcf) and
-    /// returns the node id which contains that position.
-    nid_t get_node_at_nucleotide(string pathname, int nuc);
 
     // edges
     /// Create an edge.
@@ -940,12 +855,6 @@ public:
     bool has_edge(Edge* edge) const;
     /// Determine if the graph has an edge. This can take sides in any order.
     bool has_edge(const Edge& edge) const;
-    /// Determine if the graph has an inverting edge on the given node.
-    bool has_inverting_edge(Node* n);
-    /// Determine if the graph has an inverting edge from the given node.
-    bool has_inverting_edge_from(Node* n);
-    /// Determine if the graph has an inverting edge to the given node.
-    bool has_inverting_edge_to(Node* n);
     /// Run the given function for each edge.
     void for_each_edge(function<void(Edge*)> lambda);
     void for_each_edge(function<void(const Edge*)> lambda) const;
@@ -956,18 +865,6 @@ public:
     /// Circularize a subgraph / path using the head / tail nodes.
     void circularize(nid_t head, nid_t tail);
     void circularize(vector<string> pathnames);
-    /// Connect node -> nodes.
-    /// Connects from the right side of the first to the left side of the second.
-    void connect_node_to_nodes(NodeTraversal node, vector<NodeTraversal>& nodes);
-    /// Connect node -> nodes.
-    /// You can optionally use the start of the first node instead of the end.
-    void connect_node_to_nodes(Node* node, vector<Node*>& nodes, bool from_start = false);
-    /// connect nodes -> node.
-    /// Connects from the right side of the first to the left side of the second.
-    void connect_nodes_to_node(vector<NodeTraversal>& nodes, NodeTraversal node);
-    /// connect nodes -> node.
-    // You can optionally use the end of the second node instead of the start.
-    void connect_nodes_to_node(vector<Node*>& nodes, Node* node, bool to_end = false);
 
     // utilities
     // These only work on forward nodes.
@@ -978,8 +875,6 @@ public:
     void divide_node(Node* node, int pos, Node*& left, Node*& right);
     /// Divide a node at a given internal position. This version works on a collection of internal positions, in linear time.
     void divide_node(Node* node, vector<int>& positions, vector<Node*>& parts);
-    /// Divide a path at a position. Also invalidates stored rank information.
-    void divide_path(map<long, nid_t>& path, long pos, Node*& left, Node*& right);
     //void node_replace_prev(Node* node, Node* before, Node* after);
     //void node_replace_next(Node* node, Node* before, Node* after);
 
@@ -1155,41 +1050,18 @@ public:
     /// Get traversals after this node on the same strand. Same as nodes_next but using set.
     set<NodeTraversal> travs_from(NodeTraversal node);
 
-    /// Get traversals either before or after this node on the same strand.
-    set<NodeTraversal> travs_of(NodeTraversal node);
 
-    /// Count the nodes attached to the left side of the given NodeTraversal.
-    int node_count_prev(NodeTraversal n);
-    /// Count the nodes attached to the right side of the given NodeTraversal.
-    int node_count_next(NodeTraversal n);
 
     // paths
     /// Create a path.
     Path create_path(const list<NodeTraversal>& nodes);
     /// Create a path.
     Path create_path(const vector<NodeTraversal>& nodes);
-    /// Expand a path. TODO: what does that mean?
-    void expand_path(const list<NodeTraversal>& path, vector<NodeTraversal>& expanded);
-    /// Fill in the node_start map with the first index along the path at which each node appears.
-    /// Caller is responsible for dealing with orientations.
-    void node_starts_in_path(const list<NodeTraversal>& path,
-                             map<Node*, int>& node_start);
     /// Return true if the mapping completely covers the node it maps to and is a perfect match.
     bool mapping_is_total_match(const Mapping& m);
     /// Concatenate the mappings for a pair of nodes; handles multiple mappings per path.
     map<string, vector<mapping_t>> concat_mappings_for_node_pair(nid_t id1, nid_t id2);
 
-    /// Expand a path. TODO: what does that mean?
-    /// These versions handle paths in which nodes can be traversed multiple
-    /// times. Unfortunately since we're throwing non-const iterators around, we
-    /// can't take the input path as const.
-    void expand_path(list<NodeTraversal>& path, vector<list<NodeTraversal>::iterator>& expanded);
-    /// Find node starts in a path. TODO: what does that mean?
-    /// To get the starts out of the map this produces, you need to dereference
-    /// the iterator and then get the address of the NodeTraversal (stored in the
-    /// list) that you are talking about.
-    void node_starts_in_path(list<NodeTraversal>& path,
-                             map<NodeTraversal*, int>& node_start);
 
 private:
     /// Call the given function on each kmer. If parallel is specified, goes
@@ -1232,10 +1104,6 @@ private:
 
 public:
 
-    /// Generate random reads.
-    /// Note that even if either_strand is false, having backward nodes in the
-    /// graph will result in some reads from the global reverse strand.
-    Alignment random_read(size_t read_len, mt19937& rng, nid_t min_id, nid_t max_id, bool either_strand);
 
     /// Get the head nodes (nodes with edges only to their right sides). These are required to be oriented forward.
     void head_nodes(vector<Node*>& nodes);
@@ -1253,11 +1121,7 @@ public:
     bool is_tail_node(nid_t id);
     /// Determine if a node is a tail node.
     bool is_tail_node(Node* node);
-    /// Collect the subgraph of a Node. TODO: what does that mean?
-    void collect_subgraph(Node* node, set<Node*>& subgraph);
 
-    /// Add singular head and tail null nodes to graph.
-    void wrap_with_null_nodes(void);
     /// Add a start node and an end node, where all existing heads in the graph
     /// are connected to the start node, and all existing tails in the graph are
     /// connected to the end node. Any connected components in the graph which do
@@ -1273,35 +1137,6 @@ public:
                                Node*& start_node, Node*& end_node,
                                nid_t& start_id, nid_t& end_id);
 
-    /// Structure for managing parallel construction of a graph.
-    // TODO: delete this since we don't use it anymore.
-    struct Plan {
-        VG* graph;
-        map<long, vector<vcflib::VariantAllele> > alleles;
-        // What alleles are visited by phasing paths? For each position and
-        // allele index, stores a vector of flags, one per phase path.
-        map<pair<long, int>, vector<bool>> phase_visits;
-        // What alleles are visited by paths defining the alts of a variant? For
-        // each position and allele index, stores a vector of variant ID, alt
-        // number pairs.
-        map<pair<long, int>, vector<pair<string, int>>> variant_alts;
-        string seq;
-        string name;
-        // Make a new plan, moving the alleles map and phase visit vector map
-        // into the plan.
-        Plan(VG* graph,
-             map<long, vector<vcflib::VariantAllele> >&& alleles,
-             map<pair<long, int>, vector<bool>>&& phase_visits,
-             map<pair<long, int>, vector<pair<string, int>>>&& variant_alts,
-             string seq,
-             string name)
-            : graph(graph)
-            , alleles(std::move(alleles))
-            , phase_visits(std::move(phase_visits))
-            , variant_alts(std::move(variant_alts))
-            , seq(seq)
-            , name(name) { };
-    };
 
 
 private:

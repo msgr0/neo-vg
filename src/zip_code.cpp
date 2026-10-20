@@ -1125,32 +1125,6 @@ ZipCode::snarl_code_t ZipCode::get_irregular_snarl_code(const net_handle_t& snar
     return snarl_code;
 }
 
-ZipCode::node_code_t ZipCode::unpack_node_code(size_t zipcode_level) const {
-    node_code_t node_code;
-    if (zipcode_level == 0) {
-        throw std::runtime_error("error: Unpacking a root node. Use a chain instead");
-    } else { 
-
-        size_t zip_index = decoder[zipcode_level].offset;
-        size_t zip_value;
-        //Prefix sum
-        std::tie(zip_value, zip_index) = zipcode.get_value_and_next_index(zip_index);
-        node_code.set_raw_prefix_sum_or_identifier(zip_value);
-        //Length
-        std::tie(zip_value, zip_index) = zipcode.get_value_and_next_index(zip_index);
-        node_code.set_raw_length(zip_value);
-
-        //Is reversed
-        std::tie(zip_value, zip_index) = zipcode.get_value_and_next_index(zip_index);
-        node_code.set_raw_is_reversed(zip_value);
-        //Chain component
-        std::tie(zip_value, zip_index) = zipcode.get_value_and_next_index(zip_index);
-        node_code.set_raw_chain_component(zip_value);
-    }
-    return node_code;
-
-}
-
 ZipCode::chain_code_t ZipCode::unpack_chain_code(size_t zipcode_level) const {
     chain_code_t chain_code;
     size_t zip_index = decoder[zipcode_level].offset;
@@ -2521,19 +2495,6 @@ net_identifier_t ZipCode::get_identifier(size_t depth) const {
     }
 
     return result;
-}
-
-const net_identifier_t ZipCode::get_parent_identifier(const net_identifier_t& child) {
-    if (child == "ROOT") {
-        throw std::runtime_error("error: trying to get the parent of the root net_identifier_t. Do your zipcode, minimizer, and graph files match?");
-    }
-    for (int i = child.size()-1 ; i >= 0 ; i--) {
-        if (child[i] == '.') {
-            return (net_identifier_t) string(child, 0, i);
-        }
-    }
-    //If we didn't find a '.', then the parent is just the root
-    return "ROOT";
 }
 
 

@@ -7,7 +7,7 @@ WORKDIR /vg
 
 ENV PATH /vg/bin:$PATH
 
-ENTRYPOINT /vg/bin/vg
+ENTRYPOINT /vg/bin/nvg
 
 # Prevent dpkg from trying to ask any questions, ever
 ENV DEBIAN_FRONTEND noninteractive
@@ -31,4 +31,4 @@ RUN apt-get -qq -y update && \
 
 COPY deps/FlameGraph /vg/deps/FlameGraph
 COPY scripts /vg/scripts
-COPY bin/vg /vg/bin/vg
+COPY bin/nvg /vg/bin/nvg

@@ -1,25 +1,10 @@
 #include <iostream>
-#include "vg.hpp"
 #include "haplotype_extracter.hpp"
-#include "vg/io/json2pb.h"
 #include "graph.hpp"
 
 namespace vg {
 
 using namespace std;
-
-static id_t side_id(int64_t side) {
-    return abs(side);
-}
-
-static bool side_is_end(int64_t side) {
-    return side < 0;
-}
-
-static int64_t make_side(id_t id, bool is_end) {
-    return !is_end ? id : -1 * id;
-}
-
 
 void trace_haplotypes_and_paths(const PathHandleGraph& source, const gbwt::GBWT& haplotype_database,
                                 vg::id_t start_node, int extend_distance,
@@ -60,100 +45,6 @@ void trace_haplotypes_and_paths(const PathHandleGraph& source, const gbwt::GBWT&
     p.set_name("thread_" + to_string(i));
     out_thread_frequencies[p.name()] = haplotypes[i].second.size();
     *(out_graph.add_path()) = std::move(p);
-  }
-}
-
-
-void output_haplotype_counts(ostream& annotation_ostream,
-            vector<pair<thread_t,int>>& haplotype_list) {
-  for(int i = 0; i < haplotype_list.size(); i++) {
-    annotation_ostream << i << "\t" << haplotype_list[i].second << endl;
-  }
-}
-
-Graph output_graph_with_embedded_paths(vector<pair<thread_t,int>>& haplotype_list, const HandleGraph& source) {
-  Graph g;
-  set<int64_t> nodes;
-  set<pair<int,int> > edges;
-  for(int i = 0; i < haplotype_list.size(); i++) {
-    add_thread_nodes_to_set(haplotype_list[i].first, nodes);
-    add_thread_edges_to_set(haplotype_list[i].first, edges);
-  }
-  construct_graph_from_nodes_and_edges(g, source, nodes, edges);
-  for(int i = 0; i < haplotype_list.size(); i++) {
-    Path p = path_from_thread_t(haplotype_list[i].first, source);
-    p.set_name(to_string(i));
-    *(g.add_path()) = std::move(p);
-  }
-  return g;
-}
- 
-void output_graph_with_embedded_paths(ostream& subgraph_ostream,
-            vector<pair<thread_t,int>>& haplotype_list, const HandleGraph& source, bool json) {
-  Graph g = output_graph_with_embedded_paths(haplotype_list, source);
-
-  if (json) {
-    subgraph_ostream << pb2json(g);
-  } else {
-    VG subgraph;
-    subgraph.extend(g);
-    subgraph.serialize_to_ostream(subgraph_ostream);
-  }
-}
-
-void thread_to_graph_spanned(thread_t& t, Graph& g, const HandleGraph& source) {
-  set<int64_t> nodes;
-  set<pair<int,int> > edges;
-  nodes.insert(gbwt::Node::id(t[0]));
-  for(int i = 1; i < t.size(); i++) {
-    nodes.insert(gbwt::Node::id(t[i]));
-    edges.insert(make_pair(make_side(gbwt::Node::id(t[i-1]),gbwt::Node::is_reverse(t[i-1])),
-              make_side(gbwt::Node::id(t[i]),gbwt::Node::is_reverse(t[i]))));
-  }
-  for (auto& n : nodes) {
-    handle_t handle = source.get_handle(n);
-    Node* node = g.add_node();
-    node->set_sequence(source.get_sequence(handle));
-    node->set_id(n);
-  }
-  for (auto& e : edges) {
-    Edge edge;
-    edge.set_from(side_id(e.first));
-    edge.set_from_start(side_is_end(e.first));
-    edge.set_to(side_id(e.second));
-    edge.set_to_end(side_is_end(e.second));
-    *g.add_edge() = edge;
-  }
-}
-
-void add_thread_nodes_to_set(thread_t& t, set<int64_t>& nodes) {
-  for(int i = 0; i < t.size(); i++) {
-    nodes.insert(gbwt::Node::id(t[i]));
-  }
-}
-
-void add_thread_edges_to_set(thread_t& t, set<pair<int,int> >& edges) {
-  for(int i = 1; i < t.size(); i++) {
-    edges.insert(make_pair(make_side(gbwt::Node::id(t[i-1]),gbwt::Node::is_reverse(t[i-1])),
-              make_side(gbwt::Node::id(t[i]),gbwt::Node::is_reverse(t[i]))));
-  }
-}
-
-void construct_graph_from_nodes_and_edges(Graph& g, const HandleGraph& source,
-            set<int64_t>& nodes, set<pair<int,int> >& edges) {
-  for (auto& n : nodes) {
-    handle_t handle = source.get_handle(n);
-    Node* node = g.add_node();
-    node->set_sequence(source.get_sequence(handle));
-    node->set_id(n);
-  }
-  for (auto& e : edges) {
-    Edge edge;
-    edge.set_from(side_id(e.first));
-    edge.set_from_start(side_is_end(e.first));
-    edge.set_to(side_id(e.second));
-    edge.set_to_end(side_is_end(e.second));
-    *g.add_edge() = edge;
   }
 }
 

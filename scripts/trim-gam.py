@@ -4,7 +4,7 @@ trim-gam.py: trim GAM records from JSON standard input to contain only mappings 
 
 Range end is exclusive.
 
-usage: vg view -aj input.gam | trim-gam.py 123 456 | vg view -JGa - >output.gam
+usage: nvg view -aj input.gam | trim-gam.py 123 456 | nvg view -JGa - >output.gam
 """
 
 import sys

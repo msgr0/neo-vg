@@ -91,7 +91,7 @@ std::vector<MappingRun> base_mappings(const Alignment& aln) {
 }
 
 int main_gamcompare(int argc, char** argv) {
-    Logger logger("vg gamcompare");
+    Logger logger("nvg gamcompare");
 
     if (argc == 2) {
         help_gamcompare(argv);

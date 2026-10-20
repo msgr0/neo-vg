@@ -40,7 +40,7 @@ void help_pack(char** argv) {
 }
 
 int main_pack(int argc, char** argv) {
-    Logger logger("vg pack");
+    Logger logger("nvg pack");
 
     string xg_name;
     vector<string> packs_in;

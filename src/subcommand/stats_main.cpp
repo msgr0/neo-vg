@@ -1,6 +1,6 @@
 /** \file stats_main.cpp
  *
- * Defines the "vg stats" subcommand, which evaluates graphs and alignments.
+ * Defines the "nvg stats" subcommand, which evaluates graphs and alignments.
  */
 
 
@@ -80,7 +80,7 @@ void help_stats(char** argv) {
 }
 
 int main_stats(int argc, char** argv) {
-    Logger logger("vg stats");
+    Logger logger("nvg stats");
 
     if (argc == 2) {
         help_stats(argv);
@@ -94,7 +94,6 @@ int main_stats(int argc, char** argv) {
     bool stats_heads = false;
     bool stats_tails = false;
     bool stats_nondeterm = false;
-    bool show_sibs = false;
     bool show_components = false;
     bool head_distance = false;
     bool tail_distance = false;
@@ -137,7 +136,6 @@ int main_stats(int argc, char** argv) {
             {"heads", no_argument, 0, 'H'},
             {"tails", no_argument, 0, 'T'},
             {"nondeterm", no_argument, 0, 'e'},
-            {"show-siblings", no_argument, 0, 'S'},
             {"help", no_argument, 0, 'h'},
             {"components", no_argument, 0, 'c'},
             {"to-head", no_argument, 0, 'd'},
@@ -162,7 +160,7 @@ int main_stats(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?zlLsHTeScdtn:NEa:vPAro:ORCFDb:p:",
+        c = getopt_long (argc, argv, "h?zlLsHTecdtn:NEa:vPAro:ORCFDb:p:",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -205,10 +203,6 @@ int main_stats(int argc, char** argv) {
 
         case 'e':
             stats_nondeterm = true;
-            break;
-
-        case 'S':
-            show_sibs = true;
             break;
 
         case 'c':

@@ -57,7 +57,7 @@ void add_and_adjust_paths(const PathHandleGraph* input, MutablePathHandleGraph* 
 //------------------------------------------------------------------------------
 
 int main_convert(int argc, char** argv) {
-    Logger logger("vg convert");
+    Logger logger("nvg convert");
 
     string output_format;
     input_type input = INPUT_DEFAULT;

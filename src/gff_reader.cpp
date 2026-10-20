@@ -2,31 +2,6 @@
 
 namespace vg {
     
-    map<string, string> GFFRecord::parse_attributes() {
-        
-        map<string, string> parsed_attributes;
-        stringstream attr_stream(attributes);
-        
-        string buffer;
-        while (attr_stream.good()) {
-            getline(attr_stream, buffer, ';');
-            
-            stringstream split_stream(buffer);
-            
-            string attr_type;
-            string attr_value;
-            
-            getline(split_stream, attr_type, '=');
-            getline(split_stream, attr_value, '\0');
-            
-            parsed_attributes[attr_type] = attr_value;
-            
-            buffer.clear();
-        }
-        
-        return parsed_attributes;
-    }
-    
     GFFReader::GFFReader(istream& in) : in(in) {
         
     }

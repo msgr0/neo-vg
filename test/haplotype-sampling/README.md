@@ -1,7 +1,7 @@
 <!-- !test program bash -eo pipefail -->
 # Haplotype sampling example
 
-This directory contains a small test case for haplotype sampling using the `vg haplotypes` subcommand.
+This directory contains a small test case for haplotype sampling using the `nvg haplotypes` subcommand.
 It is primarily intended for automated testing.
 This readme contains instructions for replicating the tests manually.
 
@@ -20,7 +20,7 @@ First we need to build the indexes used by Giraffe:
 
 <!-- !test check Index the GFA -->
 ```
-vg autoindex --workflow giraffe --prefix micb-kir3dl1 -g micb-kir3dl1.gfa
+nvg autoindex --workflow giraffe --prefix micb-kir3dl1 -g micb-kir3dl1.gfa
 ```
 
 This converts the graph into GBZ format (`micb-kir3dl1.giraffe.gbz`) and builds the distance index (`micb-kir3dl1.dist`) and the minimizer index (`micb-kir3dl1.min`).
@@ -29,18 +29,18 @@ Then we can map the reads, specifying the GBZ file, the fastq file, and the outp
 
 <!-- !test check Map to original graph -->
 ```
-vg giraffe -Z micb-kir3dl1.giraffe.gbz -f HG003.fq.gz -p > to-original.gam
+nvg giraffe -Z micb-kir3dl1.giraffe.gbz -f HG003.fq.gz -p > to-original.gam
 ```
 
 Option `-p` prints progress information.
 We could also use option `-o bam` to project the alignments to reference paths and output them in BAM format.
 However, because the graph contains two sets of reference paths (GRCh38 and CHM13), we would also have to specify which reference paths to use with option `--ref-paths`.
 
-We can use the `vg stats` subcommand to compute statistics on the aligned reads:
+We can use the `nvg stats` subcommand to compute statistics on the aligned reads:
 
 <!-- !test check Get original mapping stats -->
 ```
-vg stats -a to-original.gam micb-kir3dl1.giraffe.gbz
+nvg stats -a to-original.gam micb-kir3dl1.giraffe.gbz
 ```
 
 ## Haplotype sampling
@@ -52,18 +52,18 @@ We build them using the following commands:
 
 <!-- !test check Build the GBZ and r index -->
 ```
-vg gbwt -G micb-kir3dl1.gfa --max-node 32 --gbz-format -g micb-kir3dl1.gbz -r micb-kir3dl1.ri
-vg index -j micb-kir3dl1.dist micb-kir3dl1.gbz
+nvg gbwt -G micb-kir3dl1.gfa --max-node 32 --gbz-format -g micb-kir3dl1.gbz -r micb-kir3dl1.ri
+nvg index -j micb-kir3dl1.dist micb-kir3dl1.gbz
 ```
 
 We used option `--max-node 32` to chop long nodes to 32 bp pieces instead of the default 1024 bp.
-This makes the resulting GBZ graph (and hence the distance index) indentical to the one built by `vg autoindex` in the previous section.
+This makes the resulting GBZ graph (and hence the distance index) indentical to the one built by `nvg autoindex` in the previous section.
 
 Now we can build the haplotype information file `micb-kir3dl1.hapl`:
 
 <!-- !test check Haplotype index the graph -->
 ```
-vg haplotypes -v 2 --subchain-length 300 -H micb-kir3dl1.hapl micb-kir3dl1.gbz
+nvg haplotypes -v 2 --subchain-length 300 -H micb-kir3dl1.hapl micb-kir3dl1.gbz
 ```
 
 Option `-v 2` prints extended progress information, while `--subchain-length 300` sets the target length of subchains (blocks) to 300 bp.
@@ -75,7 +75,7 @@ We can now sample the haplotypes using the haplotype information, the k-mer coun
 
 <!-- !test check Haplotype sample -->
 ```
-vg haplotypes -v 2 -i micb-kir3dl1.hapl -k HG003.kff \
+nvg haplotypes -v 2 -i micb-kir3dl1.hapl -k HG003.kff \
     --include-reference --diploid-sampling \
     -g HG003.gbz micb-kir3dl1.gbz
 ```
@@ -91,16 +91,16 @@ But because the graph is a temporary object intended only for mapping a specific
 # Set the temporary directory as you wish
 # export TMPDIR=/scratch/tmp
 
-vg giraffe -Z HG003.gbz -f HG003.fq.gz -p --index-basename ${TMPDIR}/HG003 > to-sampled.gam
+nvg giraffe -Z HG003.gbz -f HG003.fq.gz -p --index-basename ${TMPDIR}/HG003 > to-sampled.gam
 ```
 
 Here we specify that the indexes go to the temporary directory with base name `HG003` using option `--index-basename`.
 
-We can again use `vg stats` to compute statistics:
+We can again use `nvg stats` to compute statistics:
 
 <!-- !test check Get stats for mappings to sampled graph -->
 ```
-vg stats -a to-sampled.gam HG003.gbz
+nvg stats -a to-sampled.gam HG003.gbz
 ```
 
 ### Giraffe integration
@@ -112,7 +112,7 @@ Instead of sampling the haplotypes manually, we can let Giraffe handle the sampl
 # Set the temporary directory as you wish
 # export TMPDIR=/scratch/tmp
 
-vg giraffe -Z micb-kir3dl1.gbz --haplotype-name micb-kir3dl1.hapl --kff-name HG003.kff \
+nvg giraffe -Z micb-kir3dl1.gbz --haplotype-name micb-kir3dl1.hapl --kff-name HG003.kff \
     -f HG003.fq.gz -p --index-basename integration > giraffe-integration.gam
 ```
 
@@ -128,7 +128,7 @@ The statistics should be similar to those in the previous section:
 
 <!-- !test check Get stats for haplotype sampling in Giraffe -->
 ```
-vg stats -a giraffe-integration.gam integration.HG003.gbz
+nvg stats -a giraffe-integration.gam integration.HG003.gbz
 ```
 
 ## Mapping reads to a linear reference
@@ -137,7 +137,7 @@ Given a GBZ file, we can extract the paths corresponding to a given sample in fa
 
 <!-- !test check Get linear reference -->
 ```
-vg paths -x micb-kir3dl1.gbz --extract-fasta --sample GRCh38 > reference.fa
+nvg paths -x micb-kir3dl1.gbz --extract-fasta --sample GRCh38 > reference.fa
 ```
 
 The above example extracts the relevant parts of GRCh38.
@@ -145,7 +145,7 @@ The resulting fasta file can be used as the reference with any linear aligner.
 
 ## Further reading
 
-Documentation for the `vg haplotypes` subcommand can be found in the [vg wiki](https://github.com/vgteam/vg/wiki/Haplotype-Sampling).
+Documentation for the `nvg haplotypes` subcommand can be found in the [vg wiki](https://github.com/vgteam/vg/wiki/Haplotype-Sampling).
 You may also want to read about the [best practices](https://github.com/vgteam/vg/wiki/Giraffe-best-practices) for mapping reads with Giraffe.
 
 Remember to clean up after trying all the examples:

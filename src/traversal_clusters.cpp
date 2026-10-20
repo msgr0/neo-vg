@@ -747,7 +747,7 @@ void simplify_graph_using_traversals(MutablePathMutableHandleGraph* graph, const
     });
 
     if (ref_paths.empty()) {
-        cerr << "error[vg simplify]: no paths with prefix, " << ref_path_prefix << ", found."
+        cerr << "error[nvg simplify]: no paths with prefix, " << ref_path_prefix << ", found."
              << " Path simplication presently required at least one reference path to be selected with -P"
              << endl;
         exit(1);

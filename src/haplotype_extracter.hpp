@@ -43,30 +43,6 @@ vector<pair<vector<gbwt::node_type>, gbwt::SearchState> > list_haplotypes(const 
                                                                           handle_t start,
                                                                           function<bool(const vector<gbwt::node_type>&)> stop_fn);
 
-
-// writes to subgraph_ostream the subgraph covered by
-// the haplotypes in haplotype_list, as well as these haplotypes embedded as
-// Paths.  Will output in JSON format if json set to true and Protobuf otherwise.
-void output_graph_with_embedded_paths(ostream& subgraph_ostream,
-            vector<pair<thread_t,int>>& haplotype_list, const HandleGraph& source, bool json = true);
-// get the graph directly
-Graph output_graph_with_embedded_paths(vector<pair<thread_t,int>>& haplotype_list, const HandleGraph& source);
-
-// writes to annotation_ostream the list of counts of identical subhaplotypes
-// using the same ordering as the Paths from output_graph_with_embedded_paths
-void output_haplotype_counts(ostream& annotation_ostream,
-            vector<pair<thread_t,int>>& haplotype_list);
-
-// Adds to a Graph the nodes and edges touched by a thread_t
-void thread_to_graph_spanned(thread_t& t, Graph& graph, const HandleGraph& source);
-// Adds to a set of nodes all those touched by thread_t t
-void add_thread_nodes_to_set(thread_t& t, set<int64_t>& nodes);
-// Adds to a set of edges all those touched by thread_t t
-void add_thread_edges_to_set(thread_t& t, set<pair<int,int> >& edges);
-// Turns a set of nodes and a set of edges into a Graph
-void construct_graph_from_nodes_and_edges(Graph& g, const HandleGraph& source,
-            set<int64_t>& nodes, set<pair<int,int> >& edges);
-
 }
 
 #endif

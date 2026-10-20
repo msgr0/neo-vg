@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
-#include "lru_cache.h"
 #include "statistics.hpp"
 #include "position.hpp"
 #include "vg/io/json2pb.h"
@@ -83,10 +82,6 @@ class Sampler: public AbstractReadSampler {
 
 public:
 
-    // We need this so we don't re-load the node for every character we visit in
-    // it.
-    LRUCache<id_t, Node> node_cache;
-    LRUCache<id_t, vector<Edge> > edge_cache;
     mt19937 rng;
     int64_t nonce;
     // If set, only sample positions/start reads on the forward strands of their
@@ -114,8 +109,6 @@ public:
             const vector<pair<string, double>>& transcript_expressions = {},
             const vector<tuple<string, string, size_t>>& haplotype_transcripts = {})
         : AbstractReadSampler(*x),
-          node_cache(100),
-          edge_cache(100),
           forward_only(forward_only),
           no_Ns(!allow_Ns),
           nonce(0),

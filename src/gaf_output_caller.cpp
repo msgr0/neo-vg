@@ -1,5 +1,4 @@
 #include "gaf_output_caller.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"

@@ -571,33 +571,6 @@ void DozeuInterface::calculate_and_save_alignment(Alignment &alignment, const Or
 	#undef _flush_op
 }
 
-#if 0
-void DozeuInterface::debug_print(const Alignment& alignment, const OrderedGraph& graph, const MaximalExactMatch& seed, bool reverse_complemented) const
-{
-	uint64_t seed_pos = gcsa::Node::offset(seed.nodes.front());
-	uint64_t rlen = graph.graph.get_length(graph.order[graph.index_of.at(gcsa::Node::id(seed_pos))];
-	auto sequence = graph.graph.get_sequence(graph.order[graph.index_of(gcsa::Node::id(seed_pos))]);
-    char const *rseq = sequence.c_str();
-	uint64_t qlen = alignment.sequence().length(), qpos = calculate_query_seed_pos(alignment, seed);
-	char const *qseq = alignment.sequence().c_str();
-	fprintf(stderr, "xdrop_aligner::align, rev(%d), ptr(%p, %p), (%u, %u, %lu), (%d, %d), %s\n",
-		reverse_complemented,
-		&(*seed.begin), &(*alignment.sequence().begin()),
-		qpos, seed.end - seed.begin, rlen,
-		gcsa::Node::id(seed_pos), gcsa::Node::offset(seed_pos),
-		alignment.sequence().c_str());
-
-	if(reverse_complemented) {
-		for(uint64_t i = qpos; i > 0; i--) { fprintf(stderr, "%c", comp(qseq[i - 1])); } fprintf(stderr, "\n");
-		for(uint64_t i = rlen - gcsa::Node::offset(seed_pos); i > 0; i--) { fprintf(stderr, "%c", comp(rseq[i - 1])); } fprintf(stderr, "\n");
-	} else {
-		for(uint64_t i = qpos; i < qlen; i++) { fprintf(stderr, "%c", qseq[i]); } fprintf(stderr, "\n");
-		for(uint64_t i = gcsa::Node::offset(seed_pos); i < rlen; i++) { fprintf(stderr, "%c", rseq[i]); } fprintf(stderr, "\n");
-	}
-	return;
-}
-#endif
-
 /*
  * align query: forward-backward banded alignment
  *

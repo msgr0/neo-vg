@@ -1,6 +1,6 @@
 /** \file help_main.cpp
  *
- * Defines the "vg help" subcommand, which describes subcommands.
+ * Defines the "nvg help" subcommand, which describes subcommands.
  */
 
 
@@ -18,14 +18,9 @@ using namespace std;
 using namespace vg;
 using namespace vg::subcommand;
 
-void help_help(char** argv) {
-    cerr << "usage: " << argv[0] << " help" << endl
-         << endl;
-}
-
 int main_help(int argc, char** argv) {
 
-    cerr << "vg: variation graph tool, version " << Version::get_short() << endl
+    cerr << "nvg: variation graph tool, version " << Version::get_short() << endl
          << endl
          << "usage: " << argv[0] << " <command> [options]" << endl
          << endl;

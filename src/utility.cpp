@@ -270,12 +270,6 @@ string wrap_text(const string& str, size_t width) {
     return w.str();
 }
 
-bool is_number(const std::string& s) {
-    return !s.empty()
-        && std::find_if(s.begin(), s.end(),
-                        [](char c) { return !std::isdigit(c); }) == s.end();
-}
-
 std::string to_lower(const std::string& s) {
     const std::locale c_locale("C");
     std::string result;
@@ -294,10 +288,6 @@ std::string to_upper(const std::string& s) {
         result.push_back(std::toupper(c, c_locale));
     }
     return result;
-}
-
-bool isATGC(char b) {
-    return (b == 'A' || b == 'T' || b == 'G' || b == 'C');
 }
 
 bool allATGC(const string& s) {
@@ -604,15 +594,6 @@ vector<size_t> range_vector(size_t begin, size_t end) {
     return range;
 }
 
-std::vector<size_t> stack_permutations(const std::vector<size_t>& bottom, const std::vector<size_t>& top) {
-    std::vector<size_t> result;
-    result.reserve(top.size());
-    for (auto& index : top) {
-        result.push_back(bottom[index]);
-    }
-    return result;
-}
-
 bool have_input_file(int& optind, int argc, char** argv) {
 
     if (optind >= argc) {
@@ -652,23 +633,6 @@ string get_input_file_name(int& optind, int argc, char** argv, bool test_open) {
 
     if (test_open) {
         require_exists(std::string("get_input_file_name"), file_name);
-    }
-    
-    return file_name;
-    
-}
-
-string get_output_file_name(int& optind, int argc, char** argv) {
-
-    if (optind >= argc) {
-        // Complain that the user didn't specify a filename
-        logging::error("get_output_file_name") << "specify output filename" << endl;
-    }
-    
-    string file_name(argv[optind++]);
-    
-    if (file_name.empty()) {
-        logging::error("get_output_file_name") << "specify a non-empty output filename" << endl;
     }
     
     return file_name;
@@ -832,38 +796,6 @@ int add_alt_allele(vcflib::Variant& variant, const std::string& allele) {
     return variant.alleles.size() - 1;
 }
 
-// exponentiation by squaring as implemented in
-// https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int
-size_t integer_power(uint64_t base, uint64_t exponent) {
-    size_t result = 1;
-    while (exponent) {
-        if (exponent & 1) {
-            result *= base;
-        }
-        exponent >>= 1;
-        base *= base;
-    }
-    return result;
-}
-
-// modular exponent by squaring as described in
-// https://en.wikipedia.org/wiki/Modular_exponentiation`
-size_t modular_exponent(uint64_t base, uint64_t exponent, uint64_t modulus) {
-    if (modulus == 1) {
-        return 0;
-    }
-    size_t result = 1;
-    base = base % modulus;
-    while (exponent) {
-        if (exponent & 1) {
-            result = (result * base) % modulus;
-        }
-        exponent >>= 1;
-        base = (base * base) % modulus;
-    }
-    return result;
-}
-    
 default_random_engine random_sequence_gen(102);
     
 string random_sequence(size_t length) {
@@ -887,21 +819,6 @@ string pseudo_random_sequence(size_t length, uint64_t seed) {
         seq[i] = alphabet[distr(gen)];
     }
     return seq;
-}
-
-string replace_in_string(string subject,
-                         const string& search,
-                         const string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != string::npos) {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-    return subject;
-}
-
-string percent_url_encode(const string& seq) {
-    return replace_in_string(seq, "%", "%25");
 }
 
 LazyRNG::LazyRNG(const std::function<string(void)>& get_seed) : get_seed(get_seed) {

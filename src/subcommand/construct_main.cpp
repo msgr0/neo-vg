@@ -1,4 +1,4 @@
-// construct.cpp: define the "vg construct" subcommand.
+// construct.cpp: define the "nvg construct" subcommand.
 
 #include <omp.h>
 #include <unistd.h>
@@ -59,7 +59,7 @@ void help_construct(char** argv) {
 }
 
 int main_construct(int argc, char** argv) {
-    Logger logger("vg construct");
+    Logger logger("nvg construct");
 
     if (argc == 2) {
         help_construct(argv);

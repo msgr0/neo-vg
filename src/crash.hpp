@@ -26,9 +26,6 @@ void set_crash_context(const std::string& message);
 /// User code should call this when it wants to clear context for a failure in its thread.
 void clear_crash_context();
 
-/// User code should call this to get all its exceptions handled.
-void with_exception_handling(const std::function<void(void)>& body);
-
 /// User code should call this if it catches an exception it doesn't know what
 /// to do with.
 void report_exception(const std::exception& ex);

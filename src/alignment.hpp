@@ -86,11 +86,9 @@ bool gaf_record_intersects_range(const gafkluge::GafRecord& record, const std::p
 
 // More htslib-based functions
 
-bam_hdr_t* hts_file_header(string& filename, string& header);
 bam_hdr_t* hts_string_header(string& header,
                              const SequenceDictionary& sequence_dictionary,
                              const map<string, string>& rg_sample);
-void write_alignment_to_file(const Alignment& aln, const string& filename);
 
 /// Add a mapping to a CIGAR string. The mismatch operation character may be
 /// 'M' (the default) to roll them into matches, or 'X' to mark mismatches as a
@@ -118,8 +116,6 @@ Alignment bam_to_alignment(const bam1_t *b, const map<string, string>& rg_sample
 
 // the CIGAR string of the graph alignment
 vector<pair<int, char>> graph_cigar(const Alignment& aln, bool rev_strand = false);
-// the CS-style (i.e. verbose) CIGAR difference string of the graph alignment
-string graph_CS_cigar(const Alignment& aln, const HandleGraph& graph, bool rev_strand = false);
 // the cs-style (i.e. compact) CIGAR difference string of the graph alignment
 string graph_cs_cigar(const Alignment& aln, const HandleGraph& graph, bool rev_stand = false);
 /**
@@ -286,7 +282,6 @@ Alignment merge_alignments(const vector<Alignment>& alns);
 Alignment merge_alignments(const Alignment& a1, const Alignment& a2, bool debug=false);
 Alignment strip_from_start(const Alignment& aln, size_t drop);
 Alignment strip_from_end(const Alignment& aln, size_t drop);
-Alignment trim_alignment(const Alignment& aln, const Position& pos1, const Position& pos2);
 vector<Alignment> alignment_ends(const Alignment& aln, size_t len1, size_t len2);
 /// Get an Alignment corresponding to the middle len bases of the given alignment
 Alignment alignment_middle(const Alignment& aln, int len);
@@ -303,9 +298,6 @@ const string hash_alignment(const Alignment& aln);
 // start when considering the node in its new orientation.
 Alignment reverse_complement_alignment(const Alignment& aln, const function<int64_t(nid_t)>& node_length);
 void reverse_complement_alignment_in_place(Alignment* aln, const function<int64_t(nid_t)>& node_length);
-vector<Alignment> reverse_complement_alignments(const vector<Alignment>& alns, const function<int64_t(nid_t)>& node_length);
-int non_match_start(const Alignment& alignment);
-int non_match_end(const Alignment& alignment);
 /// Get the leading softclip from an Alignment, assuming it is coalesced into a
 /// single Edit
 int softclip_start(const Alignment& alignment);
@@ -315,10 +307,6 @@ int softclip_end(const Alignment& alignment);
 int softclip_trim(Alignment& alignment);
 int query_overlap(const Alignment& aln1, const Alignment& aln2);
 int edit_count(const Alignment& alignment);
-size_t to_length_after_pos(const Alignment& aln, const Position& pos);
-size_t from_length_after_pos(const Alignment& aln, const Position& pos);
-size_t to_length_before_pos(const Alignment& aln, const Position& pos);
-size_t from_length_before_pos(const Alignment& aln, const Position& pos);
 string signature(const Alignment& aln);
 pair<string, string> signature(const Alignment& aln1, const Alignment& aln2);
 string middle_signature(const Alignment& aln, int len);
@@ -345,10 +333,6 @@ bool is_mapped(const Alignment& alignment);
 // project the alignment's path back into a different ID space
 void translate_nodes(Alignment& a, const unordered_map<id_t, pair<id_t, bool> >& ids, const std::function<size_t(int64_t)>& node_length);
 
-// Invert the orientation in the alignment of all the nodes whose IDs are
-// listed. It needs a callback to ask the length of any given node.
-void flip_nodes(Alignment& a, const set<int64_t>& ids, const std::function<size_t(int64_t)>& node_length);
-
 /// Returns true if the alignment sequence contains any U's and false if the alignment sequence contains
 /// and T's. In the case that both T's and U's are included, responds according to whichever comes first.
 /// If the sequence contains neither U's nor T's, returns false.
@@ -368,9 +352,6 @@ Alignment simplify(const Alignment& a, bool trim_internal_deletions = true);
 /// Merge adjacent edits of the same type and convert all N matches to mismatches.
 void normalize_alignment(Alignment& alignment);
 
-// quality information; a kind of poor man's pileup
-map<id_t, int> alignment_quality_per_node(const Alignment& aln);
-
 /// Parse regions from the given BED file and call the given callback with each.
 /// Does *not* write them to standard output.
 /// Reads the optional name, is_reverse, and score fields if present, and populates the relevant Alignment fields.
@@ -387,7 +368,6 @@ void parse_bed_regions(istream& bedstream, const PathPositionHandleGraph* graph,
 void parse_gff_regions(istream& gtfstream, const PathPositionHandleGraph* graph, vector<Alignment>* out_alignments);
 
 Position alignment_start(const Alignment& aln);
-Position alignment_end(const Alignment& aln);Position alignment_start(const Alignment& aln);
 
 /// return the path offsets as cached in the alignment
 map<string ,vector<pair<size_t, bool> > > alignment_refpos_to_path_offsets(const Alignment& aln);

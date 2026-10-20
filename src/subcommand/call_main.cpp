@@ -1,6 +1,6 @@
 /** \file call_main.cpp
  *
- * Defines the "vg call" subcommand, which calls variation from an augmented graph
+ * Defines the "nvg call" subcommand, which calls variation from an augmented graph
  */
 
 #include <omp.h>
@@ -14,7 +14,6 @@
 #include "../path.hpp"
 #include "../graph_caller.hpp"
 #include "../flow_caller.hpp"
-#include "../legacy_caller.hpp"
 #include "../nested_flow_caller.hpp"
 #include "../vcf_genotyper.hpp"
 #include "../vcf_output_caller.hpp"
@@ -38,7 +37,7 @@ void help_call(char** argv) {
          << "Call variants or genotype known variants" << endl
          << endl
          << "support calling options:" << endl
-         << "  -k, --pack FILE           supports created from vg pack for given input graph" << endl
+         << "  -k, --pack FILE           supports created from nvg pack for given input graph" << endl
          << "  -m, --min-support M,N     min allele (M) and site (N) support to call [2,4]" << endl
          << "  -e, --baseline-error X,Y  baseline error rates for Poisson model for small (X)" << endl
          << "                            and large (Y) variants [0.005,0.01]" << endl
@@ -66,11 +65,11 @@ void help_call(char** argv) {
          << "                            (required if VCF has symbolic deletions/inversions)" << endl
          << "  -i, --ins-fasta FILE      insertions (required if VCF has symbolic insertions)" << endl
          << "  -s, --sample NAME         sample name [" << DEFAULT_SAMPLE_NAME << "]" << endl
-         << "  -r, --snarls FILE         snarls (from vg snarls) to avoid recomputing." << endl
+         << "  -r, --snarls FILE         snarls (from nvg snarls) to avoid recomputing." << endl
          << "  -g, --gbwt FILE           only call genotypes present in given GBWT index" << endl
          << "  -z, --gbz                 only call genotypes present in GBZ index" << endl
          << "                            (applies only if input graph is GBZ)" << endl
-         << "  -N, --translation FILE    node ID translation (from vg gbwt --translation)" << endl
+         << "  -N, --translation FILE    node ID translation (from nvg gbwt --translation)" << endl
          << "                            to apply to snarl names in output" << endl
          << "  -O, --gbz-translation     use the ID translation from the input GBZ to" << endl
          << "                            apply snarl names to snarl names/AT fields in output" << endl
@@ -107,7 +106,7 @@ void help_call(char** argv) {
 }    
 
 int main_call(int argc, char** argv) {
-    Logger logger("vg call");
+    Logger logger("nvg call");
 
     string pack_filename;
     string vcf_filename;
@@ -132,7 +131,6 @@ int main_call(int argc, char** argv) {
     // think this is worth leaving on by default and not adding an option (famouse last words)
     bool expect_bp_edges = true;
     bool ratio_caller = false;
-    bool legacy = false;
     int ploidy = 2;
     // copied over from vg sim
     std::vector<std::pair<std::regex, size_t>> ploidy_rules;
@@ -171,8 +169,6 @@ int main_call(int argc, char** argv) {
     const size_t max_chain_trivial_travs = 5;
     constexpr int OPT_PROGRESS = 1000;
     constexpr int OPT_CLUSTER_MIN_LEN = 1002;
-    constexpr int OPT_CLUSTER_POST = 1003;
-    constexpr int OPT_LEGACY = 1004;
     constexpr int OPT_BOTTOM_UP = 1005;
     constexpr int OPT_TOP_DOWN = 1006;
     int c;
@@ -208,16 +204,11 @@ int main_call(int argc, char** argv) {
             {"gaf", no_argument, 0, 'G'},
             {"traversals", no_argument, 0, 'T'},
             {"trav-padding", required_argument, 0, 'M'},
-            {"legacy", no_argument, 0, OPT_LEGACY},
             {"top-down", no_argument, 0, OPT_TOP_DOWN},
             {"bottom-up", no_argument, 0, OPT_BOTTOM_UP},
             {"chains", no_argument, 0, 'I'},
             {"cluster", required_argument, 0, 'L'},
             {"cluster-min-len", required_argument, 0, OPT_CLUSTER_MIN_LEN},
-            // deprecated: shipped through v1.76 as an accepted no-op.  Kept accepted (and absent
-            // from the helptext, which check_options.py allows) so pipelines carrying it do not die
-            // on an unrecognized option.  Remove after one release.
-            {"cluster-post", no_argument, 0, OPT_CLUSTER_POST},
             {"star-allele", no_argument, 0, 'Y'},
             {"threads", required_argument, 0, 't'},
             {"progress", no_argument, 0, OPT_PROGRESS },
@@ -352,10 +343,6 @@ int main_call(int argc, char** argv) {
         case 'I':
             call_chains = true;
             break;
-        case OPT_CLUSTER_POST:
-            logger.warn() << "--cluster-post is deprecated and ignored: -L/--cluster now always "
-                          << "merges after genotyping" << endl;
-            break;
         case OPT_CLUSTER_MIN_LEN:
             cluster_min_allele_len = parse<int64_t>(optarg);
             cluster_min_len_set = true;
@@ -365,9 +352,6 @@ int main_call(int argc, char** argv) {
             break;
         case 'Y':
             star_allele = true;
-            break;
-        case OPT_LEGACY:
-            legacy = true;
             break;
         case OPT_PROGRESS:
             show_progress = true;
@@ -441,8 +425,8 @@ int main_call(int argc, char** argv) {
     }
 
     if ((min_allele_len > 0 || max_allele_len < numeric_limits<size_t>::max())
-        && (legacy || !vcf_filename.empty() || bottom_up)) {
-        logger.error() << "-c/-C not supported with -v, --legacy, or --bottom-up" << endl;
+        && (!vcf_filename.empty() || bottom_up)) {
+        logger.error() << "-c/-C not supported with -v or --bottom-up" << endl;
     }
     if (!ref_paths.empty() && !ref_sample.empty()) {
         logger.error() << "-S cannot be used with -p" << endl;
@@ -491,10 +475,6 @@ int main_call(int argc, char** argv) {
     // the collapsed view of a large variant and the children the precise one.  MAT records it.
     if (cluster_threshold < 1.0 && star_allele) {
         logger.error() << "-L/--cluster cannot be used with -Y/--star-allele" << endl;
-    }
-    // LegacyCaller has its own traversal finder and support model; -L has never been run through it
-    if (cluster_threshold < 1.0 && legacy) {
-        logger.error() << "-L/--cluster cannot be used with the legacy caller (--legacy)" << endl;
     }
     // the merge needs two distinct called ALT alleles, which a haploid genotype can never have.
     // -R/--ploidy-regex sets ploidy per contig and we cannot tell here which contigs will be
@@ -604,14 +584,8 @@ int main_call(int argc, char** argv) {
     if (ratio_caller == true && ploidy != 2) {
         logger.error() << "ploidy (-d) must be 2 when using ratio caller (-B)" << endl;
     }
-    if (legacy == true && ploidy != 2) {
-        logger.error() << "ploidy (-d) must be 2 when using legacy caller (--legacy)" << endl;
-    }
     if (!vcf_filename.empty() && !gbwt_filename.empty()) {
         logger.error() << "GBWT (-g) cannot be used when genotyping VCF (-v)" << endl;
-    }
-    if (legacy == true && !gbwt_filename.empty()) {
-        logger.error() << "GBWT (-g) cannot be used with legacy caller (--legacy)" << endl;
     }
     if (gbz_paths && !gbwt_filename.empty()) {
         logger.error() << "GBWT (-g) cannot be used with GBZ graph (-z): choose one or the other" << endl;
@@ -668,7 +642,7 @@ int main_call(int argc, char** argv) {
             }
         });
         if (ref_paths.empty()) {
-            logger.error() << "No non-alt paths found matching prefix(es) (see vg paths --list)" << endl;
+            logger.error() << "No non-alt paths found matching prefix(es) (see nvg paths --list)" << endl;
         }
     }
 
@@ -682,7 +656,7 @@ int main_call(int argc, char** argv) {
         });
         if (ref_paths.empty()) {
             logger.error() << "No REFERENCE or HAPLOTYPE paths for sample \"" << ref_sample << "\" found.\n"
-                           << "Use vg paths -M to check which paths exist in this graph\n" 
+                           << "Use nvg paths -M to check which paths exist in this graph\n" 
                            << "Also see: https://github.com/vgteam/vg/wiki/Changing-References" << endl;
         }
     }
@@ -766,7 +740,7 @@ int main_call(int argc, char** argv) {
         for (const auto& ref_path_used : ref_path_set) {
             if (!ref_path_used.second) {
                 logger.error() << "Path \"" << ref_path_used.first 
-                               << "\" not found in graph as a non-alt sense (see vg paths -M)\n"
+                               << "\" not found in graph as a non-alt sense (see nvg paths -M)\n"
                                << "Also see: https://github.com/vgteam/vg/wiki/Changing-References" << endl;
             }
         }
@@ -777,7 +751,7 @@ int main_call(int argc, char** argv) {
     // make sure we have some ref paths
     if (ref_paths.empty()) {
         logger.error() << "No reference paths found. "
-                       << "Paths must be REFERENCE or GENERIC sense (see vg paths -M)\n"
+                       << "Paths must be REFERENCE or GENERIC sense (see nvg paths -M)\n"
                        << "Alternatively, use --ref-path, --path-prefix, or --ref-sample to force a HAPLOTYPE path to be treated as a reference\n"
                        << "Also see: https://github.com/vgteam/vg/wiki/Changing-References" << endl;
     }
@@ -954,13 +928,6 @@ int main_call(int argc, char** argv) {
                                                        gaf_output,
                                                        trav_padding);
         graph_caller = unique_ptr<GraphCaller>(vcf_genotyper);
-    } else if (legacy) {
-        // de-novo caller (port of the old vg call code, which requires a support based caller)
-        LegacyCaller* legacy_caller = new LegacyCaller(*dynamic_cast<PathPositionHandleGraph*>(graph),
-                                                       *dynamic_cast<SupportBasedSnarlCaller*>(snarl_caller.get()),
-                                                       *snarl_manager,
-                                                       sample_name, ref_paths, ref_path_offsets, ref_path_ploidies);
-        graph_caller = unique_ptr<GraphCaller>(legacy_caller);
     } else {
         // flow caller can take any kind of traversal finder.  two are supported for now:
         
@@ -1044,8 +1011,8 @@ int main_call(int argc, char** argv) {
         // Make sure we get the LV/PS tags with -A, --top-down, or --bottom-up
         vcf_caller->set_nested(all_snarls || top_down || bottom_up);
         vcf_caller->set_translation(translation.get());
-        // one call covers FlowCaller (both ctors, so plain vg call gets it too), NestedFlowCaller
-        // and LegacyCaller, since the merge lives on the shared VCFOutputCaller base
+        // one call covers FlowCaller (both ctors, so plain vg call gets it too), and
+        // NestedFlowCaller, since the merge lives on the shared VCFOutputCaller base
         vcf_caller->set_allele_merge(cluster_threshold, cluster_min_allele_len);
         // Make sure the basepath information we inferred above goes directy to the VCF header
         // (and that it does *not* try to read it from the graph paths)

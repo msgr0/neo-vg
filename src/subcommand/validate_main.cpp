@@ -1,6 +1,6 @@
 /** \file validate_main.cpp
  *
- * Defines the "vg validate" subcommand
+ * Defines the "nvg validate" subcommand
  */
 
 
@@ -34,7 +34,7 @@ void help_validate(char** argv) {
 }
 
 int main_validate(int argc, char** argv) {
-    Logger logger("vg validate");
+    Logger logger("nvg validate");
 
     if (argc <= 2) {
         help_validate(argv);

@@ -1,6 +1,6 @@
 /** \file ids_main.cpp
  *
- * Defines the "vg ids" subcommand, which modifies node IDs.
+ * Defines the "nvg ids" subcommand, which modifies node IDs.
  */
 
 
@@ -36,13 +36,13 @@ void help_ids(char** argv) {
          << "  -j, --join           make a joint ID space for all supplied graphs" << endl
          << "                       by iterating through the supplied graphs and incrementing" << endl
          << "                       their ids to be non-conflicting (modifies original files)" << endl
-         << "  -m, --mapping FILE   create an empty node mapping for vg prune" << endl
+         << "  -m, --mapping FILE   create an empty node mapping for nvg prune" << endl
          << "  -s, --sort           assign new node IDs in generalized topological sort order" << endl
          << "  -h, --help           print this help message to stderr and exit" << endl;
 }
 
 int main_ids(int argc, char** argv) {
-    Logger logger("vg ids");
+    Logger logger("nvg ids");
 
     if (argc == 2) {
         help_ids(argv);

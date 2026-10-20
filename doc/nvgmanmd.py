@@ -3,7 +3,7 @@ import subprocess
 
 
 # commands to include
-######### If you add to this, also add it to the intro section of vgmandmd.desc.md
+######### If you add to this, also add it to the intro section of nvgmanmd.desc.md
 cmds = ['align', 'annotate', 'augment', 'autoindex', 'bench-dist-query',
         'benchmark', 'call', 'chains', 'chunk', 'circularize', 'clip',
         'cluster', 'combine', 'construct', 'convert', 'deconstruct', 'depth',
@@ -19,9 +19,9 @@ cmds.sort()
 
 # parse short descriptions
 try:
-    desc_inf = open('./doc/vgmanmd.desc.md', 'rt')
+    desc_inf = open('./doc/nvgmanmd.desc.md', 'rt')
 except FileNotFoundError:
-    desc_inf = open('vgmanmd.desc.md', 'rt')
+    desc_inf = open('nvgmanmd.desc.md', 'rt')
 
 desc = {}
 cur_desc = ''
@@ -39,19 +39,19 @@ desc[cur_header] = cur_desc
 desc_inf.close()
 
 # start page
-#print('# vg manpage')
+#print('# nvg manpage')
 
-# get vg version
-ret = subprocess.run(['vg', 'version'], capture_output=True)
+# get nvg version
+ret = subprocess.run(['nvg', 'version'], capture_output=True)
 vg_v = ret.stdout.decode().split('\n')[0]
 
 #Metadata
-print("% vg(1)  | Variation Graph Toolkit\n\n")
+print("% nvg(1)  | Variation Graph Toolkit\n\n")
 
 #Start with the name
 print("NAME")
 print("====")
-print('vg - variation graph tool, ' + vg_v + '.\n\n') 
+print('nvg - variation graph tool, ' + vg_v + '.\n\n') 
 
 if 'description' in desc:
     print("DESCRIPTION")
@@ -69,7 +69,7 @@ print("COMMANDS")
 print("====")
 
 # help for each cmd
-vg_help = subprocess.run(['vg', 'help'], capture_output=True)
+vg_help = subprocess.run(['nvg', 'help'], capture_output=True)
 cmd_desc = dict()
 for line in vg_help.stderr.decode().split('\n'):
     if '-' in line:
@@ -79,7 +79,7 @@ for line in vg_help.stderr.decode().split('\n'):
 
 for cmd in cmds:
     print('<a id="{cmd}"/>\n\n## {cmd}: {blurb}\n\n'.format(cmd=cmd, blurb=cmd_desc[cmd]))
-    ret = subprocess.run(['vg', cmd, '--help'], capture_output=True)
+    ret = subprocess.run(['nvg', cmd, '--help'], capture_output=True)
     print('```')
     print(ret.stderr.decode())
     print('```\n\n')

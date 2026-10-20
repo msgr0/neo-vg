@@ -356,10 +356,6 @@ void Funnel::tag(size_t item, State state, size_t tag_start, size_t tag_length) 
     stages.back().tag_space.paint(tag_start, tag_length);
 }
 
-void Funnel::tag_correct(size_t item, size_t tag_start, size_t tag_length) {
-    tag(item, State::CORRECT, tag_start, tag_length);
-}
-
 bool Funnel::is_correct(size_t item) const {
     return stages.back().items[item].tag >= State::CORRECT;
 }

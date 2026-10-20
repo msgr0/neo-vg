@@ -7,7 +7,6 @@
 #include "catch.hpp"
 #include "vg.hpp"
 #include "xg.hpp"
-#include "graph.hpp"
 #include "../io/json2graph.hpp"
 #include "algorithms/subgraph.hpp"
 #include "bdsg/hash_graph.hpp"

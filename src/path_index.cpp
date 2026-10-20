@@ -299,13 +299,6 @@ void PathIndex::update_mapping_positions(VG& vg, const string& path_name) {
     }
 }
 
-bool PathIndex::path_contains_node(int64_t node_id) const {
-    if (by_id.find(node_id) != by_id.end()){
-        return true;
-    }
-    return false;
-}
-
 bool PathIndex::path_contains_node_in_orientation(int64_t node_id, bool is_reverse) const {
     return find_in_orientation(node_id, is_reverse) != end();
 }

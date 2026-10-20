@@ -1,6 +1,6 @@
 /** \file haplotypes_main.cpp
  *
- * Defines the "vg haplotypes" subcommand, which samples haplotypes by kmer counts in the reads.
+ * Defines the "nvg haplotypes" subcommand, which samples haplotypes by kmer counts in the reads.
  *
  * TODO: Tests for --linear-structure, --extra-fragments, and fragmented haplotypes.
  */
@@ -100,7 +100,7 @@ struct HaplotypesConfig {
     };
 
     // Logger to use when reporting errors/progress
-    Logger logger = Logger("vg haplotypes");
+    Logger logger = Logger("nvg haplotypes");
 
     OperatingMode mode = mode_invalid;
     Haplotypes::Verbosity verbosity = Haplotypes::verbosity_silent;
@@ -1425,10 +1425,6 @@ void validate_chain(const Logger& logger,
 
         prev = &subchain;
     }
-}
-
-std::string subchain_to_string(size_t chain_id, size_t subchain_id, const Haplotypes::Subchain& subchain) {
-    return "chain " + std::to_string(chain_id) + ", subchain " + std::to_string(subchain_id) + " (" + subchain.to_string() + ")";
 }
 
 void validate_haplotypes(const Logger& logger,

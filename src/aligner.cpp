@@ -10,7 +10,6 @@
 #include "null_masking_graph.hpp"
 #include "dozeu_pinning_overlay.hpp"
 #include "crash.hpp"
-#include "algorithms/distance_to_tail.hpp"
 
 //#define debug_print_score_matrices
 

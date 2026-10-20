@@ -1,6 +1,6 @@
 /** \file autoindex_main.cpp
  *
- * Defines the "vg autoindex" subcommand, which produces indexes needed for other subcommands
+ * Defines the "nvg autoindex" subcommand, which produces indexes needed for other subcommands
  */
 #include <iostream>
 #include <sstream>
@@ -52,25 +52,6 @@ int64_t parse_memory_usage(const Logger& logger, const string& mem_arg) {
     }
     return parse<int64_t>(mem) * base;
 }
-
-string mem_usage_string(int64_t mem) {
-    assert(mem > 0);
-    stringstream strm;
-    strm.precision(1);
-    if (mem >= 1024 * 1024 * 1024) {
-        strm << double(mem) / (1024 * 1024 * 1024) << "GB";
-    }
-    else if (mem >= 1024 * 1024) {
-        strm << double(mem) / (1024 * 1024) << "MB";
-    }
-    else if (mem >= 1024) {
-        strm << double(mem) / (1024) << "kB";
-    }
-    else {
-        strm << double(mem) << "B";
-    }
-    return strm.str();
-};
 
 // expects a string of form "Index Registry Name:filepath1,filepath2,filepath3"
 pair<string, vector<string>> parse_provide_string(const Logger& logger, const string& str) {
@@ -132,7 +113,7 @@ void help_autoindex(char** argv) {
 }
 
 int main_autoindex(int argc, char** argv) {
-    Logger logger("vg autoindex");
+    Logger logger("nvg autoindex");
     
     if (argc == 2) {
         help_autoindex(argv);

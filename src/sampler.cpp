@@ -5,7 +5,6 @@
 #include "position.hpp"
 #include "alignment.hpp"
 #include "algorithms/path_string.hpp"
-#include "algorithms/subgraph.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
 #include "algorithms/next_pos_chars.hpp"
 

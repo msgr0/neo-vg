@@ -1,6 +1,6 @@
 /** \file deconstruct_main.cpp
  *
- * Defines the "vg deconstruct" subcommand, which turns graphs back into VCFs.
+ * Defines the "nvg deconstruct" subcommand, which turns graphs back into VCFs.
  */
 
 
@@ -43,10 +43,10 @@ void help_deconstruct(char** argv) {
          << "  -P, --path-prefix NAME   all paths [minus GBWT threads / non-ref GBZ paths]" << endl
          << "                           beginning with NAME used as reference (may repeat)." << endl
          << "                           other non-ref paths not considered as samples. " << endl
-         << "  -r, --snarls FILE        snarls file (from vg snarls) to avoid recomputing." << endl
+         << "  -r, --snarls FILE        snarls file (from nvg snarls) to avoid recomputing." << endl
          << "  -g, --gbwt FILE          consider alt traversals for GBWT haplotypes in FILE" << endl
          << "                           (not needed for GBZ graph input)." << endl
-         << "  -T, --translation FILE   node ID translation (from vg gbwt --translation)" << endl
+         << "  -T, --translation FILE   node ID translation (from nvg gbwt --translation)" << endl
          << "                           to apply to snarl names and AT fields in output" << endl
          << "  -O, --gbz-translation    use the ID translation from the input GBZ to apply" << endl
          << "                           snarl names to snarl names and AT fields in output" << endl
@@ -78,7 +78,7 @@ void help_deconstruct(char** argv) {
 }
 
 int main_deconstruct(int argc, char** argv) {
-    Logger logger("vg deconstruct");
+    Logger logger("nvg deconstruct");
     if (argc <= 2) {
         help_deconstruct(argv);
         return 1;
@@ -117,13 +117,10 @@ int main_deconstruct(int argc, char** argv) {
                 {"help", no_argument, 0, 'h'},
                 {"path", required_argument, 0, 'p'},
                 {"path-prefix", required_argument, 0, 'P'},
-                {"path-sep", required_argument, 0, 'H'},
                 {"snarls", required_argument, 0, 'r'},
                 {"gbwt", required_argument, 0, 'g'},
                 {"translation", required_argument, 0, 'T'},
                 {"gbz-translation", no_argument, 0, 'O'},                
-                {"path-traversals", no_argument, 0, 'e'},
-                {"ploidy", required_argument, 0, 'd'},
                 {"context-jaccard", required_argument, 0, 'c'},
                 {"untangle-travs", no_argument, 0, 'u'},
                 {"all-snarls", no_argument, 0, 'a'},
@@ -139,7 +136,7 @@ int main_deconstruct(int argc, char** argv) {
             };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "h?p:P:H:r:g:T:OeKSCd:c:uaL:Rt:v",
+        c = getopt_long (argc, argv, "h?p:P:r:g:T:OKSCc:uaL:Rt:v",
                          long_options, &option_index);
 
         // Detect the end of the options.
@@ -154,9 +151,6 @@ int main_deconstruct(int argc, char** argv) {
         case 'P':
             refpath_prefixes.push_back(optarg);
             break;
-        case 'H':
-            logger.warn() << "-H is deprecated, and will be ignored" << endl;
-            break;
         case 'r':
             snarl_file_name = require_exists(logger, optarg);
             break;
@@ -169,12 +163,6 @@ int main_deconstruct(int argc, char** argv) {
         case 'O':
             gbz_translation = true;
             break;                        
-        case 'e':
-            logger.warn() << "-e is deprecated as it's now on default" << endl;
-            break;
-        case 'd':
-            logger.warn() << "-d is deprecated - ploidy now inferred from haplotypes in path names" << endl;
-            break;
         case 'c':
             context_jaccard_window = parse<int>(optarg);
             break;

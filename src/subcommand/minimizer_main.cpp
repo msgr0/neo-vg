@@ -1,6 +1,6 @@
 /** \file minimizer_main.cpp
  *
- * Defines the "vg minimizer" subcommand, which builds the minimizer index.
+ * Defines the "nvg minimizer" subcommand, which builds the minimizer index.
  *
  * The index contains the lexicographically smallest kmer in a window of w
  * successive kmers and their reverse complements. If the kmer contains
@@ -79,7 +79,7 @@ using payload_type = ZipCode::payload_type;
 
 int main_minimizer(int argc, char** argv) {
     double start = gbwt::readTimer();
-    Logger logger("vg minimizer");
+    Logger logger("nvg minimizer");
     MinimizerConfig config(argc, argv, get_default_threads(), logger);
 
     // Load the graph.

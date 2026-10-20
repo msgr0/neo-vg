@@ -1,6 +1,6 @@
 /** \file test_main.cpp
  *
- * Defines the "vg test" subcommand, which runs unit tests.
+ * Defines the "nvg test" subcommand, which runs unit tests.
  */
 
 

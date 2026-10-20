@@ -263,41 +263,5 @@ void PathChunker::extract_id_range(vg::id_t start, vg::id_t end, int64_t context
     out_region.end = subgraph.max_node_id();
 }
 
-set<pair<pair<id_t, bool>, pair<id_t, bool>>> PathChunker::get_path_edge_index(step_handle_t start_step,
-                                                                               step_handle_t end_step, int64_t context) const {
-    // we don't use handles as we're going to use this structure to compare edges across different graphs
-    set<pair<pair<id_t, bool>, pair<id_t, bool>>> path_edges;
-
-    function<void(step_handle_t)> add_edge = [&](step_handle_t step) {
-        step_handle_t next = graph->get_next_step(step);
-        edge_t edge = graph->edge_handle(graph->get_handle_of_step(step), graph->get_handle_of_step(next));
-        path_edges.insert(make_pair(make_pair(graph->get_id(edge.first), graph->get_is_reverse(edge.first)),
-                                    make_pair(graph->get_id(edge.second), graph->get_is_reverse(edge.second))));
-    };
-
-    // edges from left context
-    int i = 0;
-    for (step_handle_t step = start_step; graph->has_previous_step(step) && i <= context;
-         step = graph->get_previous_step(step), ++i) {
-        add_edge(graph->get_previous_step(step));
-    }
-
-    // edges from range
-    for (step_handle_t step = start_step; step != end_step; step = graph->get_next_step(step)) {
-        if (graph->has_next_step(step)) {
-            add_edge(step);
-        }
-    }
-
-    // edges from right context
-    i = 0;
-    for (step_handle_t step = end_step; graph->has_next_step(step) && i <= context;
-         step = graph->get_next_step(step), ++i) {
-        add_edge(step);
-    }
-
-    return path_edges;
-}
-
 
 }

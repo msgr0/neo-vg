@@ -32,7 +32,7 @@ void help_trace(char** argv) {
 }
 
 int main_trace(int argc, char** argv) {
-    Logger logger("vg trace");
+    Logger logger("nvg trace");
     if (argc == 2) {
         help_trace(argv);
         return 1;

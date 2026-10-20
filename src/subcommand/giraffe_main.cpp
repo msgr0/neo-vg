@@ -67,7 +67,7 @@ using namespace std;
 using namespace vg;
 using namespace vg::subcommand;
 
-static Logger logger("vg giraffe");
+static Logger logger("nvg giraffe");
 
 /// Options struct for options for the Giraffe driver (i.e. this file)
 struct GiraffeMainOptions {

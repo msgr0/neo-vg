@@ -11,19 +11,14 @@
 #include "annotation.hpp"
 #include "banded_global_aligner.hpp"
 #include "crash.hpp"
-#include "path_subgraph.hpp"
 #include "multipath_alignment.hpp"
 #include "split_strand_graph.hpp"
 #include "subgraph.hpp"
 #include "statistics.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
-#include "algorithms/count_covered.hpp"
-#include "algorithms/intersect_path_offsets.hpp"
-#include "algorithms/extract_containing_graph.hpp"
 #include "algorithms/extract_connecting_graph.hpp"
 #include "algorithms/extract_extending_graph.hpp"
 #include "algorithms/chain_items.hpp"
-#include "algorithms/pad_band.hpp"
 
 #include <bdsg/overlays/strand_split_overlay.hpp>
 #include <gbwtgraph/algorithms.h>
@@ -3334,14 +3329,6 @@ Alignment MinimizerMapper::find_chain_alignment(
     set_annotation(result, "right_tail_length", (double) right_tail_length);
     
     return result;
-}
-
-void MinimizerMapper::wfa_alignment_to_alignment(const WFAAlignment& wfa_alignment, Alignment& alignment) const {
-    *(alignment.mutable_path()) = wfa_alignment.to_path(this->gbwt_graph, alignment.sequence());
-    alignment.set_score(wfa_alignment.score);
-    if (!alignment.sequence().empty()) {
-        alignment.set_identity(identity(alignment.path()));
-    }
 }
 
 void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback) {

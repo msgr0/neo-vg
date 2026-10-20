@@ -25,7 +25,7 @@ CWD:=$(shell pwd)
 PKG_CONFIG ?= pkg-config
 
 SFX :=
-EXE:=vg$(SFX)
+EXE:=nvg$(SFX)
 
 # Expose compiler we want to use to all build commands as an environment variable.
 export CC CXX
@@ -74,16 +74,15 @@ DEPGEN_FLAGS := -MMD -MP
 # even though that's not *always* safe. See
 # <https://stackoverflow.com/a/11532197> and
 # <https://github.com/protocolbuffers/protobuf/issues/12998>
-INCLUDE_FLAGS :=-I$(CWD)/$(INC_DIR) -I$(CWD)/$(INC_DIR)/GFAz -I. -I$(CWD)/$(SRC_DIR) -I$(CWD)/$(UNITTEST_SRC_DIR) -I$(CWD)/$(UNITTEST_SUPPORT_SRC_DIR) -I$(CWD)/$(SUBCOMMAND_SRC_DIR) -I$(CWD)/$(INC_DIR)/dynamic -I$(CWD)/$(INC_DIR)/cairo $(shell $(PKG_CONFIG) --cflags $(PKG_CONFIG_DEPS) $(PKG_CONFIG_STATIC_DEPS) $(PKG_CONFIG_HEADER_DEPS) | tr ' ' '\n' | awk '!x[$$0]++' | tr '\n' ' ')
+INCLUDE_FLAGS :=-I$(CWD)/$(INC_DIR) -I$(CWD)/$(INC_DIR)/GFAz -I. -I$(CWD)/$(SRC_DIR) -I$(CWD)/$(UNITTEST_SRC_DIR) -I$(CWD)/$(UNITTEST_SUPPORT_SRC_DIR) -I$(CWD)/$(SUBCOMMAND_SRC_DIR) $(shell $(PKG_CONFIG) --cflags $(PKG_CONFIG_DEPS) $(PKG_CONFIG_STATIC_DEPS) $(PKG_CONFIG_HEADER_DEPS) | tr ' ' '\n' | awk '!x[$$0]++' | tr '\n' ' ')
 
 # Define libraries to link vg against.
 
 # These need to come before library search paths from LDFLAGS or we won't
 # prefer linking vg-installed dependencies over system ones.
 LD_LIB_DIR_FLAGS := -L$(CWD)/$(LIB_DIR)
-LD_LIB_FLAGS := -lvcflib -lwfa2 -ltabixpp -lgssw -lssw -lsublinearLS -lpthread -lncurses -lgcsa2 -lgbwtgraph -lgbwt -lkff -ldivsufsort -ldivsufsort64 -lraptor2 -lpinchesandcacti -l3edgeconnected -lsonlib -lstructures -lbdsg -lxg -lsdsl -lhandlegraph -lgfaz_compress -lgfaz_core -lzstd
+LD_LIB_FLAGS := -lvcflib -lwfa2 -ltabixpp -lgssw -lsublinearLS -lpthread -lncurses -lgcsa2 -lgbwtgraph -lgbwt -lkff -ldivsufsort -ldivsufsort64 -lpinchesandcacti -l3edgeconnected -lsonlib -lstructures -lbdsg -lxg -lsdsl -lhandlegraph -lgfaz_compress -lgfaz_core -lzstd
 # We omit Cairo for now because its transitive dependencies can't be determined until after it's built. Set them lazily
-LD_CAIRO_LIB_FLAGS = $(shell PKG_CONFIG_PATH=$(CWD)/$(LIB_DIR)/pkgconfig:$(PKG_CONFIG_PATH) pkg-config --libs --static cairo)
 # We omit Boost Program Options for now; we find it in a platform-dependent way.
 # By default it has no suffix
 BOOST_SUFFIX=""
@@ -411,7 +410,6 @@ UNITTEST_EXE = $(patsubst $(UNITTEST_SRC_DIR)/%.cpp,$(UNITTEST_BIN_DIR)/%,$(UNIT
 
 
 ELFUTILS_DIR:=deps/elfutils
-RAPTOR_DIR:=deps/raptor
 JEMALLOC_DIR:=deps/jemalloc
 MIMALLOC_DIR:=deps/mimalloc
 SDSL_DIR:=deps/sdsl-lite
@@ -427,8 +425,6 @@ GSSW_DIR:=deps/gssw
 SPARSEHASH_DIR:=deps/sparsehash
 SPARSEPP_DIR:=deps/sparsepp
 SHA1_DIR:=deps/sha1
-DYNAMIC_DIR:=deps/DYNAMIC
-SSW_DIR:=deps/ssw/src
 LINLS_DIR:=deps/sublinear-Li-Stephens
 STRUCTURES_DIR:=deps/structures
 BACKWARD_CPP_DIR:=deps/backward-cpp
@@ -444,8 +440,6 @@ BBHASH_DIR=deps/BBHash
 MIO_DIR=deps/mio
 ATOMIC_QUEUE_DIR=deps/atomic_queue
 GFAz_DIR=deps/GFAz
-CAIRO_DIR=deps/cairo
-PIXMAN_DIR=deps/pixman
 
 # Dependencies that go into libvg's archive
 # These go in libvg but come from dependencies
@@ -460,7 +454,6 @@ DEP_SHARED_OBJ = $(patsubst $(OBJ_DIR)/%.o,$(SHARED_OBJ_DIR)/%.o,$(DEP_OBJ))
 # If you just pass them to ar it puts the library *file* in libvg where nothing can read it.
 LIB_DEPS =
 LIB_DEPS += $(LIB_DIR)/libsdsl.a
-LIB_DEPS += $(LIB_DIR)/libssw.a
 LIB_DEPS += $(LIB_DIR)/libgcsa2.a
 LIB_DEPS += $(LIB_DIR)/libgbwt.a
 LIB_DEPS += $(LIB_DIR)/libgbwtgraph.a
@@ -471,7 +464,6 @@ LIB_DEPS += $(LIB_DIR)/libvcflib.a
 LIB_DEPS += $(LIB_DIR)/libgssw.a
 LIB_DEPS += $(LIB_DIR)/libsonlib.a
 LIB_DEPS += $(LIB_DIR)/libpinchesandcacti.a
-LIB_DEPS += $(LIB_DIR)/libraptor2.a
 LIB_DEPS += $(LIB_DIR)/libsublinearLS.a
 LIB_DEPS += $(LIB_DIR)/libstructures.a
 LIB_DEPS += $(LIB_DIR)/libdeflate.a
@@ -481,8 +473,6 @@ LIB_DEPS += $(LIB_DIR)/libbdsg.a
 LIB_DEPS += $(LIB_DIR)/libxg.a
 LIB_DEPS += $(LIB_DIR)/libgfaz_core.a
 LIB_DEPS += $(LIB_DIR)/libgfaz_compress.a
-LIB_DEPS += $(LIB_DIR)/libcairo.a
-LIB_DEPS += $(LIB_DIR)/libpixman-1.a
 ifneq ($(shell uname -s),Darwin)
     # On non-Mac (i.e. Linux), where ELF binaries are used, pull in libdw which
     # backward-cpp will use.
@@ -516,7 +506,7 @@ else ifeq ($(jemalloc),on)
 	CONFIG_OBJ += $(CONFIG_OBJ_DIR)/allocator_config_jemalloc.o
 else ifeq ($(jemalloc),debug)
 	# Use jemalloc at link time
-	LINK_DEPS += $(LIB_DIR)/libjemalloc_debug.a $(LIB_DIR)/libjemalloc_debug_pic.a
+	LINK_DEPS += $(LIB_DIR)/libjemalloc_debug.a
 	# We have to use it statically or we can't get at its secret symbols.
 	LD_EXE_LIB_FLAGS += $(LIB_DIR)/libjemalloc_debug.a
 	# Use the config object for jemalloc
@@ -533,7 +523,6 @@ DEPS += $(INC_DIR)/gbwt/dynamic_gbwt.h
 DEPS += $(INC_DIR)/gbwtgraph/gbwtgraph.h
 DEPS += $(INC_DIR)/kff_io.hpp
 DEPS += $(INC_DIR)/lru_cache.h
-DEPS += $(INC_DIR)/dynamic/dynamic.hpp
 DEPS += $(INC_DIR)/sparsehash/sparse_hash_map
 DEPS += $(INC_DIR)/sparsepp/spp.h
 DEPS += $(INC_DIR)/sha1.hpp
@@ -542,7 +531,6 @@ DEPS += $(INC_DIR)/backward.hpp
 DEPS += $(INC_DIR)/dozeu/dozeu.h
 DEPS += $(INC_DIR)/mmmultimap.hpp
 DEPS += $(INC_DIR)/ips4o.hpp
-DEPS += $(INC_DIR)/raptor2/raptor2.h
 DEPS += $(INC_DIR)/BooPHF.h
 DEPS += $(INC_DIR)/mio/mmap.hpp
 DEPS += $(INC_DIR)/atomic_queue.h
@@ -573,11 +561,11 @@ $(UNITTEST_EXE): $(UNITTEST_BIN_DIR)/%: $(UNITTEST_OBJ_DIR)/%.o $(UNITTEST_SUPPO
 # For a normal dynamic build we remove the static build marker
 $(BIN_DIR)/$(EXE): $(LIB_DIR)/libvg.a $(EXE_DEPS)
 	-rm -f $(LIB_DIR)/vg_is_static
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $(BIN_DIR)/$(EXE) $(PRE_LINK_DEPS) $(OBJ_DIR)/main.o $(UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ) $(CONFIG_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LIB_DIR)/libvg.a $(LD_LIB_FLAGS) $(START_STATIC) $(LD_STATIC_LIB_FLAGS) $(END_STATIC) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS) $(LD_CAIRO_LIB_FLAGS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $(BIN_DIR)/$(EXE) $(PRE_LINK_DEPS) $(OBJ_DIR)/main.o $(UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ) $(CONFIG_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LIB_DIR)/libvg.a $(LD_LIB_FLAGS) $(START_STATIC) $(LD_STATIC_LIB_FLAGS) $(END_STATIC) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS)
 # We keep a file that we touch on the last static build.
 # If the vg linkables are newer than the last static build, we do a build
 $(LIB_DIR)/vg_is_static: $(LIB_DIR)/libvg.a $(EXE_DEPS)
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $(BIN_DIR)/$(EXE) $(PRE_LINK_DEPS) $(OBJ_DIR)/main.o $(UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ) $(CONFIG_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(STATIC_FLAGS) $(LIB_DIR)/libvg.a $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS) $(LD_CAIRO_LIB_FLAGS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $(BIN_DIR)/$(EXE) $(PRE_LINK_DEPS) $(OBJ_DIR)/main.o $(UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ) $(CONFIG_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(STATIC_FLAGS) $(LIB_DIR)/libvg.a $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS)
 	-touch $(LIB_DIR)/vg_is_static
 
 # We don't want to always rebuild the static vg if no files have changed.
@@ -598,16 +586,8 @@ static-docker: static scripts/*
 # (not available for older Ubuntu) manually installed, we can stop polling for
 # it and filtering it here. See
 # <https://bugs.launchpad.net/ubuntu/+source/openssl/+bug/2158026>.
-# We also need to work around meson being available but too old on older
-# Ubuntu, by getting it from pip.
 get-deps:
 	sudo DEBIAN_FRONTEND=$(DEBIAN_FRONTEND) apt-get install -qq -y --no-upgrade $(shell cat Dockerfile | sed -n '/^###DEPS_BEGIN###/,$${p;/^###DEPS_END###/q}' | grep -v '^ *#' | grep -v "^RUN" | tr ' ' '\n' | (if ! apt-cache show libjitterentropy3-dev >/dev/null 2>&1 ; then grep -v libjitterentropy3-dev ; else cat ; fi) | tr '\n' ' ' | tr -d '\\')
-	MESON_MAJOR="$$(meson --version | cut -f1 -d'.')" ; \
-		MESON_MINOR="$$(meson --version | cut -f2 -d'.')" ; \
-		if [ "$${MESON_MAJOR}" -lt 1 ] || ( [ "$${MESON_MAJOR}" -eq 1 ] && [ "$${MESON_MINOR}" -lt 3 ] ) ; then \
-			sudo DEBIAN_FRONTEND=$(DEBIAN_FRONTEND) apt-get install -qq -y --no-upgrade pipx && \
-			pipx install meson ; \
-		fi
 
 # And we have submodule deps to build
 deps: $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS)
@@ -622,7 +602,7 @@ compile_commands.json: Makefile $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS) $(SRC) $(A
 lint: $(SRC_DIR)/*.cpp $(SRC_DIR)/*.hpp $(ALGORITHMS_SRC_DIR)/*.cpp $(ALGORITHMS_SRC_DIR)/*.hpp $(SUBCOMMAND_SRC_DIR)/*.cpp $(SUBCOMMAND_SRC_DIR)/*.hpp $(UNITTEST_SRC_DIR)/*.cpp $(UNITTEST_SRC_DIR)/*.hpp $(UNITTEST_SUPPORT_SRC_DIR)/*.cpp
 	scripts/lint.py 1>&2
 
-test: lint $(BIN_DIR)/$(EXE) $(LIB_DIR)/libvg.a test/build_graph $(BIN_DIR)/shuf $(BIN_DIR)/rapper
+test: lint $(BIN_DIR)/$(EXE) $(LIB_DIR)/libvg.a test/build_graph $(BIN_DIR)/shuf
 	cd test && prove -v t
 	# Hide the compiler configuration from the doc tests, so that the ones that
 	# build code can't pick up libraries out of the vg build itself.
@@ -638,16 +618,16 @@ docs: $(SRC_DIR)/*.cpp $(SRC_DIR)/*.hpp $(ALGORITHMS_SRC_DIR)/*.cpp $(ALGORITHMS
 	doxygen
 	echo "View documentation at: file://$(PWD)/doc/doxygen/html/index.html"
 	
-man: doc/wiki/vg-manpage.md doc/man/vg.1
+man: doc/wiki/nvg-manpage.md doc/man/nvg.1
 
 #The manpage markdown has an extra line needed for the actual manpage format
-doc/man/vg-manpage.md: $(BIN_DIR)/$(EXE) doc/vgmanmd.desc.md doc/vgmanmd.py
-	mkdir -p doc/man && ./doc/vgmanmd.py > $@.tmp && mv $@.tmp $@
+doc/man/nvg-manpage.md: $(BIN_DIR)/$(EXE) doc/nvgmanmd.desc.md doc/nvgmanmd.py
+	mkdir -p doc/man && ./doc/nvgmanmd.py > $@.tmp && mv $@.tmp $@
 
-doc/wiki/vg-manpage.md: doc/man/vg-manpage.md
-	sed 1d doc/man/vg-manpage.md > $@
+doc/wiki/nvg-manpage.md: doc/man/nvg-manpage.md
+	sed 1d doc/man/nvg-manpage.md > $@
 
-doc/man/vg.1: doc/man/vg-manpage.md
+doc/man/nvg.1: doc/man/nvg-manpage.md
 	pandoc --standalone --to man $< -o $@
 
 # Hack to use gshuf or shuf as appropriate to the platform when testing
@@ -697,9 +677,6 @@ else
 	cd $(SDSL_DIR) && BUILD_PORTABLE=1 CXXFLAGS="-fPIC $(CXXFLAGS)" ./install.sh $(CWD) $(FILTER)
 endif
 
-$(LIB_DIR)/libssw.a: $(SSW_DIR)/*.c $(SSW_DIR)/*.cpp $(SSW_DIR)/*.h
-	cd $(SSW_DIR) && $(MAKE) clean && CFLAGS="-fPIC $(CFLAGS)" CXXFLAGS="-fPIC $(CXXFLAGS)" $(MAKE) $(FILTER)
-	cd $(SSW_DIR) && ar rs $(CWD)/$(LIB_DIR)/libssw.a ssw.o ssw_cpp.o && cp ssw_cpp.h ssw.h $(CWD)/$(INC_DIR)
 
 $(INC_DIR)/gcsa/gcsa.h: $(LIB_DIR)/libgcsa2.a
 
@@ -892,18 +869,6 @@ $(LIB_DIR)/libgssw.a: $(GSSW_DIR)/src/gssw.c $(GSSW_DIR)/src/gssw.h
 $(INC_DIR)/lru_cache.h: $(DEP_DIR)/lru_cache/*.h $(DEP_DIR)/lru_cache/*.cc
 	cd $(DEP_DIR)/lru_cache && cp *.h* $(CWD)/$(INC_DIR)/
 
-# We moved the Dynamic headers so make sure to clean up the old ones.
-$(INC_DIR)/dynamic/dynamic.hpp: $(DYNAMIC_DIR)/include/dynamic/*.hpp $(DYNAMIC_DIR)/include/dynamic/*/*.hpp
-	rm -Rf $(INC_DIR)/dynamic.hpp $(INC_DIR)/dynamic
-	# annoyingly doesn't have an install option on the cmake, so we manually move their external dependency headers
-	rm -Rf $(CWD)/$(DYNAMIC_DIR)/build
-	cd $(CWD)/$(DYNAMIC_DIR) && mkdir -p build && cd build && export CXXFLAGS="$(CXXFLAGS)" && cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_VERBOSE_MAKEFILE=ON ..
-	cd $(CWD)/$(DYNAMIC_DIR)/build && export CXXFLAGS="$(CXXFLAGS)" && $(MAKE)
-	cp -r $(CWD)/$(DYNAMIC_DIR)/deps/hopscotch_map/include/* $(CWD)/$(INC_DIR)/
-	# Do the copy of the main file last so we can tell if this recipe failed and redo it.
-	# Otherwise we get dynamic.hpp without its deps
-	mkdir -p $(INC_DIR)/dynamic && cp -r $(CWD)/$(DYNAMIC_DIR)/include/dynamic/* $(INC_DIR)/dynamic/
-
 $(INC_DIR)/sparsehash/sparse_hash_map: $(wildcard $(SPARSEHASH_DIR)/**/*.cc) $(wildcard $(SPARSEHASH_DIR)/**/*.h)
 	cd $(SPARSEHASH_DIR) && ./autogen.sh && LDFLAGS="$(LD_LIB_DIR_FLAGS) $(LDFLAGS)" ./configure --prefix=$(CWD) $(FILTER)
 	cd $(SPARSEHASH_DIR) && $(MAKE) $(AUTOMAKE_MAKEFLAGS) src/sparsehash/internal/sparseconfig.h $(FILTER) && $(MAKE) $(AUTOMAKE_MAKEFLAGS) install-data $(FILTER)
@@ -918,29 +883,6 @@ $(LIB_DIR)/libsonlib.a: $(CWD)/$(DEP_DIR)/sonLib/C/inc/*.h $(CWD)/$(DEP_DIR)/son
 $(LIB_DIR)/libpinchesandcacti.a: $(LIB_DIR)/libsonlib.a $(CWD)/$(DEP_DIR)/pinchesAndCacti/inc/*.h $(CWD)/$(DEP_DIR)/pinchesAndCacti/impl/*.c
 	cd $(DEP_DIR)/pinchesAndCacti && $(MAKE) clean && CFLAGS="-fPIC $(CFLAGS)" CXXFLAGS="-fPIC $(CXXFLAGS)" $(MAKE) $(FILTER)
 	cd $(CWD)/$(DEP_DIR)/sonLib && cp lib/stPinchesAndCacti.a $(CWD)/$(LIB_DIR)/libpinchesandcacti.a && cp lib/3EdgeConnected.a $(CWD)/$(LIB_DIR)/lib3edgeconnected.a && mkdir -p $(CWD)/$(INC_DIR)/sonLib && cp lib/*.h $(CWD)/$(INC_DIR)/sonLib
-
-# When building raptor we need to make sure to pre-generate and fix up the lexer
-# We also need to clear out its cmake stuff in case it found a wrong Bison and cached it.
-$(LIB_DIR)/libraptor2.a: $(RAPTOR_DIR)/src/* $(wildcard $(RAPTOR_DIR)/build/*)
-	which bison
-	cd $(RAPTOR_DIR)/build && rm -Rf CMakeCache.txt CMakeFiles CTestTestfile.cmake Makefile cmake_install.cmake src tests utils
-	cd $(RAPTOR_DIR)/build && CFLAGS="-fPIC $(CFLAGS)" CXXFLAGS="-fPIC $(CXXFLAGS)" cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" ..
-	cd $(RAPTOR_DIR)/build && rm -f src/turtle_parser.c && rm -f src/turtle_lexer.c
-	cd $(RAPTOR_DIR)/build && $(MAKE) turtle_lexer_tgt && $(MAKE) -f src/CMakeFiles/raptor2.dir/build.make src/turtle_lexer.c
-	cd $(RAPTOR_DIR)/build && sed -i.bak '/yycleanup/d' src/turtle_lexer.c
-	cd $(RAPTOR_DIR)/build && $(MAKE) $(FILTER)
-	cd $(RAPTOR_DIR)/build && cp src/libraptor2.a $(CWD)/$(LIB_DIR)
-	touch $(LIB_DIR)/libraptor2.a
-
-# We need rapper from Raptor for the tests
-$(BIN_DIR)/rapper: $(LIB_DIR)/libraptor2.a
-	cp $(RAPTOR_DIR)/build/utils/rapper $(BIN_DIR)/
-
-# The Raptor header needs to be newer than the library.
-# Mac Travis managed to get an old header with a new binary.
-$(INC_DIR)/raptor2/raptor2.h: $(LIB_DIR)/libraptor2.a $(RAPTOR_DIR)/build/*
-	cd $(RAPTOR_DIR)/build && mkdir -p $(CWD)/$(INC_DIR)/raptor2 && cp src/*.h $(CWD)/$(INC_DIR)/raptor2
-	touch $(INC_DIR)/raptor2/raptor2.h
 
 $(LIB_DIR)/libstructures.a: $(STRUCTURES_DIR)/src/include/structures/*.hpp $(STRUCTURES_DIR)/src/*.cpp $(STRUCTURES_DIR)/Makefile
 	cd $(STRUCTURES_DIR) && $(MAKE) clean && $(MAKE) lib/libstructures.a $(FILTER)
@@ -1007,9 +949,9 @@ $(LIB_DIR)/libsublinearLS.a: $(LINLS_DIR)/src/*.cpp $(LINLS_DIR)/src/*.hpp $(LIB
 	cd $(LINLS_DIR) && $(MAKE) clean && CFLAGS="-fPIC $(filter-out -Werror=return-type,$(CFLAGS))" CXXFLAGS="-fPIC $(filter-out -Werror=return-type,$(CXXFLAGS))" INCLUDE_FLAGS="-I$(CWD)/$(INC_DIR)" $(MAKE) libs $(FILTER)
 	cd $(LINLS_DIR) && cp lib/libsublinearLS.a $(CWD)/$(LIB_DIR)/ && mkdir -p $(CWD)/$(INC_DIR)/sublinearLS && cp src/*.hpp $(CWD)/$(INC_DIR)/sublinearLS/
 
-$(LIB_DIR)/libbdsg.a: $(INC_DIR)/BooPHF.h $(LIBBDSG_DIR)/Makefile $(LIBBDSG_DIR)/bdsg/src/*.cpp $(LIBBDSG_DIR)/bdsg/include/bdsg/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/internal/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/overlays/*.hpp $(LIB_DIR)/libhandlegraph.a $(LIB_DIR)/libsdsl.a $(LIB_DIR)/libdivsufsort.a $(LIB_DIR)/libdivsufsort64.a $(INC_DIR)/sparsepp/spp.h $(INC_DIR)/dynamic/dynamic.hpp $(INC_DIR)/mio/mmap.hpp
+$(LIB_DIR)/libbdsg.a: $(INC_DIR)/BooPHF.h $(LIBBDSG_DIR)/Makefile $(LIBBDSG_DIR)/bdsg/src/*.cpp $(LIBBDSG_DIR)/bdsg/include/bdsg/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/internal/*.hpp $(LIBBDSG_DIR)/bdsg/include/bdsg/overlays/*.hpp $(LIB_DIR)/libhandlegraph.a $(LIB_DIR)/libsdsl.a $(LIB_DIR)/libdivsufsort.a $(LIB_DIR)/libdivsufsort64.a $(INC_DIR)/sparsepp/spp.h $(INC_DIR)/mio/mmap.hpp
 	rm -Rf $(CWD)/$(INC_DIR)/bdsg
-	cd $(LIBBDSG_DIR) && $(MAKE) clean && CPLUS_INCLUDE_PATH=$(CWD)/$(INC_DIR):$(CWD)/$(INC_DIR)/dynamic:$(CPLUS_INCLUDE_PATH) CXXFLAGS="$(INCLUDE_FLAGS) -fPIC $(CXXFLAGS)" $(MAKE) $(FILTER)
+	cd $(LIBBDSG_DIR) && $(MAKE) clean && CPLUS_INCLUDE_PATH=$(CWD)/$(INC_DIR):$(CPLUS_INCLUDE_PATH) CXXFLAGS="$(INCLUDE_FLAGS) -fPIC $(CXXFLAGS)" $(MAKE) $(FILTER)
 	cd $(LIBBDSG_DIR) && cp lib/libbdsg.a $(CWD)/$(LIB_DIR) && cp -r bdsg/include/* $(CWD)/$(INC_DIR)
 
 $(INC_DIR)/mio/mmap.hpp: $(MIO_DIR)/include/mio/*
@@ -1053,18 +995,6 @@ $(LIB_DIR)/libxg.a: $(XG_DIR)/src/*.hpp $(XG_DIR)/src/*.cpp $(INC_DIR)/mmmultima
 	cp -r $(XG_DIR)/src/*.hpp $(CWD)/$(INC_DIR)
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -fPIC -DNO_GFAKLUGE -c -o $(XG_DIR)/xg.o $(XG_DIR)/src/xg.cpp $(FILTER)
 	ar rs $@ $(XG_DIR)/xg.o
-
-# TODO: When https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1104888 is fixed
-# and Debian/Ubuntu ship the static libraries again, stop using submodules and
-# go back to system Cairo and pixman.
-#
-# We need to make sure ~/.local/bin is on the PATH first because we might have
-# installed an updated meson in there.
-$(LIB_DIR)/libpixman-1.a: $(PIXMAN_DIR)/pixman/*
-	export PATH="$${HOME}/.local/bin:$${PATH}" && cd $(PIXMAN_DIR) && rm -Rf build && meson setup --prefix $(CWD) -Ddefault_library=both -Dlibdir=lib build/ && ninja -C build && ninja -C build install
-
-$(LIB_DIR)/libcairo.a: $(LIB_DIR)/libpixman-1.a $(CAIRO_DIR)/src/*
-	export PATH="$${HOME}/.local/bin:$${PATH}" && cd $(CAIRO_DIR) && rm -Rf build && PKG_CONFIG_PATH=$(CWD)/$(LIB_DIR)/pkgconfig:$(PKG_CONFIG_PATH) meson setup --prefix $(CWD) -Ddefault_library=both -Dlibdir=lib --auto-features=disabled -Dpng=enabled -Dfontconfig=enabled -Dfreetype=enabled build/ && ninja -C build && ninja -C build install
 
 # All this version header generation stuff needs to work even if SRC_DIR hasn't been copied into the container yet.
 $(shell mkdir -p $(SRC_DIR))
@@ -1165,7 +1095,7 @@ $(CONFIG_OBJ_DIR)/allocator_config_mimalloc.o: $(CONFIG_SRC_DIR)/allocator_confi
 $(CONFIG_OBJ_DIR)/allocator_config_jemalloc.o: $(CONFIG_SRC_DIR)/allocator_config_jemalloc.cpp $(CONFIG_OBJ_DIR)/allocator_config_jemalloc.d $(DEPS) $(LIB_DIR)/libjemalloc.a
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) -c -o $@ $< $(FILTER)
 	@touch $@
-$(CONFIG_OBJ_DIR)/allocator_config_jemalloc_debug.o: $(CONFIG_SRC_DIR)/allocator_config_jemalloc_debug.cpp $(CONFIG_OBJ_DIR)/allocator_config_jemalloc_debug.d $(DEPS) $(LIB_DIR)/libjemalloc_debug.a
+$(CONFIG_OBJ_DIR)/allocator_config_jemalloc_debug.o: $(CONFIG_SRC_DIR)/allocator_config_jemalloc.cpp $(CONFIG_OBJ_DIR)/allocator_config_jemalloc_debug.d $(DEPS) $(LIB_DIR)/libjemalloc_debug.a
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) -c -o $@ $< $(FILTER)
 	@touch $@
 $(CONFIG_OBJ_DIR)/allocator_config_system.o: $(CONFIG_SRC_DIR)/allocator_config_system.cpp $(CONFIG_OBJ_DIR)/allocator_config_system.d $(DEPS)
@@ -1263,12 +1193,10 @@ clean: clean-vcflib
 	cd $(DEP_DIR) && cd libvgio && rm -Rf build CMakeCache.txt CMakeFiles
 	cd $(DEP_DIR) && cd mimalloc && rm -Rf build CMakeCache.txt CMakeFiles
 	cd $(DEP_DIR) && cd progress_bar && $(MAKE) clean
-	cd $(DEP_DIR) && cd raptor && cd build && find . -not \( -name '.gitignore' -or -name 'pkg.m4' \) -delete
 	cd $(DEP_DIR) && cd sha1 && $(MAKE) clean
 	cd $(DEP_DIR) && cd sdsl-lite && ./uninstall.sh || true
 	cd $(DEP_DIR) && cd sonLib && $(MAKE) clean
 	cd $(DEP_DIR) && cd sparsehash && $(MAKE) $(AUTOMAKE_MAKEFLAGS) clean || true
-	cd $(DEP_DIR) && cd ssw && cd src && $(MAKE) clean
 	cd $(DEP_DIR) && cd structures && $(MAKE) clean
 	cd $(DEP_DIR) && cd sublinear-Li-Stephens && $(MAKE) clean
 	cd $(DEP_DIR) && cd tabixpp && rm -f tabix.o libtabixpp.a

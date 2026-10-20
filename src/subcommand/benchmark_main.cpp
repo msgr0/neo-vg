@@ -1,6 +1,6 @@
 /** \file benchmark_main.cpp
  *
- * Defines the "vg benchmark" subcommand, which runs and reports on microbenchmarks.
+ * Defines the "nvg benchmark" subcommand, which runs and reports on microbenchmarks.
  */
 
 #include <omp.h>
@@ -180,7 +180,7 @@ int main_benchmark(int argc, char** argv) {
     results.push_back(run_benchmark("control", 1000, benchmark_control));
     
 
-    cout << "# Benchmark results for vg " << Version::get_short() << endl;
+    cout << "# Benchmark results for nvg " << Version::get_short() << endl;
     cout << "# runs\ttest(us)\tstddev(us)\tcontrol(us)\tstddev(us)\tscore\terr\tname" << endl;
     for (auto& result : results) {
         cout << result << endl;

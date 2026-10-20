@@ -3,7 +3,7 @@
 
 
 """
-giraffe-facts.py: process a GAM file from the new minimizer-based mapper (vg giraffe) and report runtime statistics by filter.
+giraffe-facts.py: process a GAM file from the new minimizer-based mapper (nvg giraffe) and report runtime statistics by filter.
 """
 
 import argparse
@@ -109,7 +109,7 @@ def parse_args():
     
     parser.add_argument("input", type=str,
                         help="GAM to process")
-    parser.add_argument("--vg", "-v", type=str, default="vg",
+    parser.add_argument("--vg", "-v", type=str, default="nvg",
                         help="vg binary to use")
     parser.add_argument("--threads", "-t", type=int, default=16,
                         help="total threads to use")
@@ -1311,7 +1311,7 @@ def capitalize_first(string):
 
 def explain_filters(filters_and_stages, vg):
     """
-    Go get the vg giraffe help for all the filters in filter_names, in order, and print it.
+    Go get the nvg giraffe help for all the filters in filter_names, in order, and print it.
     """
 
     # Get all the lines of help text

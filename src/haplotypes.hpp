@@ -94,7 +94,6 @@ namespace haploMath{
 
     double log_population_size();
     double log_recombination_penalty();
-    double log_continue_factor(int64_t totwidth);
     
     double logT_base;
     double logT(int width);
@@ -185,8 +184,6 @@ public:
   haplo_DP_rectangle(bool inclusive_interval);
   double R;
   void set_offset(int offset);
-  template<class accessorType>
-  void false_extend(accessorType& ga, int_itvl_t delta);
   template<class GBWTType>
   void extend(hDP_gbwt_graph_accessor<GBWTType>& ga);
   int64_t I() const;
@@ -207,11 +204,6 @@ private:
   double previous_sum;
   double sum;
   double length;
-  template<class accessorType>
-  void binary_extend_intervals(accessorType& ga, 
-                               int_itvl_t indices, 
-                               int_itvl_t ss_deltas, 
-                               int_itvl_t state_sizes);
   template<class accessorType>
   void standard_extend(accessorType& ga);
   void update_inner_values();
@@ -253,7 +245,6 @@ public:
 // public member functions which are not part of the API
   template<class accessorType>
   haplo_DP(accessorType& ga);
-  haplo_DP_column* get_current_column();
   template<class GBWTType>
   static haplo_score_type score(const gbwt_thread_t& thread, GBWTType& graph, haploMath::RRMemo& memo);
 };
@@ -459,14 +450,6 @@ void haplo_DP_rectangle::extend(hDP_gbwt_graph_accessor<GBWTType>& ga) {
   }
   flat_node = ga.new_node;
   inner_value = -1;
-}
-
-template<class accessorType>
-void haplo_DP_rectangle::false_extend(accessorType& ga, 
-                                      int_itvl_t delta) {
-  flat_node = ga.new_side();
-  state.first -= delta.bottom;
-  state.second -= delta.top;
 }
 
 //------------------------------------------------------------------------------

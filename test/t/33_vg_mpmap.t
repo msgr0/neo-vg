@@ -10,22 +10,22 @@ plan tests 25
 
 # Exercise the GBWT
 # Index a couple of nearly identical contigs
-vg construct -m 1000 -a -r small/xy.fa -v small/xy2.vcf.gz >xy2.vg
-vg index -x xy2.xg -g xy2.gcsa -k 16 xy2.vg
-vg gbwt -v small/xy2.vcf.gz -o xy2.gbwt -x xy2.vg
+nvg construct -m 1000 -a -r small/xy.fa -v small/xy2.vcf.gz >xy2.vg
+nvg index -x xy2.xg -g xy2.gcsa -k 16 xy2.vg
+nvg gbwt -v small/xy2.vcf.gz -o xy2.gbwt -x xy2.vg
 
 # We turn off the background model calibration with -B and ignore it with -P 1
 
 # This read is part ref and part alt which matches a haplotype on X, but is possible on Y as well.
-is "$(vg mpmap --suppress-mismapping -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -f reads/xy2.match.fq -F GAM | vg view -aj - | jq '.mapping_quality')" "3" "MAPQ is 50% without haplotype info"
-is "$(vg mpmap --suppress-mismapping -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -f reads/xy2.match.fq -F GAM | vg view -aj - | jq '.mapping_quality')" "4" "haplotype match can disambiguate"
-is "$(vg mpmap --suppress-mismapping -B -M 2 -n rna -x xy2.xg -g xy2.gcsa -f reads/xy2.match.fq | vg view -Kj - | jq .mapping_quality | awk '($1 != 0) {count++} END {print count}')" "2" "MAPQs are computed for all multimappings"
+is "$(nvg mpmap --suppress-mismapping -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -f reads/xy2.match.fq -F GAM | nvg view -aj - | jq '.mapping_quality')" "3" "MAPQ is 50% without haplotype info"
+is "$(nvg mpmap --suppress-mismapping -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -f reads/xy2.match.fq -F GAM | nvg view -aj - | jq '.mapping_quality')" "4" "haplotype match can disambiguate"
+is "$(nvg mpmap --suppress-mismapping -B -M 2 -n rna -x xy2.xg -g xy2.gcsa -f reads/xy2.match.fq | nvg view -Kj - | jq .mapping_quality | awk '($1 != 0) {count++} END {print count}')" "2" "MAPQs are computed for all multimappings"
 
 # For paired end, don't do any fragment length estimation
-is "$(vg mpmap -B -P 1 -n dna -I 200 -D 200 -x xy2.xg -g xy2.gcsa -f reads/xy2.matchpaired.fq -i -F GAM -t 1 | vg view -aj - | head -n1 | jq '.mapping_quality')" "3" "MAPQ is 50% when paired without haplotype info"
-vg mpmap -B -P 1 -n dna -I 200 -D 200 -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -f reads/xy2.matchpaired.fq -i -F GAM -t 1 > gbwt.gam
-is "$(vg view -aj gbwt.gam | head -n1 | jq '.mapping_quality')" "4" "haplotype match can disambiguate paired"
-is "$(vg view -aj gbwt.gam | head -n1 | jq '.annotation.haplotype_score_used')" "true" "use of haplotype-aware mapping is recorded"
+is "$(nvg mpmap -B -P 1 -n dna -I 200 -D 200 -x xy2.xg -g xy2.gcsa -f reads/xy2.matchpaired.fq -i -F GAM -t 1 | nvg view -aj - | head -n1 | jq '.mapping_quality')" "3" "MAPQ is 50% when paired without haplotype info"
+nvg mpmap -B -P 1 -n dna -I 200 -D 200 -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -f reads/xy2.matchpaired.fq -i -F GAM -t 1 > gbwt.gam
+is "$(nvg view -aj gbwt.gam | head -n1 | jq '.mapping_quality')" "4" "haplotype match can disambiguate paired"
+is "$(nvg view -aj gbwt.gam | head -n1 | jq '.annotation.haplotype_score_used')" "true" "use of haplotype-aware mapping is recorded"
 
 rm -f gbwt.gam
 
@@ -34,22 +34,22 @@ rm -f gbwt.gam
 # The right place is haplotype 2 on X with a SNP mismatch. But unless you do multiple tracebacks it gets placed on Y at MAPQ 0
 
 # We need to use snarl cutting to actually consider the alignment as not just a single subpath
-vg snarls xy2.vg > xy2.snarls
+nvg snarls xy2.vg > xy2.snarls
 
-is "$(vg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -s xy2.snarls -f reads/xy2.discordant.fq -F GAM -t 1 | vg view -aj - | jq -r '.path.mapping[0].position.node_id')" "50" "Haplotype-oblivious mapping places read on the wrong contig"
-is "$(vg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -s xy2.snarls -f reads/xy2.discordant.fq -F GAM -t 1| vg view -aj - | jq '.mapping_quality')" "3" "Haplotype-oblivious mapping places read with MAPQ of 50%"
-is "$(vg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -s xy2.snarls -f reads/xy2.discordant.fq -t 1 -F GAM | vg view -aj - | jq -r '.path.mapping[0].position.node_id')" "1" "Haplotype-aware mapping places read on the right contig"
-is "$(vg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -s xy2.snarls -f reads/xy2.discordant.fq -t 1 -F GAM | vg view -aj - | jq '.mapping_quality')" "6" "Haplotype-aware mapping places read with MAPQ > 50%"
+is "$(nvg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -s xy2.snarls -f reads/xy2.discordant.fq -F GAM -t 1 | nvg view -aj - | jq -r '.path.mapping[0].position.node_id')" "50" "Haplotype-oblivious mapping places read on the wrong contig"
+is "$(nvg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa -s xy2.snarls -f reads/xy2.discordant.fq -F GAM -t 1| nvg view -aj - | jq '.mapping_quality')" "3" "Haplotype-oblivious mapping places read with MAPQ of 50%"
+is "$(nvg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -s xy2.snarls -f reads/xy2.discordant.fq -t 1 -F GAM | nvg view -aj - | jq -r '.path.mapping[0].position.node_id')" "1" "Haplotype-aware mapping places read on the right contig"
+is "$(nvg mpmap -B -P 1 -n dna -x xy2.xg -g xy2.gcsa --gbwt-name xy2.gbwt -s xy2.snarls -f reads/xy2.discordant.fq -t 1 -F GAM | nvg view -aj - | jq '.mapping_quality')" "6" "Haplotype-aware mapping places read with MAPQ > 50%"
 
 rm -f xy2.vg xy2.xg xy2.gcsa xy2.gcsa.lcp xy2.gbwt xy2.snarls
 
 # Do a larger-scale test
 
-vg index -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -k 16 graphs/refonly-lrc_kir.vg
+nvg index -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -k 16 graphs/refonly-lrc_kir.vg
 
-vg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 10 -D 50 -F GAM -t 1 | vg view -aj -  > temp_paired_alignment.json
-vg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 100000 -D 5 -F GAM -t 1 | vg view -aj -  > temp_distant_alignment.json
-vg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -F GAM -t 1 | vg view -aj - > temp_independent_alignment.json
+nvg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 10 -D 50 -F GAM -t 1 | nvg view -aj -  > temp_paired_alignment.json
+nvg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 100000 -D 5 -F GAM -t 1 | nvg view -aj -  > temp_distant_alignment.json
+nvg mpmap -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -F GAM -t 1 | nvg view -aj - > temp_independent_alignment.json
 paired_score=$(jq -r ".score" < temp_paired_alignment.json | awk '{ sum+=$1} END {print sum}')
 independent_score=$(jq -r ".score" < temp_independent_alignment.json | awk '{ sum+=$1} END {print sum}')
 is $(printf "%s\t%s\n" $paired_score $independent_score | awk '{if ($1 < $2) print 1; else print 0}') 1 "paired read alignments forced to be consistent have lower score than unrestricted alignments"
@@ -62,17 +62,17 @@ is $(printf "%s\t%s\n" $paired_range $distant_range | awk '{if ($1 < $2) print 1
 
 rm -f temp_paired_alignment.json temp_distant_alignment.json temp_independent_alignment.json
 
-vg sim -x graphs/refonly-lrc_kir.vg.xg -n 1000 -p 500 -l 100 -a > input.gam
+nvg sim -x graphs/refonly-lrc_kir.vg.xg -n 1000 -p 500 -l 100 -a > input.gam
 
-vg mpmap -B -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -G input.gam -I 500 -D 100 -n dna -i -F GAM --no-qual-adjust > output.gam
-is "$(vg view -aj output.gam | jq -c 'select(.fragment_next == null and .fragment_prev == null)' | wc -l | sed 's/^[[:space:]]*//')" "0" "small batches are still all paired in the output"
+nvg mpmap -B -x graphs/refonly-lrc_kir.vg.xg -g graphs/refonly-lrc_kir.vg.gcsa -G input.gam -I 500 -D 100 -n dna -i -F GAM --no-qual-adjust > output.gam
+is "$(nvg view -aj output.gam | jq -c 'select(.fragment_next == null and .fragment_prev == null)' | wc -l | sed 's/^[[:space:]]*//')" "0" "small batches are still all paired in the output"
 
 rm -f graphs/refonly-lrc_kir.vg.xg graphs/refonly-lrc_kir.vg.gcsa graphs/refonly-lrc_kir.vg.gcsa.lcp input.gam output.gam
 
 # Test the anchor trimming
 
-vg construct -m 1000 -r tiny/tiny.fa -v tiny/tiny.vcf.gz > t.vg
-vg index -x t.xg -g t.gcsa -k 16 t.vg
+nvg construct -m 1000 -r tiny/tiny.fa -v tiny/tiny.vcf.gz > t.vg
+nvg index -x t.xg -g t.gcsa -k 16 t.vg
 
 echo "@read1
 CAAATAAGG
@@ -87,23 +87,23 @@ CAAATAAGGT
 +
 HHHHHHHHHH" > t.fq
 
-is "$(vg mpmap -B -n dna -x t.xg -g t.gcsa -f t.fq | vg view -Kj - | wc -l | sed 's/^[[:space:]]*//')" "3" "multipath mapping works in scenarios that trigger branch point trimming"
+is "$(nvg mpmap -B -n dna -x t.xg -g t.gcsa -f t.fq | nvg view -Kj - | wc -l | sed 's/^[[:space:]]*//')" "3" "multipath mapping works in scenarios that trigger branch point trimming"
 
 rm t.vg t.xg t.gcsa t.gcsa.lcp t.fq
 
 # test spliced alignment
 
-vg construct -m 32 -r small/x.fa -v small/x.vcf.gz > s.vg
-vg snarls -T s.vg > s.snarls
-vg index s.vg -x s.xg -g s.gcsa
-vg index s.vg -j s.dist 
+nvg construct -m 32 -r small/x.fa -v small/x.vcf.gz > s.vg
+nvg snarls -T s.vg > s.snarls
+nvg index s.vg -x s.xg -g s.gcsa
+nvg index s.vg -j s.dist 
 
 echo "@read
 CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTGGCCATTTTAAGTTTCCTGTGGACTAAGGACAAAGGTGCGGGGAGATGA
 +
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" > s.fq 
 
-is "$(vg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq | vg view -KG - | vg view -aj - | jq .score)" "105" "spliced alignments can be found when aligning RNA"
+is "$(nvg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq | nvg view -KG - | nvg view -aj - | jq .score)" "105" "spliced alignments can be found when aligning RNA"
 
 echo "@read1
 CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTGGTTCCTGGTGCTATGTGTAACTAG
@@ -115,7 +115,7 @@ TCATCTCCCCGCACCTTTGTCCTTAGTCCACAGGAAACTCTGCTGTCAGTAGTATCATCTCCATATTAGAGATA
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" > s.fq 
 
 
-is "$(vg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 350 -D 10 | vg view -Kj - | grep connection | wc -l | sed 's/^[[:space:]]*//')" "1" "paired mapping can identify a splice junction on read 1"
+is "$(nvg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 350 -D 10 | nvg view -Kj - | grep connection | wc -l | sed 's/^[[:space:]]*//')" "1" "paired mapping can identify a splice junction on read 1"
 
 echo "@read1
 CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTGGGACATTAGGATTGGCAGTAGCTCAGAGATCTCTCTGCT
@@ -126,22 +126,22 @@ TCATCTCCCCGCACCTTTGTCCTTAGTCCACAGGAAACTTAAAATGGCCTGGGTAGCTTTGGATGTGGAGTAGTTAAAGG
 +
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" > s.fq 
 
-is "$(vg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 530 -D 10 | vg view -Kj - | grep connection | wc -l | sed 's/^[[:space:]]*//')" "1" "paired mapping can identify a splice junction on read 2"
+is "$(nvg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 530 -D 10 | nvg view -Kj - | grep connection | wc -l | sed 's/^[[:space:]]*//')" "1" "paired mapping can identify a splice junction on read 2"
 
-is "$(vg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 530 -D 10 -F SAM --report-group-mapq | grep GM:i: | wc -l | sed 's/^[[:space:]]*//')" "2" "HTS output contains group mapq annotation"
+is "$(nvg mpmap -x s.xg -d s.dist -g s.gcsa -B -n rna -f s.fq -i -I 530 -D 10 -F SAM --report-group-mapq | grep GM:i: | wc -l | sed 's/^[[:space:]]*//')" "2" "HTS output contains group mapq annotation"
 
 rm s.vg s.xg s.gcsa s.gcsa.lcp s.dist s.snarls s.fq
 
 # Now make sure we randomly choose between equivalent mappings
-vg construct -r small/x.fa > x.vg
-vg sim -a -p 200 -v 10 -l 50 -n 1000 -s 12345 -x x.vg >x.gam
+nvg construct -r small/x.fa > x.vg
+nvg sim -a -p 200 -v 10 -l 50 -n 1000 -s 12345 -x x.vg >x.gam
 
-vg construct -r small/xy.fa >xy.vg
-vg snarls -T xy.vg > xy.snarls
-vg index xy.vg -x xy.xg -g xy.gcsa
-vg index xy.vg -j xy.dist 
+nvg construct -r small/xy.fa >xy.vg
+nvg snarls -T xy.vg > xy.snarls
+nvg index xy.vg -x xy.xg -g xy.gcsa
+nvg index xy.vg -j xy.dist 
 
-vg mpmap -B -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -i --frag-mean 50 --frag-stddev 10 -M 1 >xy.sam
+nvg mpmap -B -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -i --frag-mean 50 --frag-stddev 10 -M 1 >xy.sam
 X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l)"
 if [ "${X_HITS}" -lt 1200 ] && [ "${X_HITS}" -gt 800 ] ; then
     IN_RANGE="1"
@@ -150,7 +150,7 @@ else
 fi
 is "${IN_RANGE}" "1" "paired reads are evenly split between equivalent mappings"
 
-vg mpmap -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -M 1 >xy.sam
+nvg mpmap -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -M 1 >xy.sam
 X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l)"
 if [ "${X_HITS}" -lt 1200 ] && [ "${X_HITS}" -gt 800 ] ; then
     IN_RANGE="1"
@@ -161,9 +161,9 @@ is "${IN_RANGE}" "1" "unpaired reads are evenly split between equivalent mapping
 
 printf "@read1\tT1:A:t T2:i:1\t T3:f:3.5e-7\nCACCGTGATCTTCAAGTTTGAAAATTGCATCTCAAATCTAAGACCCAGAGGGCTCACCCAGAGTCGAGGCTCAAGGACAG\n+\nHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n" > tagged1.fq
 printf "@read2 T4:Z:str T5:H:FF00\tT6:B:S,0,10 T7:B:f,8.0,5.0\nCACCGTGATCTTCAAGTTTGAAAATTGCATCTCAAATCTAAGACCCAGAGGGCTCACCCAGAGTCGAGGCTCAAGGACAG\n+\nHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n" > tagged2.fq
-vg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged1.fq -F BAM > t1.bam
-vg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged2.fq -F BAM > t2.bam
-vg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged1.fq -f tagged2.fq -F BAM > t3.bam
+nvg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged1.fq -F BAM > t1.bam
+nvg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged2.fq -F BAM > t2.bam
+nvg mpmap -x xy.xg -d xy.dist -g xy.gcsa -M 1 -B --comments-as-tags -f tagged1.fq -f tagged2.fq -F BAM > t3.bam
 is "$(samtools view t1.bam | grep T1 | grep T2 | grep T3 | wc -l | sed 's/^[[:space:]]*//')" "1" "SAM tags are preserved on read 1"
 is "$(samtools view t2.bam | grep T4 | grep T5 | grep T6 | wc -l | sed 's/^[[:space:]]*//')" "1" "SAM tags are preserved on read 2"
 is "$(samtools view t3.bam | grep T1 | grep T2 | grep T3 | grep read1 | wc -l | sed 's/^[[:space:]]*//')" "1" "SAM tags are preserved on paired read 1"

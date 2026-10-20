@@ -61,9 +61,6 @@ pair<float, float> get_depth_from_index(const BinnedDepthIndex& depth_index, con
 /// valid formats are "GAM" and "GAF"
 pair<double, double> sample_mapping_depth(const HandleGraph& graph, const string& input_filename, size_t max_nodes, size_t random_seed, size_t min_coverage, size_t min_mapq, const string& format="GAM");
 
-/// As above, but read a vector instead of a stream
-pair<double, double> sample_mapping_depth(const HandleGraph& graph, const vector<Alignment>& alignments, size_t max_nodes, size_t random_seed, size_t min_coverage, size_t min_mapq);
-
 /// print path-name offset base-coverage for every base on a path (just like samtools depth)
 /// ignoring things below min_coverage.  offsets are 1-based in output stream
 /// coverage here is the number of steps from (unique) other paths

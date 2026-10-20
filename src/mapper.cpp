@@ -1,18 +1,15 @@
 #include <unordered_set>
 #include "mapper.hpp"
-#include "graph.hpp"
 #include "annotation.hpp"
 #include "statistics.hpp"
 #include "path.hpp"
 #include "alignment.hpp"
-#include "translator.hpp"
 #include "algorithms/subgraph.hpp"
 #include "algorithms/nearest_offsets_in_paths.hpp"
 #include "algorithms/jump_along_path.hpp"
 #include "algorithms/approx_path_distance.hpp"
 #include "algorithms/path_string.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
-#include "algorithms/extract_containing_graph.hpp"
 
 //#define debug_mapper
 
@@ -2751,30 +2748,6 @@ pair<bool, bool> Mapper::pair_rescue(Alignment& mate1, Alignment& mate2,
     return make_pair(rescued1, rescued2);
 }
 
-bool Mapper::alignments_consistent(const map<string, double>& pos1,
-                                   const map<string, double>& pos2,
-                                   int fragment_size_bound) {
-    set<string> comm_refs;
-    for (auto& p : pos1) {
-        auto& name = p.first;
-        if (pos2.find(name) != pos2.end()) {
-            comm_refs.insert(name);
-        }
-    }
-    // Alignments are consistent if their median node id positions are within the fragment_size
-    
-    // get median mapping positions
-    for (auto& ref : comm_refs) {
-        // this is unsafe looking, but we know they have the same keys for these values
-        auto mean1 = pos1.find(ref)->second;
-        auto mean2 = pos2.find(ref)->second;
-        if (abs(mean1 - mean2) < fragment_size_bound) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool Mapper::pair_consistent(Alignment& aln1,
                              Alignment& aln2,
                              double pval) {
@@ -3078,7 +3051,7 @@ pair<vector<Alignment>, vector<Alignment>> Mapper::align_paired_multi(
                 cluster2.push_back(mem);
                 seen2 = true;
             } else {
-                cerr << "vg map error misordered fragments in cluster" << endl;
+                cerr << "nvg map error misordered fragments in cluster" << endl;
                 assert(false);
             }
         }
@@ -3918,24 +3891,6 @@ Alignment Mapper::align_maybe_flip(const Alignment& base, HandleGraph& graph, co
     return aln;
 }
 
-double Mapper::compute_uniqueness(const Alignment& aln, const vector<MaximalExactMatch>& mems) {
-    // compute the per-base copy number of the alignment based on the MEMs in the cluster
-    vector<int> v; v.resize(aln.sequence().size());
-    auto aln_begin = aln.sequence().begin();
-    for (auto& mem : mems) {
-        // from the beginning to the end of the mem in the read
-        // add the count of hits to each position
-        for (int i = mem.begin - aln_begin; i < mem.end - aln_begin; ++i) {
-            v[i] += mem.match_count;
-        }
-    }
-    // what is the fraction of the cluster that is in repetitive mems
-    // we calculate the uniqueness metric as the average number of hits for bases in the read covered by any MEM
-    double repeated = std::accumulate(v.begin(), v.end(), 0.0,
-                                      [](const int& a, const int& b) { return b > 1 ? a + 1 : a; });
-    return repeated / aln.sequence().length();
-}
-
 Alignment Mapper::align_cluster(const Alignment& aln, const vector<MaximalExactMatch>& mems, bool traceback, bool xdrop_alignment) {
     bdsg::HashGraph graph = cluster_subgraph_containing(*xindex, aln, mems, get_aligner());
     Alignment aligned = align_maybe_flip(aln, graph, mems, false, traceback, false, xdrop_alignment);
@@ -4342,28 +4297,6 @@ vector<Alignment> Mapper::align_banded(const Alignment& read, int kmer_size, int
     // set time for alignment
     alignments.front().set_time_used(chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
     return alignments;
-}
-
-bool Mapper::adjacent_positions(const Position& pos1, const Position& pos2) {
-    // are they the same id, with offset differing by 1?
-    if (pos1.node_id() == pos2.node_id()
-        && pos1.is_reverse() == pos2.is_reverse()
-        && pos1.offset() == pos2.offset()-1) {
-        return true;
-    }
-    // otherwise, we're going to need to check via the index
-    // look in the graph to figure out if we are adjacent
-    handle_t handle1 = xindex->get_handle(pos1.node_id(), pos1.is_reverse());
-    handle_t handle2 = xindex->get_handle(pos2.node_id(), pos2.is_reverse());
-    bool adjacent = false;
-    xindex->follow_edges(handle1, false, [&](const handle_t& next) {
-            if (next == handle2) {
-                adjacent = true;
-                return false;
-            }
-            return true;
-        });
-    return adjacent;
 }
 
 void Mapper::compute_mapping_qualities(vector<Alignment>& alns, double cluster_mq, double mq_estimate, double mq_cap) {

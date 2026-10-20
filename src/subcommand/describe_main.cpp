@@ -1,6 +1,6 @@
 /** \file describe_main.cpp
  *
- * Defines the "vg describe" subcommand, which attempts to identify and describe a file based on readily available information.
+ * Defines the "nvg describe" subcommand, which attempts to identify and describe a file based on readily available information.
  *
  * TODO: Try identifying GAM, GAF, GFA, snarls...
  * TODO: Can we get any useful information from graphs?
@@ -112,7 +112,7 @@ void parse_args(int argc, char** argv) {
 }
 
 int main_describe(int argc, char** argv) {
-    Logger logger("vg describe");
+    Logger logger("nvg describe");
     parse_args(argc, argv);
 
     // Libbdsg structures are kind of inconvenient and the files have the magic numbers in big-endian form.

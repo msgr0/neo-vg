@@ -1,5 +1,4 @@
 #include "flow_caller.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"
@@ -267,13 +266,13 @@ bool FlowCaller::call_snarl_internal(const Snarl& managed_snarl,
                 break;
             } else if (get<2>(ref_interval) == true) {
                 if (!graph.has_previous_step(cur_step)) {
-                    cerr << "Warning [vg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(managed_snarl) << endl;
+                    cerr << "Warning [nvg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(managed_snarl) << endl;
                     return false;
                 }
                 cur_step = graph.get_previous_step(cur_step);
             } else {
                 if (!graph.has_next_step(cur_step)) {
-                    cerr << "Warning [vg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(managed_snarl) << endl;
+                    cerr << "Warning [nvg call]: Unable, due to bug or corrupt path information, to trace reference path through snarl " << pb2json(managed_snarl) << endl;
                     return false;
                 }
                 cur_step = graph.get_next_step(cur_step);
@@ -296,7 +295,7 @@ bool FlowCaller::call_snarl_internal(const Snarl& managed_snarl,
     }
 
     if (travs.empty()) {
-        cerr << "Warning [vg call]: Unable, due to bug or corrupt graph, to search for any traversals through snarl " << pb2json(managed_snarl) << endl;
+        cerr << "Warning [nvg call]: Unable, due to bug or corrupt graph, to search for any traversals through snarl " << pb2json(managed_snarl) << endl;
         return false;
     }
 #ifdef debug

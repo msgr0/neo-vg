@@ -923,34 +923,6 @@ const Snarl* SnarlManager::into_which_snarl(const Visit& visit) const {
     return visit.has_snarl() ? manage(visit.snarl()) : into_which_snarl(visit.node_id(), visit.backward());
 }
     
-unordered_map<pair<int64_t, bool>, const Snarl*> SnarlManager::snarl_boundary_index() const {
-    unordered_map<pair<int64_t, bool>, const Snarl*> index;
-    for (const SnarlRecord& snarl_record : snarls) {
-        const Snarl& snarl = *unrecord(&snarl_record);
-        index[make_pair(snarl.start().node_id(), snarl.start().backward())] = &snarl;
-        index[make_pair(snarl.end().node_id(), !snarl.end().backward())] = &snarl;
-    }
-    return index;
-}
-    
-unordered_map<pair<int64_t, bool>, const Snarl*> SnarlManager::snarl_end_index() const {
-    unordered_map<pair<int64_t, bool>, const Snarl*> index;
-    for (const SnarlRecord& snarl_record : snarls) {
-        const Snarl& snarl = *unrecord(&snarl_record);
-        index[make_pair(snarl.end().node_id(), !snarl.end().backward())] = &snarl;
-    }
-    return index;
-}
-    
-unordered_map<pair<int64_t, bool>, const Snarl*> SnarlManager::snarl_start_index() const {
-    unordered_map<pair<int64_t, bool>, const Snarl*> index;
-    for (const SnarlRecord& snarl_record : snarls) {
-        const Snarl& snarl = *unrecord(&snarl_record);
-        index[make_pair(snarl.start().node_id(), snarl.start().backward())] = &snarl;
-    }
-    return index;
-}
-    
 void SnarlManager::build_indexes() {
 #ifdef debug
     cerr << "Building SnarlManager index of " << snarls.size() << " snarls" << endl;

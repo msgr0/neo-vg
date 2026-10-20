@@ -499,11 +499,6 @@ public:
     // a collection of read pairs which we'd like to realign once we have estimated the fragment_size
     vector<pair<Alignment, Alignment> > imperfect_pairs_to_retry;
 
-    // Return true of the two alignments are consistent for paired reads, and false otherwise
-    bool alignments_consistent(const map<string, double>& pos1,
-                               const map<string, double>& pos2,
-                               int fragment_size_bound);
-
     /// use the fragment length annotations to assess if the pair is consistent or not
     bool pair_consistent(Alignment& aln1, // may modify the alignments to store the reference positions
                          Alignment& aln2,
@@ -533,13 +528,10 @@ public:
     Alignment patch_alignment(const Alignment& aln, int max_patch_length, bool trim_internal_deletions = true, bool xdrop_alignment = false);
     // for aligning to a particular MEM cluster
     Alignment align_cluster(const Alignment& aln, const vector<MaximalExactMatch>& mems, bool traceback, bool xdrop_alignment = false);
-    // compute the uniqueness metric based on the MEMs in the cluster
-    double compute_uniqueness(const Alignment& aln, const vector<MaximalExactMatch>& mems);
     // wraps align_to_graph with flipping
     Alignment align_maybe_flip(const Alignment& base, HandleGraph& graph, bool flip, bool traceback, bool banded_global = false, bool xdrop_alignment = false);
     Alignment align_maybe_flip(const Alignment& base, HandleGraph& graph, const vector<MaximalExactMatch>& mems, bool flip, bool traceback, bool banded_global = false, bool xdrop_alignment = false);
 
-    bool adjacent_positions(const Position& pos1, const Position& pos2);
     int64_t get_node_length(int64_t node_id);
     bool check_alignment(const Alignment& aln);
     

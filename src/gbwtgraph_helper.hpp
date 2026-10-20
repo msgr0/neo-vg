@@ -47,10 +47,6 @@ void load_gbz(gbwtgraph::GBZ& gbz, const std::string& gbwt_name, const std::stri
 /// Load GBWT and GBWTGraph from the GBZ file.
 void load_gbz(gbwt::GBWT& index, gbwtgraph::GBWTGraph& graph, const std::string& filename, bool show_progress = false);
 
-/// Load a minimizer index from the file.
-/// require_payload() can be used afterwards to ensure the payload type is correct.
-void load_minimizer(gbwtgraph::DefaultMinimizerIndex& index, const std::string& filename, bool show_progress = false);
-
 /// Save GBWTGraph to the file.
 void save_gbwtgraph(const gbwtgraph::GBWTGraph& graph, const std::string& filename, bool show_progress = false);
 

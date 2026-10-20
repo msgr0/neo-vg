@@ -1,4 +1,4 @@
-// inject_main.cpp: define the "vg inject" subcommand, which lifts over alignments from the linear space
+// inject_main.cpp: define the "nvg inject" subcommand, which lifts over alignments from the linear space
 
 #include <omp.h>
 #include <unistd.h>
@@ -38,7 +38,7 @@ void help_inject(char** argv) {
 }
 
 int main_inject(int argc, char** argv) {
-    Logger logger("vg inject");
+    Logger logger("nvg inject");
 
     if (argc == 2) {
         help_inject(argv);

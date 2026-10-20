@@ -1,6 +1,6 @@
 /** \file kmers_main.cpp
  *
- * Defines the "vg kmers" subcommand, which generates the kmers in a graph.
+ * Defines the "nvg kmers" subcommand, which generates the kmers in a graph.
  */
 
 
@@ -40,7 +40,7 @@ void help_kmers(char** argv) {
 }
 
 int main_kmers(int argc, char** argv) {
-    Logger logger("vg kmers");
+    Logger logger("nvg kmers");
 
     if (argc == 2) {
         help_kmers(argv);
@@ -121,7 +121,7 @@ int main_kmers(int argc, char** argv) {
             // Obsolete options.
             case 'e':
                 logger.error() << "Option --edge-max is obsolete. "
-                               << "Use vg prune to prune the graph instead." << endl;
+                               << "Use nvg prune to prune the graph instead." << endl;
                 break;
             case 'F':
                 logger.error() << "Option --forward-only is obsolete" << endl;

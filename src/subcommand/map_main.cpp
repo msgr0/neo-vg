@@ -149,7 +149,7 @@ void help_map(char** argv) {
 }
 
 int main_map(int argc, char** argv) {
-    Logger logger("vg map");
+    Logger logger("nvg map");
 
     std::chrono::time_point<std::chrono::system_clock> launch = std::chrono::system_clock::now();
 
@@ -231,7 +231,6 @@ int main_map(int argc, char** argv) {
     float mq_overlap = 0.0;
     int kmer_size = 0; // if we set to positive, we'd revert to the old kmer based mapper
     int kmer_stride = 0;
-    int pair_window = 64; // unused
     int mate_rescues = 64;
     bool fixed_fragment_model = false;
     bool print_fragment_model = false;
@@ -285,7 +284,6 @@ int main_map(int argc, char** argv) {
                 {"reseed-x", required_argument, 0, 'r'},
                 {"min-chain", required_argument, 0, 'W'},
                 {"max-target-x", required_argument, 0, 'H'},
-                {"buffer-size", required_argument, 0, '9'},
                 {"match", required_argument, 0, 'q'},
                 {"mismatch", required_argument, 0, 'z'},
                 {"score-matrix", required_argument, 0, OPT_SCORE_MATRIX},
@@ -329,7 +327,7 @@ int main_map(int argc, char** argv) {
 
         int option_index = 0;
         c = getopt_long (argc, argv,
-        "s:J:Q:d:x:g:1:T:N:R:c:M:t:G:jb:Kf:iw:P:Dk:Y:r:W:H:Z:q:z:o:y:Au:B:I:S:l:e:C:V:O:L:a:n:E:XUpF:m:7:v5:824:3:9:0:%^h?",
+        "s:J:Q:d:x:g:1:T:N:R:c:M:t:G:jb:Kf:iw:P:Dk:Y:r:W:H:Z:q:z:o:y:Au:B:I:S:l:e:C:V:O:L:a:n:E:XUpF:m:7:v5:824:3:0:%^h?",
                          long_options, &option_index);
 
 
@@ -530,10 +528,6 @@ int main_map(int argc, char** argv) {
 
         case 'H':
             max_target_factor = parse<int>(optarg);
-            break;
-
-        case '9':
-            logger.warn() << "--buffer-size is deprecated; emitter now has a fixed buffer size" << endl;
             break;
 
         case 'q':

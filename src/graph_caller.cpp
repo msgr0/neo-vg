@@ -1,5 +1,4 @@
 #include "graph_caller.hpp"
-#include "algorithms/expand_context.hpp"
 #include "annotation.hpp"
 #include "gref.hpp"
 #include "traversal_clusters.hpp"
@@ -51,13 +50,13 @@ void GraphCaller::call_top_level_snarls(const HandleGraph& graph, RecurseType re
                     ++top_snarl_count;
                     if (top_snarl_count % 100000 == 0) {
 #pragma omp critical (cerr)
-                        cerr << "[vg call]: Processed " << top_snarl_count << " top-level snarls" << endl;
+                        cerr << "[nvg call]: Processed " << top_snarl_count << " top-level snarls" << endl;
                     }
                 } else {
                     ++nested_snarl_count;
                     if (nested_snarl_count % 100000 == 0) {
 #pragma omp critical (cerr)                    
-                        cerr << "[vg call]: Processed " << top_snarl_count << " nested snarls" << endl;
+                        cerr << "[nvg call]: Processed " << top_snarl_count << " nested snarls" << endl;
                     }
                 }
             }
@@ -66,7 +65,7 @@ void GraphCaller::call_top_level_snarls(const HandleGraph& graph, RecurseType re
 
     // Start with the top level snarls
     snarl_manager.for_each_top_level_snarl_parallel(process_snarl);
-    if (show_progress) cerr << "[vg call]: Finished processing " << top_snarl_count << " top-level snarls" << endl;
+    if (show_progress) cerr << "[nvg call]: Finished processing " << top_snarl_count << " top-level snarls" << endl;
 
     top_level = false;
 
@@ -85,7 +84,7 @@ void GraphCaller::call_top_level_snarls(const HandleGraph& graph, RecurseType re
             process_snarl(cur_queue[i]);
         }
     }
-    if (show_progress && nested_snarl_count > 0) cerr << "[vg call]: Finished processing " << nested_snarl_count << " nested snarls" << endl;
+    if (show_progress && nested_snarl_count > 0) cerr << "[nvg call]: Finished processing " << nested_snarl_count << " nested snarls" << endl;
   
 }
 

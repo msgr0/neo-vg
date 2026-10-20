@@ -251,7 +251,7 @@ void kmer_to_gcsa_kmers(const kmer_t& kmer, const gcsa::Alphabet& alpha, const f
 #pragma omp critical (error)
         {
             cerr << "error: Found kmer with offset >= 1024. GCSA2 cannot handle nodes greater than 1024 bases long. "
-                 << "To enable indexing, modify your graph using `vg mod -X 256 x.vg >y.vg`. "
+                 << "To enable indexing, modify your graph using `nvg mod -X 256 x.vg >y.vg`. "
                  << kmer << endl;
             exit(1);
         }

@@ -1,6 +1,6 @@
 /** \file gbwt_main.cpp
  *
- * Defines the "vg gbwt" subcommand for building, merging, and manipulating GBWT indexes
+ * Defines the "nvg gbwt" subcommand for building, merging, and manipulating GBWT indexes
  * and GBWTGraphs.
  */
 
@@ -33,7 +33,7 @@ struct GBWTConfig {
     enum path_cover_mode { path_cover_none, path_cover_augment, path_cover_local, path_cover_greedy };
 
     // Logger to use when reporting errors/progress
-    Logger logger = Logger("vg gbwt");
+    Logger logger = Logger("nvg gbwt");
 
     // Requirements and modes.
     bool produces_one_gbwt = false; // Steps 1-4 eventually produce one input GBWT regardless of the number of input args.

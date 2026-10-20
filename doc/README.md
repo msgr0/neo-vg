@@ -4,14 +4,14 @@ Make a markdown document with the usage messages of (selected) `vg` subcommands.
 Calls the `vg` command, so it will match the version available in the command line.
 
 ```sh
-python3 vgmanmd.py > wiki/vg-manpage.md
+python3 nvgmanmd.py > wiki/nvg-manpage.md
 ```
 
 Then commit and push the changes to the wiki submodule, or copy the markdown content to the [wiki page](https://github.com/vgteam/vg/wiki/vg-manpage).
 
 ## Edit descriptions
 
-See [`vgmanmd.desc.md`](vgmanmd.desc.md) file. 
+See [`nvgmanmd.desc.md`](nvgmanmd.desc.md) file. 
 This file must be in the current directory. 
 Also, in the title `# <NAME>`, `<NAME>` should match name of the command. 
 The name `intro` is used for the introduction, to be placed after the table of content.
@@ -21,5 +21,5 @@ The goal of the description is to be vague enough that we don't need to change t
 
 ## Change list of selected subcommands
 
-At the top of [`vgmanmd.py`](vgmanmd.py), change the *cmds* list.
+At the top of [`nvgmanmd.py`](nvgmanmd.py), change the *cmds* list.
 
