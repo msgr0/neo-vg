@@ -51,7 +51,7 @@
 	url = https://github.com/jemalloc/jemalloc.git
 [submodule "deps/libbdsg"]
 	path = deps/libbdsg
-	url = https://github.com/vgteam/libbdsg.git
+	url = https://github.com/msgr0/libbdsg.git
 [submodule "deps/xg"]
 	path = deps/xg
 	url = https://github.com/vgteam/xg.git

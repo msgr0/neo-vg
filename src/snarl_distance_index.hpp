@@ -32,6 +32,8 @@ size_t maximum_distance(const SnarlDistanceIndex& distance_index, pos_t pos1, po
 
 /// Fill in the index
 /// size_limit is a limit on the number of nodes in a snarl, after which the index won't store pairwise distances
+/// With an IntegratedSnarlFinder, weakly connected components are indexed in parallel,
+/// using the current OpenMP thread count
 void fill_in_distance_index(SnarlDistanceIndex* distance_index, const HandleGraph* graph, const HandleGraphSnarlFinder* snarl_finder, 
                             size_t size_limit = 50000, bool only_top_level_chain_distances = false, bool silence_warnings=true);
 
@@ -75,18 +77,6 @@ void subgraph_in_distance_range_walk_across_chain (const SnarlDistanceIndex& dis
         vector<pair<handle_t, size_t>>& search_start_nodes,
         hash_set<pair<nid_t, bool>>& seen_nodes, 
         const size_t& min_distane, const size_t& max_distance, bool checked_loop=false);
-
-
-/// Add nodes to the subgraph if they are near the path in the snarl tree
-/// Walks up the snarl tree from either end of the path, then takes everything
-/// in between them
-void subgraph_containing_path_snarls(const SnarlDistanceIndex& distance_index, const HandleGraph* graph, const Path& path, std::unordered_set<nid_t>& subgraph);
-
-
-/// Helper function for subgraph_containing_path_snarls
-/// Add all the nodes in the parent to the subgraph
-void add_descendants_to_subgraph(const SnarlDistanceIndex& distance_index, const net_handle_t& parent, std::unordered_set<nid_t>& subgraph);
-
 
 }
 

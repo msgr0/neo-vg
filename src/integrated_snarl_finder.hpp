@@ -80,7 +80,9 @@ public:
      * The mapping is assumed to be small and cheap to copy.
      */
     IntegratedSnarlFinder(const HandleGraph& graph, const std::unordered_map<nid_t, size_t>& extra_node_weight = {});
-    
+
+    const std::unordered_map<nid_t, size_t>& get_extra_node_weight() const { return extra_node_weight; }
+
     /**
      * Find all the snarls of weakly connected components in parallel.
      */
