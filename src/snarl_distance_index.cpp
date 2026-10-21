@@ -86,7 +86,7 @@ void fill_in_distance_index(SnarlDistanceIndex* distance_index, const HandleGrap
         }
     }
 
-    vector<const SnarlDistanceIndex::TemporaryDistanceIndex*> indexes;
+    vector<SnarlDistanceIndex::TemporaryDistanceIndex*> indexes;
     size_t most_oversized_snarl_size = 0;
     for (auto& temp_index : temp_indexes) {
         indexes.push_back(&temp_index);
@@ -1113,10 +1113,8 @@ void populate_hub_labeling(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
 void populate_distance_matrix_if_needed(SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const SnarlDistanceIndex::temp_record_ref_t& snarl_index, SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, const vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* graph, size_t size_limit, bool only_top_level_chain_distances) {
     // This is only called for non-oversized snarls; oversized snarls go through populate_hub_labeling instead.
     if (size_limit != 0 && !only_top_level_chain_distances) {
-      //If we are saving distances
-      //Reserve enough space to store all possible distances. Since we are not oversized, node_count <= size_limit,
-      //so we always need the full node_count * node_count matrix.
-      temp_snarl_record.distances.reserve(temp_snarl_record.node_count * temp_snarl_record.node_count);
+      //If we are saving distances, make room for all of them
+      temp_snarl_record.allocate_distances();
     } else {
       temp_snarl_record.include_distances = false;
     }
@@ -1418,12 +1416,18 @@ void populate_distance_matrix_row(SnarlDistanceIndex::TemporaryDistanceIndex& te
                                 added_new_distance = true; 
                             }
                         }
-                    } else if (!next_is_boundary && !temp_snarl_record.distances.count(make_pair(start, next))) {
-                        //Otherwise the snarl stores it in its distance
-                        //If the distance isn't from an internal node to a bound and we haven't stored the distance yet
-
-                        temp_snarl_record.distances[make_pair(start, next)] = current_distance;
+                    } else if (!next_is_boundary && temp_snarl_record.distances.empty()) {
+                        //This snarl doesn't keep internal distances, but they still count towards max_distance
                         added_new_distance = true;
+                    } else if (!next_is_boundary) {
+                        //Otherwise the snarl stores it in its distance matrix, which is symmetric,
+                        //so keep the smaller of the two directions
+                        size_t& stored = temp_snarl_record.distances.at(
+                            temp_snarl_record.distance_offset(start.first, start.second, next.first, next.second));
+                        if (stored == std::numeric_limits<size_t>::max()) {
+                            added_new_distance = true;
+                        }
+                        stored = std::min(stored, current_distance);
                     }
                     if (added_new_distance) {
                         temp_snarl_record.max_distance = std::max(temp_snarl_record.max_distance, current_distance);
