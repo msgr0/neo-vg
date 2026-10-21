@@ -75,7 +75,6 @@ For more in-depth explanations of tools and workflows, see the [general wiki pag
 - **Developer tools**
     - [`nvg describe`](#describe): determine file format of input. [wiki page](https://github.com/vgteam/vg/wiki/File-Types)
     - [`nvg help`](#help): display all subcommands.
-    - [`nvg test`](#test): run unit tests.
     - [`nvg validate`](#validate): check if a graph is well-formed.
     - [`nvg version`](#version): display current version number.
 

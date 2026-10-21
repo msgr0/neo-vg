@@ -9,5 +9,5 @@ export LC_ALL="C" # force a consistent sort order
 
 plan tests 1
 
-nvg test
+nvg-unittest test
 is $? 0 "vg unit tests complete successfully"

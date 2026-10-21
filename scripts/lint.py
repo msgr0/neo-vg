@@ -39,6 +39,8 @@ SUBCMD_END = '_main.cpp'
 """Suffix for subcommand files."""
 SKIP_SUBCMDS = {'test', 'help'}
 """Subcommands to skip in the consistency check."""
+UNITTEST_ONLY_SUBCMDS = {'test'}
+"""Subcommands built only into nvg-unittest, so absent from nvg's docs and autocomplete."""
 AUTOCOMP_FILES = ['autocomp.bash', 'autocomplete.sh']
 """Where to double-check subcommand autocomplete existence."""
 MANPAGE_HEADER_FILE = 'doc/nvgmanmd.desc.md'
@@ -1014,6 +1016,7 @@ if __name__ == "__main__":
 
         is_ok = check_subcommand_file(full_file_name) and is_ok
 
+    non_dep_subcmds -= UNITTEST_ONLY_SUBCMDS
     all_subcmds = non_dep_subcmds | deprecated_subcmds
     for file_name in AUTOCOMP_FILES:
         is_ok = check_autocomplete_file(file_name, all_subcmds) and is_ok

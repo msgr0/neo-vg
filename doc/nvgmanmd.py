@@ -11,7 +11,7 @@ cmds = ['align', 'annotate', 'augment', 'autoindex', 'call', 'chains',
         'gamsort', 'gbwt', 'giraffe', 'haplotypes', 'help', 'ids',
         'index', 'inject', 'map', 'mask', 'minimizer', 'mod', 'mpmap',
         'pack', 'paths', 'primers', 'prune', 'rna', 'sim', 'simplify', 'snarls',
-        'stats', 'surject', 'test', 'trace', 'validate', 'vectorize', 'version',
+        'stats', 'surject', 'trace', 'validate', 'vectorize', 'version',
         'view'
 ]
 cmds.sort()
