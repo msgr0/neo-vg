@@ -55,6 +55,8 @@ samtools = "*"
 bcftools = "*"
 htslib = "*"
 kmc = "*"
+graphviz = "*"  # dot, for the visualization docs
+bwa = "*"  # linear-mapping comparison in the docs
 
 [activation.env]
 # The compiler packages don't export search paths, so point the build at the env

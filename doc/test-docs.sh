@@ -2,6 +2,9 @@
 # test-docs.sh: Test the examples in the vg documentation and wiki with https://github.com/anko/txm
 set -e
 
+# Some doc examples put files in ${TMPDIR}, which isn't set on every platform
+export TMPDIR="${TMPDIR:-/tmp}"
+
 # Work out where we are.
 # See https://stackoverflow.com/a/246128
 HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
