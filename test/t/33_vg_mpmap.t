@@ -54,9 +54,9 @@ paired_score=$(jq -r ".score" < temp_paired_alignment.json | awk '{ sum+=$1} END
 independent_score=$(jq -r ".score" < temp_independent_alignment.json | awk '{ sum+=$1} END {print sum}')
 is $(printf "%s\t%s\n" $paired_score $independent_score | awk '{if ($1 < $2) print 1; else print 0}') 1 "paired read alignments forced to be consistent have lower score than unrestricted alignments"
 
-paired_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_paired_alignment.json | sort | rs -T | awk '{print ($2 - $1)}')
-distant_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_distant_alignment.json | sort | rs -T | awk '{print ($2 - $1)}')
-independent_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_independent_alignment.json | sort | rs -T | awk '{print ($2 - $1)}')
+paired_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_paired_alignment.json | sort | paste -sd' ' - | awk '{print ($2 - $1)}')
+distant_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_distant_alignment.json | sort | paste -sd' ' - | awk '{print ($2 - $1)}')
+independent_range=$(jq -r ".path.mapping[0].position.node_id" <  temp_independent_alignment.json | sort | paste -sd' ' - | awk '{print ($2 - $1)}')
 is $(printf "%s\t%s\n" $paired_range $independent_range | awk '{if ($1 < $2) print 1; else print 0}') 1 "paired read alignments forced to be consistent are closer together in node id space than unrestricted alignments"
 is $(printf "%s\t%s\n" $paired_range $distant_range | awk '{if ($1 < $2) print 1; else print 0}') 1 "paired read alignments forced to be near each other are closer together in node id space than those forced to be far apart"
 

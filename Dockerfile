@@ -39,7 +39,7 @@ RUN apt-get -qq -y update && \
 ###DEPS_BEGIN###
 RUN apt-get -qq -y update && apt-get -y install --no-upgrade \
     make git build-essential protobuf-compiler libprotoc-dev libjansson-dev libbz2-dev \
-    libncurses5-dev automake gettext autopoint libtool jq bsdmainutils bc rs parallel npm \
+    libncurses5-dev automake gettext autopoint libtool jq bsdmainutils bc parallel npm \
     samtools curl unzip cmake pkg-config wget gtk-doc-tools \
     bison flex gawk libgoogle-perftools-dev liblz4-dev liblzma-dev \
     libffi-dev \

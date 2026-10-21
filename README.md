@@ -88,7 +88,7 @@ On other distros, or if you do not have root access, you will need to perform th
 
     sudo apt-get install \
     make git build-essential protobuf-compiler libprotoc-dev libjansson-dev libbz2-dev \
-    libncurses5-dev automake gettext autopoint libtool jq bsdmainutils bc rs parallel npm \
+    libncurses5-dev automake gettext autopoint libtool jq bsdmainutils bc parallel npm \
     samtools curl unzip cmake pkg-config wget gtk-doc-tools \
     bison flex gawk libgoogle-perftools-dev liblz4-dev liblzma-dev \
     libffi-dev \

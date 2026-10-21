@@ -1,0 +1,92 @@
+[workspace]
+name = "neo-vg"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64"]
+
+[tasks]
+build = "make -j$(getconf _NPROCESSORS_ONLN)"
+test = "make test"
+
+[dependencies]
+# Toolchain and build tools (also needed by the bundled deps' own builds)
+c-compiler = "*"
+cxx-compiler = "*"
+make = "*"
+cmake = "*"
+pkg-config = "*"
+autoconf = "*"
+automake = "*"
+libtool = "*"
+m4 = "*"
+gettext = "*"
+bison = "*"
+flex = "*"
+gawk = "*"
+coreutils = "*"
+perl = "*"
+python = "*"
+git = "*"
+
+# Libraries vg links against
+libprotobuf = "*"
+jansson = "*"
+libboost-devel = "*"
+openssl = "*"
+zlib = "*"
+bzip2 = "*"
+xz = "*"
+xz-static = "*"  # vcflib's static CMake build only finds liblzma.a
+zstd = "*"
+lz4-c = "*"
+ncurses = "*"
+gperftools = "*"
+pybind11 = "*"
+
+# Tools used by the tests and the docs
+jq = "*"
+parallel = "*"
+bc = "*"
+curl = "*"
+wget = "*"
+unzip = "*"
+nodejs = "*"
+pandoc = "*"
+samtools = "*"
+bcftools = "*"
+htslib = "*"
+kmc = "*"
+
+[activation.env]
+# The compiler packages don't export search paths, so point the build at the env
+CPATH = "$CONDA_PREFIX/include"
+LIBRARY_PATH = "$CONDA_PREFIX/lib"
+LDFLAGS = "-Wl,-rpath,$CONDA_PREFIX/lib"
+# Searched by CMake-built deps ahead of the Makefile's /usr prefix
+CMAKE_PREFIX_PATH = "$CONDA_PREFIX"
+# CMake-built deps may run the system make (older than the env's make 4.4),
+# which only understands the pipe-style jobserver
+MAKEFLAGS = "--jobserver-style=pipe"
+
+[target.linux.activation.env]
+# Absolute paths: CMake searches the Makefile's CMAKE_PREFIX_PATH (/usr) before PATH
+CC = "$CONDA_PREFIX/bin/gcc"
+CXX = "$CONDA_PREFIX/bin/g++"
+# conda-forge has no static jansson or abseil, so link system libraries
+# dynamically (the Makefile defaults to static on Linux)
+MAKEFLAGS = "--jobserver-style=pipe START_STATIC= END_STATIC="
+
+[target.osx.dependencies]
+llvm-openmp = "*"
+
+[target.osx-arm64.activation.env]
+# The target-prefixed clang reads conda's config adding the env's include/lib/rpath
+CC = "$CONDA_PREFIX/bin/arm64-apple-darwin20.0.0-clang"
+CXX = "$CONDA_PREFIX/bin/arm64-apple-darwin20.0.0-clang++"
+
+[target.osx-64.activation.env]
+CC = "$CONDA_PREFIX/bin/x86_64-apple-darwin13.4.0-clang"
+CXX = "$CONDA_PREFIX/bin/x86_64-apple-darwin13.4.0-clang++"
+
+[target.osx.activation.env]
+# The Makefile looks for OpenMP and extra headers/libraries under HOMEBREW_PREFIX
+HOMEBREW_PREFIX = "$CONDA_PREFIX"

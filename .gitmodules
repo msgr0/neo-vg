@@ -49,10 +49,6 @@
 [submodule "deps/jemalloc"]
 	path = deps/jemalloc
 	url = https://github.com/jemalloc/jemalloc.git
-[submodule "deps/sglib"]
-	path = deps/sglib
-	url = https://github.com/vgteam/sglib.git
-	branch = master
 [submodule "deps/libbdsg"]
 	path = deps/libbdsg
 	url = https://github.com/vgteam/libbdsg.git
