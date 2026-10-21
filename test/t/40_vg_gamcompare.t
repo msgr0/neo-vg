@@ -26,11 +26,11 @@ nvg map -x s.xg  -g s.gcsa -s "TCTAATATGGAGATGATACTACTGACAG" > read2.gam
 nvg annotate -a read2.gam -p -x s.xg > read2.single.gam
 nvg annotate -a read2.gam -m -x s.xg > read2.multi.gam
 
-is "$(nvg gamcompare -r 30 read1.single.gam read2.single.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l)" "1" "Reads annotated with leftmost position only are close enough at a long distance"
-is "$(nvg gamcompare -r 30 -d s.dist read1.gam read2.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l)" "1" "Reads are close enough at a long distance with a distance index"
-is "$(nvg gamcompare -r 10 read1.single.gam read2.single.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l)" "0" "Reads annotated with leftmost position only are too far apart at a short distance"
-is "$(nvg gamcompare -r 10 -d s.dist read1.gam read2.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l)" "0" "Reads are too far apart at a short distance with a distance index"
-is "$(nvg gamcompare -r 10 read1.multi.gam read2.multi.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l)" "1" "Reads annotated with multiple positions only are close enough at a short distance"
+is "$(nvg gamcompare -r 30 read1.single.gam read2.single.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l | tr -d " ")" "1" "Reads annotated with leftmost position only are close enough at a long distance"
+is "$(nvg gamcompare -r 30 -d s.dist read1.gam read2.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l | tr -d " ")" "1" "Reads are close enough at a long distance with a distance index"
+is "$(nvg gamcompare -r 10 read1.single.gam read2.single.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l | tr -d " ")" "0" "Reads annotated with leftmost position only are too far apart at a short distance"
+is "$(nvg gamcompare -r 10 -d s.dist read1.gam read2.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l | tr -d " ")" "0" "Reads are too far apart at a short distance with a distance index"
+is "$(nvg gamcompare -r 10 read1.multi.gam read2.multi.gam | nvg view -aj - | jq -c 'select(.correctly_mapped)' | wc -l | tr -d " ")" "1" "Reads annotated with multiple positions only are close enough at a short distance"
 
 rm -f read1.gam read1.single.gam read1.multi.gam read2.gam read2.single.gam read2.multi.gam 
 

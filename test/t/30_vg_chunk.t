@@ -47,14 +47,14 @@ nvg chunk -x x.xg -a x.sorted.gam -g -b _chunk_test -e _chunk_test_bed.bed -E _c
 is $(ls -l _chunk_test*.vg | wc -l) 2 "gam chunker produces correct number of graphs"
 is $(ls -l _chunk_test*.gam | wc -l) 2 "gam chunker produces correct number of gams"
 is $(grep x _chunk_test_out.bed | wc -l) 2 "gam chunker produces bed with correct number of chunks"
-is "$(nvg view -aj _chunk_test_0_x_0_199.gam | wc -l)" "$(nvg view -aj _chunk_test_0_x_0_199.gam | sort | uniq | wc -l)" "gam chunker emits each matching read at most once"
-is "$(nvg view -aj _chunk_test_1_x_500_627.gam | wc -l)" "225" "chunk contains the expected number of alignments"
+is "$(nvg view -aj _chunk_test_0_x_0_199.gam | wc -l | tr -d " ")" "$(nvg view -aj _chunk_test_0_x_0_199.gam | sort | uniq | wc -l | tr -d " ")" "gam chunker emits each matching read at most once"
+is "$(nvg view -aj _chunk_test_1_x_500_627.gam | wc -l | tr -d " ")" "225" "chunk contains the expected number of alignments"
 rm -f _chunk_test*
 
 #check that we can chunk by read count
 nvg chunk -a small/x-l100-n1000-s10-e0.01-i0.01.gam -m 100 -b _chunk_test
 is $(ls -l _chunk_test*.gam | wc -l) 10 "simple gam chunker produces correct number of gams"
-is "$(nvg view -aj _chunk_test000005.gam | wc -l)" "100" "simple chunk contains the expected number of alignments"
+is "$(nvg view -aj _chunk_test000005.gam | wc -l | tr -d " ")" "100" "simple chunk contains the expected number of alignments"
 
 #check that id ranges work
 is $(nvg chunk -x x.xg -r 1:3 -c 0 | nvg view - -j | jq .node | grep id |  wc -l) 3 "id chunker produces correct chunk size"
@@ -66,8 +66,8 @@ is $(nvg chunk -x x.xg -r 1:1 -c 2 -T | nvg view - -j | jq .node | grep id | wc 
 
 # Check that traces work on a GBWT
 is $(nvg chunk -x x.xg -G x.gbwt -r 1:1 -c 2 -T | nvg view - -j | jq .node | grep id | wc -l) 5 "id chunker traces correct chunk size"
-is "$(nvg chunk -x x.xg -r 1:1 -c 2 -T | nvg view - -j | jq -c '.path[] | select(.name | startswith("x[0") | not)' | wc -l)" 0 "chunker extracts no threads from an empty gPBWT"
-is "$(nvg chunk -x x.xg -G x.haps.gbwt -r 1:1 -c 2 -T | nvg view - -j | jq -c '.path[] | select(.name | startswith("x[0") | not)' | wc -l)" 2 "chunker extracts 2 local threads from a gBWT with 2 locally distinct threads in it"
+is "$(nvg chunk -x x.xg -r 1:1 -c 2 -T | nvg view - -j | jq -c '.path[] | select(.name | startswith("x[0") | not)' | wc -l | tr -d " ")" 0 "chunker extracts no threads from an empty gPBWT"
+is "$(nvg chunk -x x.xg -G x.haps.gbwt -r 1:1 -c 2 -T | nvg view - -j | jq -c '.path[] | select(.name | startswith("x[0") | not)' | wc -l | tr -d " ")" 2 "chunker extracts 2 local threads from a gBWT with 2 locally distinct threads in it"
 is "$(nvg chunk -x x.xg -G x.gbwt -r 1:1 -c 2 -T | nvg view - -j | jq -r '.path[] | select(.name == "thread_0") | .mapping | length')" 3 "chunker can extract a partial haplotype from a GBWT"
 is "$(nvg chunk -x x.gbz -r 1:1 -c 2 -T | nvg view - -j | jq -r '.path[] | select(.name == "thread_0") | .mapping | length')" 3 "chunker can extract a partial haplotype from a GBZ"
 is "$(nvg chunk -x x.gbz -r 1:1 -c 2 -T --no-embedded-haplotypes | nvg view - -j | jq -r '.path[] | select(.name == "thread_0") | .mapping | length')" "" "chunker doesn't see haplotypes in the GBZ if asked not to"
@@ -138,15 +138,15 @@ nvg chunk -x graph.gbz -p GRCh38#0#chr1:5-7 -c 1 >part.vg
 nvg chunk -x part.vg -p GRCh38#0#chr1:5-7 -c 1 >subpart.vg
 is "$?" "0" "chunking the same base path range out of a chunk works"
 is "$(nvg stats -l part.vg)" "$(nvg stats -l subpart.vg)" "chunking the same base path range out of a chunk gets the same nodes"
-is "$(nvg paths -L -H -x part.vg | wc -l)" "0" "chunking a GBZ leaves out haplotype paths by default"
+is "$(nvg paths -L -H -x part.vg | wc -l | tr -d " ")" "0" "chunking a GBZ leaves out haplotype paths by default"
 nvg chunk -x graph.gbz -p GRCh38#0#chr1:5-7 -c 1 -H >part.vg
-is "$(nvg paths -L -H -x part.vg | wc -l)" "3" "chunking a GBZ with -H keeps the haplotype paths"
+is "$(nvg paths -L -H -x part.vg | wc -l | tr -d " ")" "3" "chunking a GBZ with -H keeps the haplotype paths"
 
 nvg convert -g graphs/gfa_with_reference.gfa >graph.vg
 nvg chunk -x graph.vg -p GRCh38#0#chr1:5-7 -c 1 >part.vg
-is "$(nvg paths -L -H -x part.vg | wc -l)" "0" "chunking a non-GBZ graph leaves out haplotype paths by default"
+is "$(nvg paths -L -H -x part.vg | wc -l | tr -d " ")" "0" "chunking a non-GBZ graph leaves out haplotype paths by default"
 nvg chunk -x graph.vg -p GRCh38#0#chr1:5-7 -c 1 -H >part.vg
-is "$(nvg paths -L -H -x part.vg | wc -l)" "3" "chunking a non-GBZ graph with -H keeps the haplotype paths"
+is "$(nvg paths -L -H -x part.vg | wc -l | tr -d " ")" "3" "chunking a non-GBZ graph with -H keeps the haplotype paths"
 
 rm -f graph.gbz graph.vg part.vg subpart.vg log.txt
 
@@ -154,10 +154,10 @@ rm -f graph.gbz graph.vg part.vg subpart.vg log.txt
 nvg gbwt --graph-name graph.gbz --set-reference sample --gfa-input graphs/components_walks.gfa
 nvg chunk -x graph.gbz --gbz
 is "$?" "0" "chunking a GBZ with option --gbz works"
-is "$(ls -l chunk_*.gbz | wc -l)" "2" "GBZ chunking produces correct number of chunks"
+is "$(ls -l chunk_*.gbz | wc -l | tr -d " ")" "2" "GBZ chunking produces correct number of chunks"
 nvg chunk -x graph.gbz --gbz --contig A --prefix single
 is "$?" "0" "chunking a GBZ with options --gbz and --contig works"
-is "$(ls -l single_*.gbz | wc -l)" "1" "GBZ chunking with --contig produces correct number of chunks"
+is "$(ls -l single_*.gbz | wc -l | tr -d " ")" "1" "GBZ chunking with --contig produces correct number of chunks"
 cmp chunk_0_A.gbz single_0_A.gbz
 is "$?" "0" "GBZ chunking with --contig produces the expected chunk"
 

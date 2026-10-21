@@ -51,7 +51,7 @@ is $order_a $order_b "the ordering of variants at the same position has no effec
 nvg construct -r order/n.fa -v order/z.vcf.gz -R n:47-73 >/dev/null
 is $? 0 "construction does not fail when the first position in the VCF is repeated and has an indel"
 
-x1=$(for i in $(seq 100); do size=$(shuf -i 1-100 -n 1); threads=1; nvg construct -r small/x.fa -v small/x.vcf.gz -z $size -t $threads | nvg view -g - | sort -n -k 2 | md5sum; done | sort | uniq | wc -l)
+x1=$(for i in $(seq 100); do size=$(shuf -i 1-100 -n 1); threads=1; nvg construct -r small/x.fa -v small/x.vcf.gz -z $size -t $threads | nvg view -g - | sort -n -k 2 | md5sum; done | sort | uniq | wc -l | tr -d " ")
 
 is $x1 1 "the size of the regions used in construction has no effect on the graph"
 
@@ -79,7 +79,7 @@ rm -f fail.vg
 
 # check that we produce a full graph
 
-refbp=$(tail -n+2 small/x.fa | tr -d '\n' | wc -c)
+refbp=$(tail -n+2 small/x.fa | tr -d '\n' | wc -c | tr -d " ")
 variantbp=$(zcat < small/x.vcf.gz | grep -v "#" | cut -f 5,4 \
     | awk '{ x=length($2)-length($1); if (x > 0) { print x; } else if (x == 0) { print length($2); } }' \
         | awk '{ sum += $1 } END { print sum }')
@@ -117,7 +117,7 @@ rm -f x.vg log.txt
 
 nvg construct -r tiny/ambiguous.fa >tiny.vg
 is $? 0 "Reference with ambiguity codes has them coerced to Ns"
-is "$(nvg view -j tiny.vg | jq -r '.node[].sequence' | tr -d 'ACGT\n' | wc -c)" "10" "Expected number of Ns are created"
+is "$(nvg view -j tiny.vg | jq -r '.node[].sequence' | tr -d 'ACGT\n' | wc -c | tr -d " ")" "10" "Expected number of Ns are created"
 rm -f tiny.vg
 
 nvg construct -r small/x.fa -r small/x.fa > /dev/null

@@ -7,7 +7,7 @@ PATH=../bin:$PATH # for vg
 
 plan tests 10
 
-num_nodes=$(nvg construct -r small/x.fa -v small/x.vcf.gz | nvg ids -c - | nvg view -g - | grep ^S | wc -l)
+num_nodes=$(nvg construct -r small/x.fa -v small/x.vcf.gz | nvg ids -c - | nvg view -g - | grep ^S | wc -l | tr -d " ")
 
 is $(nvg construct -r small/x.fa -v small/x.vcf.gz | nvg ids -i 1000 - | nvg ids -c - | nvg view -g - | grep ^S | cut -f 2 | sort -n | head -1) 1 "minimum node as expected (id compaction correct)"
 

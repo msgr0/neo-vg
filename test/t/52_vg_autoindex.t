@@ -17,12 +17,12 @@ is $(ls auto.gcsa* | wc -l) 2 "autoindexing makes a GCSA2/LCP pair for nvg map"
 nvg sim -x auto.xg -n 20 -a -l 10 | nvg map -d auto -t 1 -G - > /dev/null
 is $(echo $?) 0 "basic autoindexing results can be used by nvg map"
 
-old_xg_creation_time=`ls -l --time-style=full-is auto.xg | tr -s ' ' | cut -d ' ' -f7`
+# Backdate the index so a rewrite is visible even with 1-second mtime resolution
+touch -t 200001010000 auto.xg auto.xg.stamp
 nvg autoindex -p auto -w map -r tiny/tiny.fa -v tiny/tiny.vcf.gz --force-unphased --no-guessing
-cur_xg_creation_time=`ls -l --time-style=full-is auto.xg | tr -s ' ' | cut -d ' ' -f7`
-same_time="no"
-if [ "$old_xg_creation_time" == "$cur_xg_creation_time" ]; then
-    same_time="yes"
+same_time="yes"
+if [ auto.xg -nt auto.xg.stamp ]; then
+    same_time="no"
 fi
 is "$same_time" "no" "autoindexing with --no-guessing overwrites existing files"
 
@@ -188,26 +188,26 @@ nvg giraffe -Z auto.giraffe.gbz -m auto.shortread.withzip.min -d auto.dist -f re
 is "$(nvg view -aj read.gam | jq -r '.path.mapping[].position.name')" "Ishmael" "GFA segment names are available in output GAM when no walks exist"
 
 # reduce disk limit to 1MB to trigger it during k-mer generation
-is "$(nvg autoindex -p auto -w map --gcsa-size-limit 1000000 -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l)" 1 "Running out of room during k-mer enumeration triggers a rewind"
+is "$(nvg autoindex -p auto -w map --gcsa-size-limit 1000000 -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l | tr -d " ")" 1 "Running out of room during k-mer enumeration triggers a rewind"
 is "$(echo $?)" 0 "Indexing is successful after rewinding from k-mer generation"
 
 rm -f auto.gcsa auto.gcsa.lcp
 
 # reduce disk limit to 2MB to trigger it during doubling steps
-is "$(nvg autoindex -p auto -w map --gcsa-size-limit 2000000 -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l)" 1 "Running out of room during GCSA2 indexing triggers a rewind"
+is "$(nvg autoindex -p auto -w map --gcsa-size-limit 2000000 -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l | tr -d " ")" 1 "Running out of room during GCSA2 indexing triggers a rewind"
 is "$(echo $?)" 0 "Indexing is successful after rewinding from GCSA2 indexing"
 
 rm -f auto.gcsa auto.gcsa.lcp
 
 # use the memory limit to trigger a rewide
-is "$(nvg autoindex -p auto -w map -M 512M -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l)" 1 "Running out of memory during GCSA2 indexing triggers a rewind"
+is "$(nvg autoindex -p auto -w map -M 512M -g graphs/linked_cycles.gfa 2>&1 | grep Rewind | wc -l | tr -d " ")" 1 "Running out of memory during GCSA2 indexing triggers a rewind"
 is "$(echo $?)" 0 "Indexing is successful after rewinding from GCSA2 indexing"
 
 rm auto.*
 
 # index a graph with oversized snarls
 nvg index -j auto.dist --snarl-limit 5 graphs/chain-clip.gfa 2> log.txt
-is "$(grep 'oversized snarls' log.txt | wc -l)" 1 "graph has oversized snarls"
+is "$(grep 'oversized snarls' log.txt | wc -l | tr -d " ")" 1 "graph has oversized snarls"
 nvg autoindex -p auto -w lr-giraffe --gfa graphs/chain-clip.gfa
 is "$(echo $?)" 0 "autoindexing successfully completes indexing of graph with oversized snarls"
 

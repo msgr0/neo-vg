@@ -68,7 +68,7 @@ is $(nvg find -A <(nvg find -N <(seq 37 52 ) -x x.xg ) --sorted-gam x.sorted.gam
 
 rm -rf x.gam x.sorted.gam x.sorted.gam.gai
 
-is "$(nvg find -G small/x-s1337-n1.gam -x x.xg | nvg view - | grep ATTAGCCATGTGACTTTGAACAAGTTAGTTAATCTCTCTGAACTTCAGTT | wc -l)" "1" "the index can be queried using GAM alignments"
+is "$(nvg find -G small/x-s1337-n1.gam -x x.xg | nvg view - | grep ATTAGCCATGTGACTTTGAACAAGTTAGTTAATCTCTCTGAACTTCAGTT | wc -l | tr -d " ")" "1" "the index can be queried using GAM alignments"
 
 is "$(nvg find -G small/x-s1337-n1.gam -x x.xg | nvg paths --list -x -)" "x[121-272]" "querying the index with GAM alignments finds relevant subpaths"
 

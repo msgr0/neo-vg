@@ -37,10 +37,10 @@ is $(nvg surject -x x.xg -t 1 -s j.gam | grep -v "@" | cut -f3 | grep x | wc -l)
     100 "nvg surject doesn't need to be told which path to use"
 
 
-head -c -10 j.gam >j-truncated.gam
+head -c $(( $(wc -c < j.gam) - 10 )) j.gam >j-truncated.gam
 nvg surject -p x -x x.xg -t 1 j-truncated.gam >/dev/null 2>log.txt
 is "${?}" "1" "nvg surject stops when the input read file is truncated"
-is "$(grep "truncated input" log.txt | wc -l)" "1" "nvg surject reports that files are truncated"
+is "$(grep "truncated input" log.txt | wc -l | tr -d " ")" "1" "nvg surject reports that files are truncated"
 rm -f j-truncated.gam log.txt
 
 is $(nvg surject -x x.xg -t 1 -s x.gam | grep AS | wc -l) 100 "nvg surject reports alignment scores"
@@ -96,10 +96,10 @@ is "$(nvg surject -p x -x x.xg mapped.fwd.gam -s | cut -f1,3,4,5,6,7,8,9,10,11)"
 
 rm -f fwd.fq rev.fq mapped.fwd.gam mapped.rev.gam
 
-is "$(nvg map -G <(nvg sim -a -n 100 -x x.xg) -g x.gcsa -x x.xg | nvg surject -p x -x x.xg -b - | samtools view - | wc -l)" \
+is "$(nvg map -G <(nvg sim -a -n 100 -x x.xg) -g x.gcsa -x x.xg | nvg surject -p x -x x.xg -b - | samtools view - | wc -l | tr -d " ")" \
     "100" "nvg surject produces valid BAM output"
 
-is "$(nvg map -G <(nvg sim -a -n 100 -x x.vg) -g x.gcsa -x x.vg | nvg surject -p x -x x.xg -c - | samtools view - | wc -l)" \
+is "$(nvg map -G <(nvg sim -a -n 100 -x x.vg) -g x.gcsa -x x.vg | nvg surject -p x -x x.xg -c - | samtools view - | wc -l | tr -d " ")" \
     "100" "nvg surject produces valid CRAM output"
 
 echo '{"sequence": "CAAATAA", "path": {"mapping": [{"position": {"node_id": 1}, "edit": [{"from_length": 7, "to_length": 7}]}]}, "mapping_quality": 99}' | nvg view -JGa - > read.gam
@@ -117,11 +117,11 @@ rm -f read.gam.surject.sam read.gaf.surject.sam
 nvg map -d x -iG <(nvg view -a small/x-s13241-n1-p500-v300.gam | sed 's%_1%/1%' | sed 's%_2%/2%' | nvg view -JaG - ) | nvg surject -x x.xg -p x -s -i -N Sample1 -R RG1 - >surjected.sam
 is "$(cat surjected.sam | grep -v '^@' | sort | cut -f 4)" "$(printf '321\n762')" "surjection of paired reads to SAM yields correct positions"
 is "$(cat surjected.sam | grep -v '^@' | sort | cut -f 8)" "$(printf '762\n321')" "surjection of paired reads to SAM yields correct pair partner positions"
-is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l)" "1" "surjection of paired reads to SAM yields properly matched QNAMEs"
+is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l | tr -d " ")" "1" "surjection of paired reads to SAM yields properly matched QNAMEs"
 is "$(cat surjected.sam | grep -v '^@' | cut -f 7)" "$(printf '=\n=')" "surjection of paired reads to SAM produces correct pair partner contigs"
 is "$(cat surjected.sam | grep -v '^@' | cut -f 2 | sort -n)" "$(printf '83\n163')" "surjection of paired reads to SAM produces correct flags"
-is "$(cat surjected.sam | grep -v '^@' | grep 'RG1' | wc -l)" "2" "surjection of paired reads to SAM tags both reads with a read group"
-is "$(cat surjected.sam | grep '@RG' | grep 'RG1' | grep 'Sample1' | wc -l)" "1" "surjection of paired reads to SAM creates RG header"
+is "$(cat surjected.sam | grep -v '^@' | grep 'RG1' | wc -l | tr -d " ")" "2" "surjection of paired reads to SAM tags both reads with a read group"
+is "$(cat surjected.sam | grep '@RG' | grep 'RG1' | grep 'Sample1' | wc -l | tr -d " ")" "1" "surjection of paired reads to SAM creates RG header"
 
 # a uniform random sequence
 printf "@read TG:Z:val\nGGCGACGTACTAGGGACTACAGTCCTTCGTCTTTCTCTCTCGACTCCGAA\n+\nHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n" > x.fq
@@ -160,9 +160,9 @@ is $(nvg map -b minigiab/NA12878.chr22.tiny.bam -x m.xg -g m.gcsa | nvg surject 
 is $(nvg map -f minigiab/NA12878.chr22.tiny.fq.gz -x m.xg -g m.gcsa | nvg surject -p q -x m.xg -s - | grep chr22.bin8.cram:166:6027 | grep BBBBBFBFI | wc -l) 1 "mapping reproduces qualities from fastq input"
 is $(nvg map -f minigiab/NA12878.chr22.tiny.fq.gz -x m.xg -g m.gcsa --gaf | nvg surject -p q -x m.xg -s - -G | grep chr22.bin8.cram:166:6027 | grep BBBBBFBFI | wc -l) 1 "mapping reproduces qualities from GAF input"
 
-is "$(zcat < minigiab/NA12878.chr22.tiny.fq.gz | head -n 4000 | nvg mpmap -B -p -x m.xg -g m.gcsa -M 1 -f - | nvg surject -m -x m.xg -p q -s - | samtools view | wc -l)" 1000 "surject works on GAMP input"
+is "$(zcat < minigiab/NA12878.chr22.tiny.fq.gz | head -n 4000 | nvg mpmap -B -p -x m.xg -g m.gcsa -M 1 -f - | nvg surject -m -x m.xg -p q -s - | samtools view | wc -l | tr -d " ")" 1000 "surject works on GAMP input"
 
-is "$(nvg sim -x m.xg -n 500 -l 150 -a -s 768594 -i 0.01 -e 0.01 -p 250 -v 50 | nvg view -aX - | nvg mpmap -B -p -b 200 -x m.xg -g m.gcsa -i -M 1 -f - | nvg surject -m -x m.xg -i -p q -s - | samtools view | wc -l)" 1000 "surject works on paired GAMP input"
+is "$(nvg sim -x m.xg -n 500 -l 150 -a -s 768594 -i 0.01 -e 0.01 -p 250 -v 50 | nvg view -aX - | nvg mpmap -B -p -b 200 -x m.xg -g m.gcsa -i -M 1 -f - | nvg surject -m -x m.xg -i -p q -s - | samtools view | wc -l | tr -d " ")" 1000 "surject works on paired GAMP input"
 
 rm -rf minigiab.vg* m.xg m.gcsa
 
@@ -219,25 +219,25 @@ nvg convert x.xg -G mapped.gam -t 1 >mapped.gaf
 nvg surject -x x.xg -G -s -t 1 mapped.gaf >/dev/null 2>/dev/null
 is "$?" 1 "GAF surject produces an error when given paired reads when not in interleaved mode"
 
-is "$(nvg surject -x x.xg -U -s -t 1 mapped.gam | grep -v '@' | wc -l)" 40 "GAM surject can return only primaries"
-is "$(nvg surject -x x.xg -M -U -s -t 1 mapped.gam | grep -v '@' | wc -l)" 80 "GAM surject can return multimappings"
-is "$(nvg surject -x x.xg -M -i -s -t 1 mapped.gam | grep -v '@' | wc -l)" 80 "GAM surject can return paired multimappings"
-is "$(nvg surject -x x.xg -U -s -m -t 1 mapped.gamp | grep -v '@' | wc -l)" 40 "GAMP surject can return only primaries"
-is "$(nvg surject -x x.xg -M -U -m -s -t 1 mapped.gamp | grep -v '@' | wc -l)" 80 "GAMP surject can return multimappings"
-is "$(nvg surject -x x.xg -M -i -m -s -i -t 1 mapped.gamp | grep -v '@' | wc -l)" 80 "GAMP surject can return paired multimappings"
+is "$(nvg surject -x x.xg -U -s -t 1 mapped.gam | grep -v '@' | wc -l | tr -d " ")" 40 "GAM surject can return only primaries"
+is "$(nvg surject -x x.xg -M -U -s -t 1 mapped.gam | grep -v '@' | wc -l | tr -d " ")" 80 "GAM surject can return multimappings"
+is "$(nvg surject -x x.xg -M -i -s -t 1 mapped.gam | grep -v '@' | wc -l | tr -d " ")" 80 "GAM surject can return paired multimappings"
+is "$(nvg surject -x x.xg -U -s -m -t 1 mapped.gamp | grep -v '@' | wc -l | tr -d " ")" 40 "GAMP surject can return only primaries"
+is "$(nvg surject -x x.xg -M -U -m -s -t 1 mapped.gamp | grep -v '@' | wc -l | tr -d " ")" 80 "GAMP surject can return multimappings"
+is "$(nvg surject -x x.xg -M -i -m -s -i -t 1 mapped.gamp | grep -v '@' | wc -l | tr -d " ")" 80 "GAMP surject can return paired multimappings"
 
 nvg construct -r tiny/tiny.fa > tiny.vg
 nvg surject -x tiny.vg -s -t 1 mapped.gam >/dev/null 2>err.txt
 is "${?}" "1" "Surjection fails when using the wrong graph for GAM"
-is "$(cat err.txt | grep 'cannot be interpreted' | wc -l)" "1" "Surjection of GAM to the wrong graph reports the problem"
+is "$(cat err.txt | grep 'cannot be interpreted' | wc -l | tr -d " ")" "1" "Surjection of GAM to the wrong graph reports the problem"
 nvg surject -x tiny.vg -s -t 1 -m mapped.gamp >/dev/null 2>err.txt
 is "${?}" "1" "Surjection fails when using the wrong graph for GAMP"
 cat err.txt 1>&2
-is "$(cat err.txt | grep 'cannot be interpreted' | wc -l)" "1" "Surjection of GAMP to the wrong graph reports the problem"
+is "$(cat err.txt | grep 'cannot be interpreted' | wc -l | tr -d " ")" "1" "Surjection of GAMP to the wrong graph reports the problem"
 
 rm x.vg x.pathdup.vg x.xg x.gcsa x.gcsa.lcp x.gam mapped.gam mapped.gamp tiny.vg err.txt
 
-is "$(nvg surject -p CHM13#0#chr8 -x surject/opposite_strands.gfa --prune-low-cplx --sam-output --gaf-input surject/opposite_strands.gaf | grep -v "^@" | cut -f3-12 | sort | uniq | wc -l)" 1 "nvg surject low compelxity pruning gets the same alignment regardless of read orientation"
+is "$(nvg surject -p CHM13#0#chr8 -x surject/opposite_strands.gfa --prune-low-cplx --sam-output --gaf-input surject/opposite_strands.gaf | grep -v "^@" | cut -f3-12 | sort | uniq | wc -l | tr -d " ")" 1 "nvg surject low compelxity pruning gets the same alignment regardless of read orientation"
 
 is "$(nvg surject -p CHM13#0#chr8 -x surject/opposite_strands.gfa --read-length long --sam-output --gaf-input surject/opposite_strands.gaf)" "$(nvg surject -p CHM13#0#chr8 -x surject/opposite_strands.gfa --prune-low-cplx --sam-output --gaf-input surject/opposite_strands.gaf)" "nvg surject long read preset uses low-complexity pruning"
 
@@ -245,22 +245,22 @@ nvg autoindex -p d -w map -g graphs/long_deletion.gfa
 printf "@read\nGGGAGAGAGAGAGA\n+\nHHHHHHHHHHHHHH\n" > d.fq
 nvg map -d d -f d.fq > d.gam
 nvg surject -u -b -x d.xg d.gam > d.bam
-is "$(samtools view -f 2048 d.bam | wc -l)" "1" "Supplementary alignments can be produced"
-is "$(samtools view -F 2048 d.bam | grep "SA:Z:" | wc -l)" "1" "Primary alignments get the SA tag for supplementaries"
+is "$(samtools view -f 2048 d.bam | wc -l | tr -d " ")" "1" "Supplementary alignments can be produced"
+is "$(samtools view -F 2048 d.bam | grep "SA:Z:" | wc -l | tr -d " ")" "1" "Primary alignments get the SA tag for supplementaries"
 nvg view -ak d.gam > d.gamp
 nvg surject -u -b -x d.xg -m d.gamp > d2.bam
-is "$(samtools view -f 2048 d2.bam | wc -l)" "1" "Supplementary alignments can be produced with GAMP input"
-is "$(samtools view -F 2048 d2.bam | grep "SA:Z:" | wc -l)" "1" "Primary alignments get the SA tag for supplementaries with GAMP input"
+is "$(samtools view -f 2048 d2.bam | wc -l | tr -d " ")" "1" "Supplementary alignments can be produced with GAMP input"
+is "$(samtools view -F 2048 d2.bam | grep "SA:Z:" | wc -l | tr -d " ")" "1" "Primary alignments get the SA tag for supplementaries with GAMP input"
 printf "@read\nTTTCTCTCTCTCTC\n+\nHHHHHHHHHHHHHH\n" > e.fq
 nvg map -d d -f d.fq -f e.fq > e.gam
 nvg surject -u -b -x d.xg -i e.gam > e.bam
-is "$(samtools view -f 2048 e.bam | wc -l)" "2" "Paired supplementary alignments can be produced"
+is "$(samtools view -f 2048 e.bam | wc -l | tr -d " ")" "2" "Paired supplementary alignments can be produced"
 is $(samtools view -f 2048 e.bam | awk '{if ($7 == "=" || $7 == x) {print $0}}' | wc -l) "2" "Paired supplementary alignments have correct mate contig"
 is $(samtools view -f 2112 e.bam | awk '{print $8}') $(samtools view -F 2048 -f 128 e.bam | awk '{print $4}') "Read 1 of paired supplementary alignments has correct mate position"
 is $(samtools view -f 2176 e.bam | awk '{print $8}') $(samtools view -F 2048 -f 64 e.bam | awk '{print $4}') "Read 2 of paired supplementary alignments has correct mate position"
 nvg view -ak e.gam > e.gamp
 nvg surject -u -m -b -x d.xg -i e.gamp > e2.bam
-is "$(samtools view -f 2048 e2.bam | wc -l)" "2" "Paired supplementary alignments can be produced with GAMP input"
+is "$(samtools view -f 2048 e2.bam | wc -l | tr -d " ")" "2" "Paired supplementary alignments can be produced with GAMP input"
 is $(samtools view -f 2048 e2.bam | awk '{if ($7 == "=" || $7 == x) {print $0}}' | wc -l) "2" "Paired supplementary alignments have correct mate contig with GAMP input"
 is $(samtools view -f 2112 e2.bam | awk '{print $8}') $(samtools view -F 2048 -f 128 e2.bam | awk '{print $4}') "Read 1 of paired supplementary alignments has correct mate position with GAMP input"
 is $(samtools view -f 2176 e2.bam | awk '{print $8}') $(samtools view -F 2048 -f 64 e2.bam | awk '{print $4}') "Read 2 of paired supplementary alignments has correct mate position with GAMP input"
@@ -268,10 +268,10 @@ is $(samtools view -f 2176 e2.bam | awk '{print $8}') $(samtools view -F 2048 -f
 nvg autoindex -p f -w map -g graphs/long_inversion.gfa
 nvg map -d f -f d.fq > f.gam
 nvg surject -u -b -x f.xg f.gam > f.bam
-is "$(samtools view -f 2048 f.bam | wc -l)" "1" "Supplementary alignment can be produced with an inversion"
-is "$(samtools view f.bam | cut -f 3 | uniq | wc -l)" "1" "Inversion supplementary is on the same contig"
-is "$(samtools view -F 16 f.bam | wc -l)" "1" "One of inverted primary/supplementary pair is on forward strand"
-is "$(samtools view -f 16 f.bam | wc -l)" "1" "One of inverted primary/supplementary pair is on reverse strand"
+is "$(samtools view -f 2048 f.bam | wc -l | tr -d " ")" "1" "Supplementary alignment can be produced with an inversion"
+is "$(samtools view f.bam | cut -f 3 | uniq | wc -l | tr -d " ")" "1" "Inversion supplementary is on the same contig"
+is "$(samtools view -F 16 f.bam | wc -l | tr -d " ")" "1" "One of inverted primary/supplementary pair is on forward strand"
+is "$(samtools view -f 16 f.bam | wc -l | tr -d " ")" "1" "One of inverted primary/supplementary pair is on reverse strand"
 
 rm d.xg d.gcsa d.gcsa.lcp d.fq d.gam d.gamp d.bam d2.bam e.fq e.gam e.gamp e.bam e2.bam f.xg f.gcsa f.gcsa.lcp f.gam f.bam
 

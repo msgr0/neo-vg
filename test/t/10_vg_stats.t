@@ -11,18 +11,18 @@ nvg construct -r 1mb1kgp/z.fa -v 1mb1kgp/z.vcf.gz >z.vg
 #is $? 0 "construction of a 1 megabase graph from the 1000 Genomes succeeds"
 
 nodes=$(nvg stats -z z.vg | head -1 | cut -f 2)
-real_nodes=$(nvg view -j z.vg | jq -c '.node[]' | wc -l)
+real_nodes=$(nvg view -j z.vg | jq -c '.node[]' | wc -l | tr -d " ")
 is $nodes $real_nodes "nvg stats reports the expected number of nodes"
 
 edges=$(nvg stats -z z.vg | tail -1 | cut -f 2)
-real_edges=$(nvg view -j z.vg | jq -c '.edge[]' | wc -l)
+real_edges=$(nvg view -j z.vg | jq -c '.edge[]' | wc -l | tr -d " ")
 is $edges $real_edges "nvg stats reports the expected number of edges"
 
 graph_length=$(nvg stats -l z.vg | tail -1 | cut -f 2)
-real_length=$(nvg view -j z.vg | jq -r '.node[].sequence' | tr -d '\n' | wc -c)
+real_length=$(nvg view -j z.vg | jq -r '.node[].sequence' | tr -d '\n' | wc -c | tr -d " ")
 is $graph_length $real_length "nvg stats reports the expected graph length"
 
-subgraph_count=$(nvg stats -s z.vg | wc -l)
+subgraph_count=$(nvg stats -s z.vg | wc -l | tr -d " ")
 is $subgraph_count 1 "nvg stats reports the correct number of subgraphs"
 
 subgraph_length=$(nvg stats -s z.vg | head -1 | cut -f 2)

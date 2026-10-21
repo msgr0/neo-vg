@@ -142,7 +142,7 @@ nvg index xy.vg -x xy.xg -g xy.gcsa
 nvg index xy.vg -j xy.dist 
 
 nvg mpmap -B -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -i --frag-mean 50 --frag-stddev 10 -M 1 >xy.sam
-X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l)"
+X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l | tr -d " ")"
 if [ "${X_HITS}" -lt 1200 ] && [ "${X_HITS}" -gt 800 ] ; then
     IN_RANGE="1"
 else
@@ -151,7 +151,7 @@ fi
 is "${IN_RANGE}" "1" "paired reads are evenly split between equivalent mappings"
 
 nvg mpmap -x xy.xg -d xy.dist -g xy.gcsa -G x.gam -F SAM -M 1 >xy.sam
-X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l)"
+X_HITS="$(cat xy.sam | grep -v "^@" | cut -f3 | grep x | wc -l | tr -d " ")"
 if [ "${X_HITS}" -lt 1200 ] && [ "${X_HITS}" -gt 800 ] ; then
     IN_RANGE="1"
 else

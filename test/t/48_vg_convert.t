@@ -48,16 +48,16 @@ rm -f c.vg c.gfa c1.vg c1.info
 nvg construct -r small/x.fa -v small/x.vcf.gz > x.vg
 nvg view x.vg > x.gfa
 
-is "$(nvg convert -a x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "hash graph conversion looks good"
-is "$(nvg convert -p x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "packed graph conversion looks good"
-is "$(nvg convert -v x.vg | nvg view - | wc -l)" "$(wc -l < x.gfa)" "vg conversion looks good"
-is "$(nvg convert -f x.vg | nvg convert -g - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa conversion looks good"
-is "$(nvg convert -x x.vg | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "xg conversion looks good"
+is "$(nvg convert -a x.vg | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "hash graph conversion looks good"
+is "$(nvg convert -p x.vg | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "packed graph conversion looks good"
+is "$(nvg convert -v x.vg | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "vg conversion looks good"
+is "$(nvg convert -f x.vg | nvg convert -g - | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "gfa conversion looks good"
+is "$(nvg convert -x x.vg | nvg find -n 1 -c 300 -x - | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "xg conversion looks good"
 
-is "$(nvg convert -g -a x.gfa | nvg view - | wc -l)" "$(wc -l < x.gfa)" "on disk gfa conversion looks good"
-is "$(cat x.gfa | nvg convert -g -a - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "streaming gfa conversion looks good"
-is "$(nvg convert -g -x x.gfa | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to xg conversion looks good"
-is "$(nvg convert -g -f x.gfa | nvg convert -g - | nvg find -n 1 -c 300 -x - | nvg view - | wc -l)" "$(wc -l < x.gfa)" "gfa to gfa conversion looks good"
+is "$(nvg convert -g -a x.gfa | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "on disk gfa conversion looks good"
+is "$(cat x.gfa | nvg convert -g -a - | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "streaming gfa conversion looks good"
+is "$(nvg convert -g -x x.gfa | nvg find -n 1 -c 300 -x - | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "gfa to xg conversion looks good"
+is "$(nvg convert -g -f x.gfa | nvg convert -g - | nvg find -n 1 -c 300 -x - | nvg view - | wc -l | tr -d " ")" "$(wc -l < x.gfa | tr -d " ")" "gfa to gfa conversion looks good"
 
 rm x.vg x.gfa
 rm -f c.vg c.pg c1.vg c.info c1.info
@@ -206,7 +206,7 @@ is "$?" 0 "3rd column of gfa id translation file contains all gfa nodes"
 rm -f  gfa-id-mapping.tsv rgfa_nodes gfa_nodes rgfa_translated_nodes gfa_translated_nodes
 
 nvg convert -g tiny/tiny.gfa -v | nvg convert - -f -P x > tiny.gfa.rgfa
-is "$(grep ^P tiny.gfa.rgfa | wc -l)" 0 "rgfa output wrote no P-lines"
+is "$(grep ^P tiny.gfa.rgfa | wc -l | tr -d " ")" 0 "rgfa output wrote no P-lines"
 nvg convert -g tiny/tiny.gfa -v | nvg convert - -f | sort > tiny.gfa.gfa
 nvg convert -g tiny.gfa.rgfa -f | sort > tiny.gfa.rgfa.gfa
 diff tiny.gfa.gfa tiny.gfa.rgfa.gfa
@@ -281,10 +281,10 @@ is $? 0 "GBZ to XG conversion creates the correct haplotype paths"
 # GBZ to HashGraph and XG while dropping haplotypes
 nvg convert -x --drop-haplotypes components.gbz > no_haplotypes.xg
 is $? 0 "GBZ to XG conversion while dropping haplotypes"
-is "$(nvg paths -L -x no_haplotypes.xg | wc -l)" "2" "No haplotypes in the converted graph"
+is "$(nvg paths -L -x no_haplotypes.xg | wc -l | tr -d " ")" "2" "No haplotypes in the converted graph"
 nvg convert -xa --drop-haplotypes components.gbz > no_haplotypes.hg
 is $? 0 "GBZ to HashGraph conversion while dropping haplotypes"
-is "$(nvg paths -L -x no_haplotypes.hg | wc -l)" "2" "No haplotypes in the converted graph"
+is "$(nvg paths -L -x no_haplotypes.hg | wc -l | tr -d " ")" "2" "No haplotypes in the converted graph"
 
 # GBZ to GFA with paths and walks (needs 1 thread)
 nvg convert --gbwtgraph-algorithm -f -t 1 components.gbz | grep -v "^H.*NM:Z" > gbz.gfa
@@ -362,12 +362,12 @@ is "${?}" "0" "rGFA -> HashGraph -> GBZ -> GFA conversion preserves path metadat
 # and cover the same paths, like in HPRC release graphs.
 nvg convert -a graphs/components_paths_rgfa.gfa > components_paths_rgfa.hg
 is "${?}" "0" "GFA -> HashGraph conversion works with redundant paths"
-is "$(nvg paths --list -x components_paths_rgfa.hg | wc -l)" "1" "GFA -> HashGraph conversion with redundant paths keeps one copy of the redundant path"
+is "$(nvg paths --list -x components_paths_rgfa.hg | wc -l | tr -d " ")" "1" "GFA -> HashGraph conversion with redundant paths keeps one copy of the redundant path"
 
 # We should be able to handle pseudo-PanSN paths where there is no haplotype
 nvg convert -a graphs/gfa_two_part_reference.gfa > gfa_two_part_reference.hg
 is "${?}" "0" "GFA -> HashGraph conversion works with two-part reference path names"
-is "$(nvg paths -M -x gfa_two_part_reference.hg | grep REFERENCE | wc -l)" "2" "GFA -> HashGraph conversion with with two-part reference path names gets the right paths"
+is "$(nvg paths -M -x gfa_two_part_reference.hg | grep REFERENCE | wc -l | tr -d " ")" "2" "GFA -> HashGraph conversion with with two-part reference path names gets the right paths"
 
 rm -f paths.truth.txt paths.gbz.txt paths.gfa.txt paths.hg.txt
 rm -f gfa_with_reference.gbz rgfa_with_reference.gbz gfa_with_reference.hg components_paths_rgfa.hg gfa_two_part_reference.hg rgfa_with_reference.hg extracted.gfa 

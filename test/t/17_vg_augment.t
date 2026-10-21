@@ -15,7 +15,7 @@ nvg view -J -a -G pileup/edits.json > edits.gam
 nvg augment tiny.vg edits.gam -A edits-embedded.gam > augmented.vg
 
 # We want 3 edits with no sequence per read, and we have 12 reads in this file.
-is "$(nvg view -aj edits-embedded.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l)" "36" "direct augmentation embeds reads fully for well-supported SNPs"
+is "$(nvg view -aj edits-embedded.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l | tr -d " ")" "36" "direct augmentation embeds reads fully for well-supported SNPs"
 is "$(nvg stats -N augmented.vg)" "18" "adding a well-supported SNP by direct augmentation adds 3 more nodes"
 
 # Run again but with packed logic.  output should be identical with min threshold of 1
@@ -26,7 +26,7 @@ is "$(nvg stats -N augmented.m1.vg)" "18" "adding a well-supported SNP by direct
 nvg convert tiny.vg -G edits.gam > edits.gaf
 nvg augment tiny.vg edits.gaf -F -A edits-embedded.gaf > augmented.gaf.vg
 nvg convert augmented.gaf.vg -F edits-embedded.gaf > edits-embedded.gaf.gam
-is "$(nvg view -aj edits-embedded.gaf.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l)" "36" "direct augmentation embeds with GAF reads fully for well-supported SNPs"
+is "$(nvg view -aj edits-embedded.gaf.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l | tr -d " ")" "36" "direct augmentation embeds with GAF reads fully for well-supported SNPs"
 is "$(nvg stats -N augmented.gaf.vg)" "18" "adding a well-supported SNP by direct augmentation with GAF adds 3 more nodes"
 
 rm -f edits.gam edits-embedded.gam augmented.vg augmented.m1.vg edits.gaf edits-embedded.gaf augmented.gaf.vg edits-embedded.gaf.gam
@@ -36,7 +36,7 @@ nvg view -J -a -G pileup/edit.json > edit.gam
 nvg augment tiny.vg edit.gam -A edit-embedded.gam > augmented.vg
 
 # This file only has one read.
-is "$(nvg view -aj edit-embedded.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l)" "3" "direct augmentation embeds reads fully for probable errors"
+is "$(nvg view -aj edit-embedded.gam | jq -c '.path.mapping[].edit[].sequence' | grep null | wc -l | tr -d " ")" "3" "direct augmentation embeds reads fully for probable errors"
 is "$(nvg stats -N augmented.vg)" "18" "adding a probable error by direct augmentation adds 3 more nodes"
 
 rm -f edit.gam edit-embedded.gam augmented.vg

@@ -48,17 +48,17 @@ is $(nvg view -d ./cyclic/all.vg | wc -l) 23 "view produces the expected number 
 nvg construct -r small/x.fa -v small/x.vcf.gz | nvg view -v - >x.vg
 is $(cat x.vg x.vg x.vg x.vg | nvg view -c - | wc -l) 4 "streaming JSON output produces the expected number of chunks"
 
-is "$(cat x.vg x.vg | nvg view -vVD - 2>&1 > /dev/null | grep warning | grep -v deprecated | wc -l)" 0 "duplicate warnings can be suppressed when loading as vg::VG"
+is "$(cat x.vg x.vg | nvg view -vVD - 2>&1 > /dev/null | grep warning | grep -v deprecated | wc -l | tr -d " ")" 0 "duplicate warnings can be suppressed when loading as vg::VG"
 
 rm x.vg
 
 nvg view -Fv overlaps/two_snvs_assembly1.gfa >/dev/null 2>errors.txt
 is "${?}" "1" "gfa graphs with overlaps are rejected"
-is "$(cat errors.txt | fgrep "Input GFA is not acceptable" | wc -l)" "1" "GFA import produces a concise error message when overlaps are present"
+is "$(cat errors.txt | fgrep "Input GFA is not acceptable" | wc -l | tr -d " ")" "1" "GFA import produces a concise error message when overlaps are present"
 
 nvg view -Fv overlaps/incorrect_overlap.gfa >/dev/null 2>errors.txt
 is "$?" "1" "GFA import rejects a GFA file with an overlap that goes beyond its sequences"
-is "$(cat errors.txt | fgrep "Input GFA is not acceptable" | wc -l)" "1" "GFA import produces a concise error message in that case"
+is "$(cat errors.txt | fgrep "Input GFA is not acceptable" | wc -l | tr -d " ")" "1" "GFA import produces a concise error message in that case"
 
 rm -f errors.txt
 

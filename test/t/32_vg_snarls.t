@@ -153,12 +153,12 @@ is "$(nvg snarls --named-coordinates graphs/components_walks_named.gfa | nvg vie
 # Find traversals from a chopped GBZ-ified GFA in node ID space
 nvg autoindex -p index -g graphs/big_snarl_named.gfa -w giraffe
 nvg snarls index.giraffe.gbz --traversals traversals.dat >/dev/null
-is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.node_id // .name)' | wc -l)" "7" "In node ID space traversal visits 7 nodes"
-is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.snarl)' | wc -l)" "4" "In node ID space traversal visits 4 trivial snarls"
+is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.node_id // .name)' | wc -l | tr -d " ")" "7" "In node ID space traversal visits 7 nodes"
+is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.snarl)' | wc -l | tr -d " ")" "4" "In node ID space traversal visits 4 trivial snarls"
 
 # And in GFA space
 nvg snarls index.giraffe.gbz --traversals traversals.dat --named-coordinates >/dev/null
-is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.node_id // .name)' | wc -l)" "3" "In segment name space traversal visits 3 segments"
-is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.snarl)' | wc -l)" "0" "In segment name space traversal visits 0 trivial snarls"
+is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.node_id // .name)' | wc -l | tr -d " ")" "3" "In segment name space traversal visits 3 segments"
+is "$(nvg view -Ej traversals.dat | jq -c 'select(.visit | length > 2) | .visit[] | select(.snarl)' | wc -l | tr -d " ")" "0" "In segment name space traversal visits 0 trivial snarls"
 
 rm -f index.* traversals.dat

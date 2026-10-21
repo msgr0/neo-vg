@@ -17,10 +17,10 @@ is $(nvg filter x.gam | nvg view -a - | jq . | grep mapping | wc -l) 5000 "nvg f
 # Passing a non-GAM gives a useful error
 nvg filter x.vg 2> err.txt
 is $? 1 "nvg filter fails on non-GAM input"
-is "$(grep 'does not appear to be a GAM' err.txt | wc -l)" 1 "nvg filter gives useful error message on non-GAM input"
+is "$(grep 'does not appear to be a GAM' err.txt | wc -l | tr -d " ")" 1 "nvg filter gives useful error message on non-GAM input"
 
 # Downsampling works
-SAMPLED_COUNT=$(nvg filter x.gam --downsample 0.5 | nvg view -aj - | wc -l)
+SAMPLED_COUNT=$(nvg filter x.gam --downsample 0.5 | nvg view -aj - | wc -l | tr -d " ")
 OUT_OF_RANGE=0
 if [[ "${SAMPLED_COUNT}" -lt 2000 || "${SAMPLED_COUNT}" -gt 3000 ]]; then
     # Make sure it's in a reasonable range for targeting 50%.
@@ -32,8 +32,8 @@ fi
 
 is "${OUT_OF_RANGE}" "0" "nvg filter downsamples correctly"
 
-is "$(nvg filter x.gam --max-reads 4999 | nvg view -aj - | wc -l)" "4999" "nvg filter can limit max reads"
-is "$(nvg filter x.gam --max-reads 4999 -i | nvg view -aj - | wc -l)" "4998" "nvg filter can limit max reads when paired"
+is "$(nvg filter x.gam --max-reads 4999 | nvg view -aj - | wc -l | tr -d " ")" "4999" "nvg filter can limit max reads"
+is "$(nvg filter x.gam --max-reads 4999 -i | nvg view -aj - | wc -l | tr -d " ")" "4998" "nvg filter can limit max reads when paired"
 
 cp small/x-s1-l100-n100-p50.gam paired.gam
 cp small/x-s1-l100-n100.gam single.gam
@@ -65,27 +65,27 @@ nvg filter -d 0.2 -t 10 single.gam > filtered.gam
 is "$(nvg view -aj filtered.gam | jq -rc '.name' | sort | md5sum | cut -f1 -d' ')" "${SINGLE_HASH}" "samtools 1.0+ and nvg filter agree on how to select downsampled unpaired reads"
 
 nvg annotate -p -x x.xg -a paired.gam > paired.annotated.gam
-is "$(nvg filter -X "[a-f]" paired.annotated.gam | nvg view -aj - | wc -l)" "200" "reads with refpos annotations not matching an exclusion regex are let through"
-is "$(nvg filter -X "[w-z]" paired.annotated.gam | nvg view -aj - | wc -l)" "0" "reads with refpos annotations matching an exclusion regex are removed"
+is "$(nvg filter -X "[a-f]" paired.annotated.gam | nvg view -aj - | wc -l | tr -d " ")" "200" "reads with refpos annotations not matching an exclusion regex are let through"
+is "$(nvg filter -X "[w-z]" paired.annotated.gam | nvg view -aj - | wc -l | tr -d " ")" "0" "reads with refpos annotations matching an exclusion regex are removed"
 
-is "$(nvg filter -U x.gam | nvg view -aj - | wc -l)" "0" "negating a non-filter results in no reads"
+is "$(nvg filter -U x.gam | nvg view -aj - | wc -l | tr -d " ")" "0" "negating a non-filter results in no reads"
 
-is "$(cat <(nvg filter -U -d 123.5 -t 10 paired.gam | nvg view -aj -) <(nvg filter -d 123.5 -t 10 paired.gam | nvg view -aj -)  | wc -l)" "$(nvg view -aj paired.gam | wc -l)" "a filter and its complement should form the entire file"
+is "$(cat <(nvg filter -U -d 123.5 -t 10 paired.gam | nvg view -aj -) <(nvg filter -d 123.5 -t 10 paired.gam | nvg view -aj -)  | wc -l | tr -d " ")" "$(nvg view -aj paired.gam | wc -l | tr -d " ")" "a filter and its complement should form the entire file"
 
 nvg index -x g.xg -g g.gcsa -k 16 graphs/refonly-lrc_kir.vg
 nvg mpmap -x g.xg -g g.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 10 -D 50 -F GAM -t 1 > g.proper.gam
 nvg mpmap -x g.xg -g g.gcsa -f reads/grch38_lrc_kir_paired.fq -n dna -B -i -I 10 -D 1 -F GAM -t 1 > g.improper.gam
 
-is "$(nvg filter -p g.proper.gam | nvg view -aj - | wc -l)" 2 "properly paired read passes proper filter"
-is "$(nvg filter -p g.improper.gam | nvg view -aj - | wc -l)" 0 "improperly paired read fails proper filter"
+is "$(nvg filter -p g.proper.gam | nvg view -aj - | wc -l | tr -d " ")" 2 "properly paired read passes proper filter"
+is "$(nvg filter -p g.improper.gam | nvg view -aj - | wc -l | tr -d " ")" 0 "improperly paired read fails proper filter"
 
 rm g.xg g.gcsa g.gcsa.lcp g.proper.gam g.improper.gam
 
 
-is "$(echo '{"sequence": "GATTACA", "name": "read1", "annotation": {"features": ["test"]}, "fragment_next": {"name": "read2"}}{"sequence": "CATTAG", "name": "read2", "fragment_prev":{"name": "read1"}}' | nvg view -JGa - | nvg filter -F "test" -i - | nvg view -aj - | wc -l)" "0" "read pairs can be tropped by feature"
-is "$(echo '{"sequence": "GATTACA", "name": "read1", "annotation": {"features": ["test"]}, "fragment_next": {"name": "read2"}}{"sequence": "CATTAG", "name": "read2", "fragment_prev":{"name": "read1"}}' | nvg view -JGa - | nvg filter -F "test" -I - | nvg view -aj - | wc -l)" "2" "read pairs can be kept if only one read fails"
+is "$(echo '{"sequence": "GATTACA", "name": "read1", "annotation": {"features": ["test"]}, "fragment_next": {"name": "read2"}}{"sequence": "CATTAG", "name": "read2", "fragment_prev":{"name": "read1"}}' | nvg view -JGa - | nvg filter -F "test" -i - | nvg view -aj - | wc -l | tr -d " ")" "0" "read pairs can be tropped by feature"
+is "$(echo '{"sequence": "GATTACA", "name": "read1", "annotation": {"features": ["test"]}, "fragment_next": {"name": "read2"}}{"sequence": "CATTAG", "name": "read2", "fragment_prev":{"name": "read1"}}' | nvg view -JGa - | nvg filter -F "test" -I - | nvg view -aj - | wc -l | tr -d " ")" "2" "read pairs can be kept if only one read fails"
 
-is "$(echo '{"sequence": "GATTACA", "name": "read1"}' | nvg view -JGa - | nvg filter -P - | nvg view -aj - | wc -l)" "0" "unmapped reads can be filtered out"
+is "$(echo '{"sequence": "GATTACA", "name": "read1"}' | nvg view -JGa - | nvg filter -P - | nvg view -aj - | wc -l | tr -d " ")" "0" "unmapped reads can be filtered out"
 
 
 rm -f x.gam filter_chunk*.gam chunks.bed err.txt

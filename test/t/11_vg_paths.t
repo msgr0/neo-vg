@@ -126,7 +126,7 @@ nvg gbwt --gbz-format -x x.pg x.gbwt -g x.gbz
 nvg paths --list -x x.gbz >out.txt
 
 is "${?}" "0" "nvg paths can list paths from a GBZ with only haplotypes"
-is "$(cat out.txt | wc -l)" "1" "nvg paths sees the haplotype path in a GBZ with only haplotypes"
+is "$(cat out.txt | wc -l | tr -d " ")" "1" "nvg paths sees the haplotype path in a GBZ with only haplotypes"
 diff <(nvg paths -x tiny/tiny.gfa -F | sort) <(nvg paths -x tiny/tiny.gfaz -F | sort)
 is "${?}" "0" "nvg paths emits matching path FASTA for equivalent GFA and GFAZ inputs"
 

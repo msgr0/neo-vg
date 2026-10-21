@@ -13,14 +13,14 @@ nvg mod -N t.vg >t.ref.vg
 nvg index -x t.xg t.vg
 nvg index -x t.ref.xg t.ref.vg
 
-is "$(nvg annotate -n -x t.ref.xg -a tiny/tiny-s7331-n10-l50.gam | awk '{ if ($5 < 50) print }' | wc -l)" "10" "we can detect when reads contain non-reference variation"
+is "$(nvg annotate -n -x t.ref.xg -a tiny/tiny-s7331-n10-l50.gam | awk '{ if ($5 < 50) print }' | wc -l | tr -d " ")" "10" "we can detect when reads contain non-reference variation"
 
 nvg annotate -b tiny/tiny.bed -x t.ref.xg -a tiny/tiny-s543-n30-l10.gam > annotated.gam
-is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat1 | wc -l)" 3 "nvg annotate finds the right number of reads overlapping a feature"
-is "$(nvg view -aj annotated.gam | grep feat1 | grep -e '"node_id": *"1"' | wc -l)" "$(nvg view -aj annotated.gam | grep feat1 | wc -l)" "all reads overlapping a feature fall on its node"
-is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat1 | grep feat2 | wc -l)" 0 "nvg annotate finds no reads touching both of two distant features"
-is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat2 | grep feat3 | wc -l)" 2 "nvg annotate shows reads having to go through one feature to get to another at the end"
-is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep featAll | wc -l)" 30 "nvg annotate shows all reads overlapping a whole-reference-covering feature"
+is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat1 | wc -l | tr -d " ")" 3 "nvg annotate finds the right number of reads overlapping a feature"
+is "$(nvg view -aj annotated.gam | grep feat1 | grep -e '"node_id": *"1"' | wc -l | tr -d " ")" "$(nvg view -aj annotated.gam | grep feat1 | wc -l | tr -d " ")" "all reads overlapping a feature fall on its node"
+is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat1 | grep feat2 | wc -l | tr -d " ")" 0 "nvg annotate finds no reads touching both of two distant features"
+is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep feat2 | grep feat3 | wc -l | tr -d " ")" 2 "nvg annotate shows reads having to go through one feature to get to another at the end"
+is "$(nvg view -aj annotated.gam | jq -c '.annotation.features' | grep featAll | wc -l | tr -d " ")" 30 "nvg annotate shows all reads overlapping a whole-reference-covering feature"
 
 rm -f t.vg t.ref.vg t.xg t.ref.xg annotated.gam
 
@@ -29,8 +29,8 @@ nvg index -x x.xg x.vg
 
 nvg annotate -p -x x.xg -a small/x-s1337-n1.gam > annot.gam
 
-is "$(nvg annotate -p -x x.xg -a small/x-s1337-n1.gam | nvg view -aj - | jq -c '.refpos[]' | wc -l)" "1" "annotating with earliest path position produces one position"
-is "$(nvg annotate -m -x x.xg -a small/x-s1337-n1.gam | nvg view -aj - | jq -c '.refpos[]' | wc -l)" "13" "annotating with multiple path positions produces multiple positions"
+is "$(nvg annotate -p -x x.xg -a small/x-s1337-n1.gam | nvg view -aj - | jq -c '.refpos[]' | wc -l | tr -d " ")" "1" "annotating with earliest path position produces one position"
+is "$(nvg annotate -m -x x.xg -a small/x-s1337-n1.gam | nvg view -aj - | jq -c '.refpos[]' | wc -l | tr -d " ")" "13" "annotating with multiple path positions produces multiple positions"
 
 rm -f x.xg x.vg annot.gam
 

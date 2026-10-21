@@ -28,32 +28,32 @@ is $(echo "("$(nvg pack -x 2snp.xg -di 2snp.gam.cx.3x | tail -n+2 | awk '{ print
 
 is $(echo "("$(nvg pack -x 2snp.xg -di 2snp.gam.cx.3x | tail -n+2 | awk '{ print $4 }' | paste -sd+ - )")"/3 | bc) $(echo "("$(nvg pack -x 2snp.xg -di 2snp.gam.cx | tail -n+2 | awk '{ print $4 }' | paste -sd+ - )")" | bc) "edit records are merged from multiple .cx indexes"
 
-x=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c )
+x=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c | tr -d " ")
 nvg pack -x flat.xg -o 2snp.gam.cx -b 10 -g 2snp.gam
-y=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c )
+y=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c | tr -d " ")
 is $x $y "binned edit accumulation does not affect the result"
 
-x=$(nvg pack -x flat.xg -di 2snp.gam.cx -n 1 | wc -c)
-y=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c)
+x=$(nvg pack -x flat.xg -di 2snp.gam.cx -n 1 | wc -c | tr -d " ")
+y=$(nvg pack -x flat.xg -di 2snp.gam.cx | wc -c | tr -d " ")
 is $x $y "pack records are filtered by node id"
 
-x=$(nvg pack -x flat.xg -di 2snp.gam.cx -n 1 | cut -f 2 | grep -v "1" | wc -c)
-y=$(nvg pack -x flat.xg -di 2snp.gam.cx | cut -f 2 | head -n 1 | wc -c)
+x=$(nvg pack -x flat.xg -di 2snp.gam.cx -n 1 | cut -f 2 | grep -v "1" | wc -c | tr -d " ")
+y=$(nvg pack -x flat.xg -di 2snp.gam.cx | cut -f 2 | head -n 1 | wc -c | tr -d " ")
 is $x $y "pack records are filtered by node id"
 
 nvg pack -x flat.xg -o 2snp.gam.cx -g 2snp.gam
 nvg pack -x flat.xg -o 2snp.gam.cx.3x -i 2snp.gam.cx -i 2snp.gam.cx -i 2snp.gam.cx
-x=$(nvg pack -x flat.xg -di 2snp.gam.cx.3x | wc -c)
+x=$(nvg pack -x flat.xg -di 2snp.gam.cx.3x | wc -c | tr -d " ")
 cat 2snp.gam 2snp.gam 2snp.gam | nvg pack -x flat.xg -o 2snp.gam.cx -g -
-y=$(nvg pack -x flat.xg -di 2snp.gam.cx.3x | wc -c)
+y=$(nvg pack -x flat.xg -di 2snp.gam.cx.3x | wc -c | tr -d " ")
 
 is $x $y "pack index merging produces the expected result"
 
 nvg pack -x flat.xg -o 2snp.gam.cx -g 2snp.gam
 nvg pack -x flat.xg -o 2snp.gam.cx.3x -i 2snp.gam.cx -i 2snp.gam.cx -i 2snp.gam.cx
-x=$(nvg pack -x flat.xg -Di 2snp.gam.cx.3x | wc -c)
+x=$(nvg pack -x flat.xg -Di 2snp.gam.cx.3x | wc -c | tr -d " ")
 cat 2snp.gam 2snp.gam 2snp.gam | nvg pack -x flat.xg -o 2snp.gam.cx -g -
-y=$(nvg pack -x flat.xg -Di 2snp.gam.cx.3x | wc -c)
+y=$(nvg pack -x flat.xg -Di 2snp.gam.cx.3x | wc -c | tr -d " ")
 
 is $x $y "pack index merging produces the expected result for edges"
 

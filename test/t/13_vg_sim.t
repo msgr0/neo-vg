@@ -68,31 +68,31 @@ nvg gbwt -o xy.gbwt -v small/x.vcf.gz -x xy.vg
 nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 --any-path >/dev/null
 is $? "0" "Sample simulation works along with --any-path"
 
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "not having any regexes skips all unvisited contigs"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "not having any regexes skips all unvisited contigs"
 is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex candyfloss:12345 | jq -c 'select(.refpos[].name == "x")' | wc -l | awk '{print ($0>450&&$0<550)?1:0}')" "1" "assigning a ploidy of 2 by default gives reads in a ~1-1 ratio vs. diploid covered contigs"
 is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1 | jq -c 'select(.refpos[].name == "x")' | wc -l | awk '{print ($0>620&&$0<720)?1:0}')" "1" "assigning a ploidy of 1 by regex gives reads in a ~1-2 ratio vs. diploid covered contigs"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "assigning a ploidy of 0 by regex excludes reads from that contig"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex a:5,b:10,y:0,c:6 | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "multiple regexes are interpreted"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex "[^x]:0" | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "regexes are interpreted as regexes"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1E20 | jq -c 'select(.refpos[].name == "y")' | wc -l)" "1000" "assigning a very high ploidy by regex starves out the other paths"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "assigning a ploidy of 0 by regex excludes reads from that contig"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex a:5,b:10,y:0,c:6 | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "multiple regexes are interpreted"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex "[^x]:0" | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "regexes are interpreted as regexes"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1E20 | jq -c 'select(.refpos[].name == "y")' | wc -l | tr -d " ")" "1000" "assigning a very high ploidy by regex starves out the other paths"
 
 nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 --any-path -F minigiab/NA12878.chr22.tiny.fq.gz >/dev/null
 is $? "0" "Sample simulation works along with --any-path with training FASTQ"
 
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "not having any regexes skips all unvisited contigs with training FASTQ"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "not having any regexes skips all unvisited contigs with training FASTQ"
 is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex candyfloss:12345 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | awk '{print ($0>450&&$0<550)?1:0}')" "1" "assigning a ploidy of 2 by default gives reads in a ~1-1 ratio vs. diploid covered contigs with training FASTQ"
 is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | awk '{print ($0>620&&$0<720)?1:0}')" "1" "assigning a ploidy of 1 by regex gives reads in a ~1-2 ratio vs. diploid covered contigs with training FASTQ"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "assigning a ploidy of 0 by regex excludes reads from that contig with training FASTQ"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex a:5,b:10,y:0,c:6 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "multiple regexes are interpreted with training FASTQ"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex "[^x]:0" -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l)" "1000" "regexes are interpreted as regexes with training FASTQ"
-is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1E20 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "y")' | wc -l)" "1000" "assigning a very high ploidy by regex starves out the other paths with training FASTQ"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:0 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "assigning a ploidy of 0 by regex excludes reads from that contig with training FASTQ"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex a:5,b:10,y:0,c:6 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "multiple regexes are interpreted with training FASTQ"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex "[^x]:0" -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "x")' | wc -l | tr -d " ")" "1000" "regexes are interpreted as regexes with training FASTQ"
+is "$(nvg sim -s 12345 -n 1000 -l 2 -e 0.1 -x xy.xg -g xy.gbwt --sample-name 1 -aJ --ploidy-regex y:1E20 -F minigiab/NA12878.chr22.tiny.fq.gz | jq -c 'select(.refpos[].name == "y")' | wc -l | tr -d " ")" "1000" "assigning a very high ploidy by regex starves out the other paths with training FASTQ"
 
 rm -f xy.vg xy.xg xy.gbwt
 
 nvg construct -r small/x.fa -v small/x.vcf.gz -a >x.vg
 nvg index -x x.xg x.vg
-is "$(nvg sim -s 12345 -n 1000 -l 64 -e 0.1 -x x.xg -aJ | jq -c 'select(.refpos | length == 1)' | wc -l)" "1000" "All reads are annotated with single reference positions by default"
-is "$(nvg sim -s 12345 -n 1000 -l 64 -e 0.1 -x x.xg -aJ --multi-position | jq -c 'select(.refpos | length > 1)' | wc -l)" "1000" "All reads can be annotated with multiple reference positions when requested"
+is "$(nvg sim -s 12345 -n 1000 -l 64 -e 0.1 -x x.xg -aJ | jq -c 'select(.refpos | length == 1)' | wc -l | tr -d " ")" "1000" "All reads are annotated with single reference positions by default"
+is "$(nvg sim -s 12345 -n 1000 -l 64 -e 0.1 -x x.xg -aJ --multi-position | jq -c 'select(.refpos | length > 1)' | wc -l | tr -d " ")" "1000" "All reads can be annotated with multiple reference positions when requested"
 
 rm -f x.vg x.xg
 

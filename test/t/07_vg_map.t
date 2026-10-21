@@ -51,7 +51,7 @@ is $(nvg map -s $seq -w 30 -x x.xg -g x.gcsa -j | wc -l) 1 "chunky-banded alignm
 scores=$(nvg map -s GCACCAGGACCCAGAGAGTTGGAATGCCAGGCATTTCCTCTGTTTTCTTTCACCG -x x.xg -g x.gcsa -j -M 2 | jq -r '.score' | tr '\n' ',')
 is "${scores}" $(printf ${scores} | tr ',' '\n' | sort -nr | tr '\n' ',')  "multiple alignments are returned in descending score order"
 
-is "$(nvg map -s GCACCAGGACCCAGAGAGTTGGAATGCCAGGCATTTCCTCTGTTTTCTTTCACCG -x x.xg -g x.gcsa -j -M 2 | jq -r -c 'select(.is_secondary | not)' | wc -l)" "1" "only a single primary alignment is returned"
+is "$(nvg map -s GCACCAGGACCCAGAGAGTTGGAATGCCAGGCATTTCCTCTGTTTTCTTTCACCG -x x.xg -g x.gcsa -j -M 2 | jq -r -c 'select(.is_secondary | not)' | wc -l | tr -d " ")" "1" "only a single primary alignment is returned"
 
 nvg map -d x -f small/r.fa > /dev/null
 is $? 0 "vg can map multi-line FASTA sequences" 
@@ -68,8 +68,8 @@ is $(samtools bam2fq minigiab/NA12878.chr22.tiny.bam 2>/dev/null | nvg map -f - 
 
 is $(samtools bam2fq minigiab/NA12878.chr22.tiny.bam 2>/dev/null | nvg map -f - -x giab.xg -g giab.gcsa -M 2 -j | jq -r -c 'select(.is_secondary | not)' | wc -l) $(samtools bam2fq minigiab/NA12878.chr22.tiny.bam 2>/dev/null | nvg map -f - -x giab.xg -g giab.gcsa -M 1 -j | wc -l) "allowing secondary alignments with MEM mapping does not change number of primary alignments"
 
-count_prev=$(samtools sort -n minigiab/NA12878.chr22.tiny.bam -T sorting.tmp | samtools bam2fq - 2>/dev/null | nvg map -if - -x giab.xg -g giab.gcsa | nvg view -a - | jq -r .fragment_prev.name | grep null | wc -l)
-count_next=$(samtools sort -n minigiab/NA12878.chr22.tiny.bam -T sorting.tmp | samtools bam2fq - 2>/dev/null | nvg map -if - -x giab.xg -g giab.gcsa | nvg view -a - | jq -r .fragment_next.name | grep null | wc -l)
+count_prev=$(samtools sort -n minigiab/NA12878.chr22.tiny.bam -T sorting.tmp | samtools bam2fq - 2>/dev/null | nvg map -if - -x giab.xg -g giab.gcsa | nvg view -a - | jq -r .fragment_prev.name | grep null | wc -l | tr -d " ")
+count_next=$(samtools sort -n minigiab/NA12878.chr22.tiny.bam -T sorting.tmp | samtools bam2fq - 2>/dev/null | nvg map -if - -x giab.xg -g giab.gcsa | nvg view -a - | jq -r .fragment_next.name | grep null | wc -l | tr -d " ")
 
 is $count_prev $count_next "vg connects paired-end reads in gam output"
 
@@ -167,7 +167,7 @@ is "$(nvg map -x x.xg -g x.gcsa --gbwt-name x.gbwt --hap-exp 1 --full-l-bonus 0 
 nvg map -d x -iG <(nvg view -a small/x-s13241-n1-p500-v300.gam | sed 's%_1%/1%' | sed 's%_2%/2%' | nvg view -JaG - ) --surject-to SAM >surjected.sam
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 4)" "$(printf '321\n762')" "surjection of paired reads to SAM yields correct positions"
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 8)" "$(printf '762\n321')" "surjection of paired reads to SAM yields correct pair partner positions"
-is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l)" "1" "surjection of paired reads to SAM yields properly matched QNAMEs"
+is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l | tr -d " ")" "1" "surjection of paired reads to SAM yields properly matched QNAMEs"
 is "$(cat surjected.sam | grep -v '^@' | cut -f 7)" "$(printf '=\n=')" "surjection of paired reads to SAM produces correct pair partner contigs"
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 2)" "$(printf '163\n83')" "surjection of paired reads to SAM produces correct flags"
 
@@ -175,7 +175,7 @@ is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 2)" "$(printf '163\n8
 nvg map -d x -G <(nvg view -a small/x-s13241-n1-p500-v300.gam | sed 's%_1%/1%' | sed 's%_2%/2%' | nvg view -JaG - ) --surject-to SAM >surjected.sam
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 4)" "$(printf '321\n762')" "surjection of unpaired reads to SAM yields correct positions"
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 8)" "$(printf '0\n0')" "surjection of unpaired reads to SAM yields correct pair partner positions"
-is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l)" "2" "surjection of unpaired reads to SAM yields distinct QNAMEs"
+is "$(cat surjected.sam | grep -v '^@' | cut -f 1 | sort | uniq | wc -l | tr -d " ")" "2" "surjection of unpaired reads to SAM yields distinct QNAMEs"
 is "$(cat surjected.sam | grep -v '^@' | cut -f 7)" "$(printf '*\n*')" "surjection of unpaired reads to SAM produces absent partner contigs"
 is "$(cat surjected.sam | grep -v '^@' | sort -k4 | cut -f 2)" "$(printf '0\n16')" "surjection of unpaired reads to SAM produces correct flags"
 

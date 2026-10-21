@@ -67,7 +67,7 @@ rm -f x.alts.gaf.gbwt x.alts.gam.gbwt
 nvg construct -r small/x.fa -v small/x.vcf.gz -a --region x:100-200 > x.part.vg
 nvg gbwt -x x.part.vg -o x.part.gbwt --vcf-region x:100-200 -v small/x.vcf.gz 2> log.txt
 is $? 0 "chromosome X subgraph GBWT with nvg gbwt"
-is "$(cat log.txt | wc -c)" 0 "no warnings about missing variants"
+is "$(cat log.txt | wc -c | tr -d " ")" 0 "no warnings about missing variants"
 
 rm -f x.part.vg x.part.gbwt log.txt
 
@@ -416,8 +416,8 @@ is $? 0 "GBZ GBWT tag extraction works"
 is "$(grep reference_samples tags.tsv | cut -f2 | tr ' ' '\\n' | sort | tr '\\n' ' ')" "GRCh37 GRCh38" "GBWT tags contain the correct reference samples"
 nvg gbwt -g gfa2.gbz -Z gfa.gbz --set-tag "reference_samples=GRCh38 CHM13"
 is $? 0 "GBZ GBWT tag modification works"
-is "$(nvg paths -M -S GRCh37 -x gfa2.gbz | grep -v "^#" | cut -f2 | grep HAPLOTYPE | wc -l)" "1" "Changing reference_samples tag can make a reference a haplotype"
-is "$(nvg paths -M -S CHM13 -x gfa2.gbz | grep -v "^#" | cut -f2 | grep REFERENCE | wc -l)" "1" "Changing reference_samples tag can make a haplotype a reference"
+is "$(nvg paths -M -S GRCh37 -x gfa2.gbz | grep -v "^#" | cut -f2 | grep HAPLOTYPE | wc -l | tr -d " ")" "1" "Changing reference_samples tag can make a reference a haplotype"
+is "$(nvg paths -M -S CHM13 -x gfa2.gbz | grep -v "^#" | cut -f2 | grep REFERENCE | wc -l | tr -d " ")" "1" "Changing reference_samples tag can make a haplotype a reference"
 nvg gbwt -g gfa2.gbz -Z gfa.gbz --set-tag "reference_samples=GRCh38#1 CHM13" 2>/dev/null
 is $? 1 "GBZ GBWT tag modification validation works"
 nvg gbwt -g gfa3.gbz --set-reference GRCh37 --set-reference CHM13 -Z gfa2.gbz
@@ -455,7 +455,7 @@ rm -f gfa.gbz gfa2.gbz gfa3.gbz tags.tsv gfa_version.gbz gfa_default.gbz
 
 # Build a GBZ from a graph with a reference but no haplotype phase number
 nvg gbwt -g gfa.gbz -G graphs/gfa_two_part_reference.gfa
-is "$(nvg paths -M --reference-paths -x gfa.gbz | grep -v "^#" | cut -f4 | grep NO_HAPLOTYPE | wc -l)" "2" "GBZ can represent reference paths without haplotype numbers"
+is "$(nvg paths -M --reference-paths -x gfa.gbz | grep -v "^#" | cut -f4 | grep NO_HAPLOTYPE | wc -l | tr -d " ")" "2" "GBZ can represent reference paths without haplotype numbers"
 
 rm -f gfa.gbz
 
