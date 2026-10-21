@@ -604,11 +604,10 @@ void HTSWriter::save_records(bam_hdr_t* header, vector<bam1_t*>& records, size_t
         // Emit each record
         int sam_write_error = sam_write1(sam_files[thread_number], header, b);
         if (sam_write_error < 0) {
-            cerr << "[vg::HTSWriter] error: writing to output file failed with sam_write1 error code " << sam_write_error << endl;
             if (format == "CRAM") {
                 header_mutex.unlock();
             }
-            exit(1);
+            logging::error("vg::HTSWriter") << "writing to output file failed with sam_write1 error code " << sam_write_error << endl;
         }
     }
     

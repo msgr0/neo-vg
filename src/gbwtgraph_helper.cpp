@@ -563,7 +563,8 @@ gbwtgraph::DefaultMinimizerIndex build_minimizer_index(
 
     // Build the index.
     if (params.progress) {
-        auto s = logger.info() << "Building MinimizerIndex with k = " << index.k();
+        auto s = logger.info();
+        s << "Building MinimizerIndex with k = " << index.k();
         if (index.uses_syncmers()) {
             s << ", s = " << index.s();
         } else {

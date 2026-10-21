@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 /** \file
  * log.hpp: defines a basic logging system for vg.
@@ -26,7 +27,7 @@
  * 
  * These functions return a cerrWrapper object that behaves like a stream.
  * You can stream things to it with operator<<, and when the object goes out
- * of scope, it will exit the program with a failure code (in the case of
+ * of scope, it will write the message to std::cerr in one go and exit the program with a failure code (in the case of
  * error) or do nothing (in the case of warn() and info()).
  * 
  * Logging functions may either be accessed via logging::info/warn/error, or
@@ -35,33 +36,37 @@
 
 namespace vg {
 
+/// Exit with a failure code. Safe to call from worker threads: there it skips
+/// static destructors, which would otherwise free data the other threads are
+/// still using.
+[[noreturn]] void fatal_exit();
+
 // https://stackoverflow.com/a/25615354/
 class cerrWrapper {
 private:
     bool exit_on_destruct;
+    // Buffered so the whole message reaches stderr in one write and does not
+    // interleave with other threads' output.
+    std::ostringstream buffer;
 
 public:
     cerrWrapper(std::string prefix, bool exit_on_destruct) :
         exit_on_destruct(exit_on_destruct) {
-        std::cerr << prefix;
+        buffer << prefix;
     }
 
     template <typename T>
     cerrWrapper& operator<<(const T& t) {
-        std::cerr << t;
+        buffer << t;
         return *this;
     }
 
     cerrWrapper& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        std::cerr << manip;
+        buffer << manip;
         return *this;
     }
 
-    ~cerrWrapper() {
-        if (exit_on_destruct) {
-            exit(EXIT_FAILURE);
-        }
-    }
+    ~cerrWrapper();
 };
 
 namespace logging {

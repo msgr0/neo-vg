@@ -13,6 +13,7 @@
 
 #include "crash.hpp"
 #include "version.hpp"
+#include "log.hpp"
 
 // iostream wants this on Travis on Mac
 #include <pthread.h>
@@ -42,6 +43,7 @@
 #include <sstream>
 #include <signal.h>
 #include <typeinfo>
+#include <atomic>
 
 #if !(defined(__APPLE__) && defined(__x86_64__))
     #ifndef __APPLE__
@@ -308,6 +310,21 @@ void stacktrace_manually(ostream& out, int signalNumber, void* ip, void** bp) {
 
 /// Emit a stack trace when something bad happens. Add as a signal handler with sigaction.
 void emit_stacktrace(int signalNumber, siginfo_t *signalInfo, void *signalContext) {
+    // Only one thread writes a crash report; others that crash meanwhile wait
+    // here for it to end the process.
+    static std::atomic<bool> crashing(false);
+    static pthread_t crashing_thread;
+    if (crashing.exchange(true)) {
+        if (pthread_equal(crashing_thread, pthread_self())) {
+            // We crashed again while writing the report.
+            _exit(signalNumber + 128);
+        }
+        while (true) {
+            pause();
+        }
+    }
+    crashing_thread = pthread_self();
+
     ofstream tempStream;
     string dirName;
     ostream* out;
@@ -325,9 +342,15 @@ void emit_stacktrace(int signalNumber, siginfo_t *signalInfo, void *signalContex
         }
         temp += "/vg_crash_XXXXXX";
         char* tempDir = mkdtemp((char*)temp.c_str());
-        dirName = tempDir;
-        tempStream.open(dirName+ "/stacktrace.txt");
-        out = &tempStream;
+        if (tempDir != nullptr) {
+            dirName = tempDir;
+            tempStream.open(dirName+ "/stacktrace.txt");
+            out = &tempStream;
+        } else {
+            // Nowhere to save the trace, so print it.
+            fullTrace = true;
+            out = &cerr;
+        }
     }
     
     draw_br();
@@ -422,8 +445,9 @@ void emit_stacktrace(int signalNumber, siginfo_t *signalInfo, void *signalContex
         cerr << "Please include the stack trace file in your bug report!" << endl;
     }
     draw_br();
-    // Make sure to exit with the right code
-    exit(signalNumber + 128);
+    // Make sure to exit with the right code. Don't run static destructors:
+    // other threads may still be using what they would free.
+    _exit(signalNumber + 128);
 }
 
 void enable_crash_handling() {
@@ -462,16 +486,16 @@ void enable_crash_handling() {
 }
 
 void report_exception(const std::exception& ex) {
-    #pragma omp critical (cerr)
-    {
-        std::cerr << std::endl;
-        draw_br();
-        std::cerr << "Unhandled exception of type " << typeid(ex).name() << ": " << ex.what() << std::endl;
-        if (!stored_crash_context.empty()) {
-            std::cerr << "Exception context: " << stored_crash_context << std::endl;
-        }
+    int status;
+    char* type_name = abi::__cxa_demangle(typeid(ex).name(), nullptr, nullptr, &status);
+    // No abort(): a stack trace of this catch block would not say where the
+    // exception came from.
+    auto error = logging::error("vg");
+    error << "Unhandled exception of type " << (status == 0 ? type_name : typeid(ex).name()) << ": " << ex.what() << std::endl;
+    free(type_name);
+    if (!stored_crash_context.empty()) {
+        error << "Exception context: " << stored_crash_context << std::endl;
     }
-    abort();
 }
 
 void crash_unless_failed(const char* condition_string, const char* file, int line, const char* function) {

@@ -4435,9 +4435,7 @@ void check_quality_length(const Alignment& aln) {
         ss << " Was the quality information truncated?";
     }
     
-    #pragma omp critical (cerr)
-    std::cerr << "error [vg::alignment.cpp]: " << ss.str() << std::endl;
-    exit(1);
+    logging::error("vg::alignment.cpp") << ss.str() << std::endl;
 }
 
 AlignmentValidity alignment_is_valid(const Alignment& aln, const HandleGraph* hgraph, bool check_sequence) {

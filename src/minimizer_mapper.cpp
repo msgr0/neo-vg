@@ -2984,7 +2984,7 @@ double MinimizerMapper::faster_cap(const VectorView<Minimizer>& minimizers, vect
                     std::cerr << (char) (33 + (int)q);
                 }
                 std::cerr << std::endl;
-                exit(1);
+                fatal_exit();
             }
         }
     }
@@ -3029,7 +3029,7 @@ double MinimizerMapper::faster_cap(const VectorView<Minimizer>& minimizers, vect
                 }
                 std::cerr << std::endl;
             }
-            exit(1);
+            fatal_exit();
         }
         
         // Calculate prob of all intervals up to top being disrupted
@@ -3075,7 +3075,7 @@ double MinimizerMapper::faster_cap(const VectorView<Minimizer>& minimizers, vect
             }
             std::cerr << std::endl;
         }
-        exit(1);
+        fatal_exit();
     }
     
     // Conver to Phred.
@@ -3113,7 +3113,7 @@ void MinimizerMapper::for_each_agglomeration_interval(const VectorView<Minimizer
                     #pragma omp critical (cerr)
                     {
                         std::cerr << "error[MinimizerMapper::faster_cap]: Minimizers not sorted properly for read with sequence " << sequence << "! Agglomeration on stack ends at " << stack_top_end << " but we are at " << left << " from a previous agglomeration" << std::endl;
-                        exit(1);
+                        fatal_exit();
                     }
                 }
                 
@@ -3142,7 +3142,7 @@ void MinimizerMapper::for_each_agglomeration_interval(const VectorView<Minimizer
             #pragma omp critical (cerr)
             {
                 std::cerr << "error[MinimizerMapper::faster_cap]: Minimizers not stacked up properly for read with sequence " << sequence << "!" << std::endl;
-                exit(1);
+                fatal_exit();
             }
         }
 
