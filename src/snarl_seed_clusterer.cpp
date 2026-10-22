@@ -913,19 +913,44 @@ void SnarlDistanceIndexClusterer::compare_and_combine_cluster_on_child_structure
 
 
 
+    //Every distance compared below is some cluster's distance to an end of its child, plus a
+    //distance in the parent, plus the other child's best read or fragment distance to an end.
+    //If even the smallest such sum is over both limits, nothing can combine, so skip the
+    //distance queries and treat the children as unreachable from each other.
+    auto closest_head = [&](const SnarlTreeNodeProblem* child) {
+        size_t closest = std::numeric_limits<size_t>::max();
+        for (const auto& head : child->read_cluster_heads) {
+            const pair<size_t, size_t>& d = child_distances[head.second + clustering_problem.seed_count_prefix_sum[head.first]];
+            closest = std::min({closest, d.first, d.second});
+        }
+        return closest;
+    };
+    auto closest_end = [](const SnarlTreeNodeProblem* child) {
+        return std::min({child->fragment_best_left, child->fragment_best_right,
+                         child->read_best_left.first, child->read_best_left.second,
+                         child->read_best_right.first, child->read_best_right.second});
+    };
+    size_t closest_possible = std::min(SnarlDistanceIndex::sum(closest_head(child_problem1), closest_end(child_problem2)),
+                                       SnarlDistanceIndex::sum(closest_head(child_problem2), closest_end(child_problem1)));
+    bool too_far = SnarlDistanceIndex::minus(closest_possible, 1) > 
+                   std::max(clustering_problem.read_distance_limit, clustering_problem.fragment_distance_limit);
+    if (is_root && too_far) {
+        return;
+    }
+
     //Get the distances between the two sides of the children in the parent
-    size_t distance_left_left = distance_index.distance_in_parent(parent_handle, distance_index.flip(child_handle1), 
+    size_t distance_left_left = too_far ? std::numeric_limits<size_t>::max() : distance_index.distance_in_parent(parent_handle, distance_index.flip(child_handle1), 
                                             distance_index.flip(child_handle2), graph,
                                             (clustering_problem.fragment_distance_limit == 0 ? clustering_problem.read_distance_limit 
                                                                                      : clustering_problem.fragment_distance_limit));
-    size_t distance_left_right = distance_index.distance_in_parent(parent_handle, distance_index.flip(child_handle1), 
+    size_t distance_left_right = too_far ? std::numeric_limits<size_t>::max() : distance_index.distance_in_parent(parent_handle, distance_index.flip(child_handle1), 
                                             child_handle2, graph,
                                             (clustering_problem.fragment_distance_limit == 0 ? clustering_problem.read_distance_limit 
                                                                                      : clustering_problem.fragment_distance_limit));
-    size_t distance_right_right = distance_index.distance_in_parent(parent_handle, child_handle1, child_handle2, graph,
+    size_t distance_right_right = too_far ? std::numeric_limits<size_t>::max() : distance_index.distance_in_parent(parent_handle, child_handle1, child_handle2, graph,
                                             (clustering_problem.fragment_distance_limit == 0 ? clustering_problem.read_distance_limit 
                                                                                      : clustering_problem.fragment_distance_limit));
-    size_t distance_right_left = distance_index.distance_in_parent(parent_handle, child_handle1, 
+    size_t distance_right_left = too_far ? std::numeric_limits<size_t>::max() : distance_index.distance_in_parent(parent_handle, child_handle1, 
                                             distance_index.flip(child_handle2), graph,
                                             (clustering_problem.fragment_distance_limit == 0 ? clustering_problem.read_distance_limit 
                                                                                      : clustering_problem.fragment_distance_limit));
@@ -961,8 +986,8 @@ void SnarlDistanceIndexClusterer::compare_and_combine_cluster_on_child_structure
      */
 
     //The cluster heads that will be removed from the parent's read_cluster_heads
-    vector<pair<size_t, size_t>> to_erase;
-    to_erase.reserve(parent_problem->read_cluster_heads.size());
+    vector<pair<size_t, size_t>>& to_erase = clustering_problem.to_erase;
+    to_erase.clear();
 
     //Helper function that will compare two clusters
     //Given the read num and seed_num of the cluster head, the distance to the other node side we're looking at, 
@@ -1543,8 +1568,8 @@ void SnarlDistanceIndexClusterer::cluster_one_snarl(ClusteringProblem& clusterin
 
         //The old distances from clusters to the bounds of the children, since we will be updating the distances
         //to represent distances to the parent
-        vector<pair<size_t, size_t>> child_distances (clustering_problem.seed_count_prefix_sum.back(), 
-                                                      make_pair(std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()));
+        vector<pair<size_t, size_t>>& child_distances = clustering_problem.child_distances;
+        child_distances.resize(clustering_problem.seed_count_prefix_sum.back());
 
 
         for (size_t i = 0 ; i < snarl_problem->children.size() ; i++) {

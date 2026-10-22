@@ -399,6 +399,12 @@ class SnarlDistanceIndexClusterer {
             hash_map<net_handle_t, size_t> net_handle_to_node_problem_index;
             //This stores all the snarl tree nodes and their clustering scratch work 
             vector<SnarlTreeNodeProblem> all_node_problems;
+
+            //Scratch space reused across snarls and child comparisons, so they don't allocate.
+            //child_distances holds each cluster head's distances to the ends of its child,
+            //indexed like the fragment union find; entries are written before they are read.
+            vector<pair<size_t, size_t>> child_distances;
+            vector<pair<size_t, size_t>> to_erase;
            
             //All chains for the current level of the snarl tree and gets updated as the algorithm
             //moves up the snarl tree. At one iteration, the algorithm will go through each chain

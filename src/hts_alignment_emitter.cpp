@@ -111,6 +111,26 @@ SequenceDictionary get_sequence_dictionary(const string& filename, const vector<
     // Subpath support: map to paths from their base name without a subrange.
     // Includes full-length paths if they exist, and subrange-bearing paths otherwise.
     unordered_map<string, vector<path_handle_t>> base_path_to_subpaths;
+
+    // All paths (full or subpaths) grouped by base name, built on first use in one pass.
+    // for_each_subpath_of() scans every path in the graph, so calling it once per base
+    // name is quadratic in the number of paths.
+    unordered_map<string, vector<path_handle_t>> all_paths_by_base;
+    bool all_paths_by_base_built = false;
+    auto for_each_path_on_base = [&](const string& base_name, const std::function<void(const path_handle_t&)>& iteratee) {
+        if (!all_paths_by_base_built) {
+            graph.for_each_path_matching(nullptr, nullptr, nullptr, [&](const path_handle_t& path) {
+                all_paths_by_base[get_path_base_name(graph, path)].push_back(path);
+            });
+            all_paths_by_base_built = true;
+        }
+        auto found = all_paths_by_base.find(base_name);
+        if (found != all_paths_by_base.end()) {
+            for (const path_handle_t& path : found->second) {
+                iteratee(path);
+            }
+        }
+    };
     
     // Parse the input base paths into this list, in order.
     std::vector<std::string> input_names;
@@ -178,12 +198,10 @@ SequenceDictionary get_sequence_dictionary(const string& filename, const vector<
         } else {
             // The graph doesn't have this exact path; does it have any subregions of a full path with this name?
             // If so, remember and use those.
-            for_each_subpath_of(graph, sequence_name, [&](const path_handle_t& match) {
+            for_each_path_on_base(sequence_name, [&](const path_handle_t& match) {
                 // We know this can't be an exact match, since we already checked for one. It must be a subrange.
                 // We found a subpath we're looking for.
                 base_path_to_subpaths[sequence_name].push_back(match);
-                // Keep looking for more.
-                return true;
             });
             if (!base_path_to_subpaths.count(sequence_name)) {
                 // We didn't find any subpaths for this path as a base path either.
@@ -392,7 +410,7 @@ SequenceDictionary get_sequence_dictionary(const string& filename, const vector<
             // Initialize length to -1
             length_it = input_lengths.emplace_hint(length_it, base_name, -1);
 
-            for_each_subpath_of(graph, base_name, [&](const path_handle_t& path) {
+            for_each_path_on_base(base_name, [&](const path_handle_t& path) {
                 // Scan it and all its subpaths
                 subrange_t subrange = graph.get_subrange(path);
                 if (subrange == PathMetadata::NO_SUBRANGE) {
@@ -409,8 +427,6 @@ SequenceDictionary get_sequence_dictionary(const string& filename, const vector<
                     // Max the end offset in against all the end offsets we have seen so far.
                     length_it->second = std::max(length_it->second, (int64_t) end_offset);
                 }
-                // Keep going
-                return true;
             });
         }
 
@@ -559,7 +575,13 @@ bam_hdr_t* HTSWriter::ensure_header(const string& read_group,
             
             // Make the header
             header = hts_string_header(sam_header, sequence_dictionary, rg_sample);
-            
+
+            // sam_hdr_name2tid() builds its name lookup table lazily and without
+            // locking, so with many contigs every thread would parse the whole
+            // header at once and leak all but one table. Build it now, before
+            // other threads can see the header.
+            sam_hdr_name2tid(header, "");
+
             // Initialize the SAM file for this thread and actually keep the header
             // we write, since we are the first thread.
             initialize_sam_file(header, thread_number, true);
