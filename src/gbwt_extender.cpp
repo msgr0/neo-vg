@@ -585,6 +585,19 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
             GaplessExtension curr = std::move(extensions.top().first);
             extensions.pop();
 
+            // Only the best maximal extension from this seed is kept, so skip anything that
+            // cannot beat it even if every open read base matched and every open end became
+            // full-length (ties keep the incumbent). The kept extension does not change.
+            if (!best_match.empty()) {
+                size_t open_bases = (curr.left_maximal ? 0 : curr.read_interval.first)
+                    + (curr.right_maximal ? 0 : sequence.length() - curr.read_interval.second);
+                int32_t bound = curr.score + static_cast<int32_t>(open_bases * this->aligner->scorer->match)
+                    + static_cast<int32_t>((!curr.left_maximal + !curr.right_maximal) * this->aligner->scorer->full_length_bonus);
+                if (bound <= best_match.score) {
+                    continue;
+                }
+            }
+
             // Case 1: Extend to the right.
             if (!curr.right_maximal) {
                 size_t num_extensions = 0;
