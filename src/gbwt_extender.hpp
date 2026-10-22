@@ -85,9 +85,6 @@ struct GaplessExtension
     /// Number of shared (read position, graph position) pairs in the extensions.
     size_t overlap(const HandleGraph& graph, const GaplessExtension& another) const;
     
-    /// Take a prefix of the extension as a new GaplessExtension object.
-    GaplessExtension prefix(size_t prefix_length) const;
-
     /// Convert the extension into a Path. The sequence should be the full read-space sequence. 
     Path to_path(const HandleGraph& graph, const std::string& sequence) const;
 
@@ -149,9 +146,6 @@ public:
     /// position pairs is at most this.
     constexpr static double OVERLAP_THRESHOLD = 0.8;
 
-    /// Create an empty GaplessExtender.
-    GaplessExtender();
-
     /// Create a GaplessExtender using the given GBWTGraph and Aligner objects.
     GaplessExtender(const gbwtgraph::GBWTGraph& graph, const Aligner& aligner);
 
@@ -165,11 +159,6 @@ public:
     static pos_t get_pos(seed_type seed) {
         gbwt::node_type node = gbwtgraph::GBWTGraph::handle_to_node(seed.first);
         return make_pos_t(gbwt::Node::id(node), gbwt::Node::is_reverse(node), get_node_offset(seed));
-    }
-
-    /// Get the handle from a seed.
-    static handle_t get_handle(seed_type seed) {
-        return seed.first;
     }
 
     /// Get the node offset from a seed.
@@ -397,9 +386,6 @@ public:
     
     /// If not specified, we use this default error model.
     static const ErrorModel default_error_model;
-
-    /// Create an empty WFAExtender.
-    WFAExtender();
 
     /// Create a WFAExtender using the given GBWTGraph and Aligner objects.
     /// If an error model is passed, use that instead of the default error model.

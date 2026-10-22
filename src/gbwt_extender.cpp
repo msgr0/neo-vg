@@ -171,11 +171,6 @@ void ReadMasker::operator()(std::string& sequence) const {
 
 //------------------------------------------------------------------------------
 
-GaplessExtender::GaplessExtender() :
-    graph(nullptr), aligner(nullptr), mask("ACGT")
-{
-}
-
 GaplessExtender::GaplessExtender(const gbwtgraph::GBWTGraph& graph, const Aligner& aligner) :
     graph(&graph), aligner(&aligner), mask("ACGT")
 {
@@ -404,14 +399,6 @@ std::vector<handle_t> get_path(handle_t first, const std::vector<handle_t>& seco
     result.push_back(first);
     result.insert(result.end(), second.begin(), second.end());
     return result;
-}
-
-std::vector<handle_t> get_path(const std::vector<handle_t>& first, gbwt::node_type second) {
-    return get_path(first, gbwtgraph::GBWTGraph::node_to_handle(second));
-}
-
-std::vector<handle_t> get_path(gbwt::node_type reverse_first, const std::vector<handle_t>& second) {
-    return get_path(gbwtgraph::GBWTGraph::node_to_handle(gbwt::Node::reverse(reverse_first)), second);
 }
 
 //------------------------------------------------------------------------------
@@ -744,20 +731,6 @@ bool GaplessExtender::full_length_extensions(const std::vector<GaplessExtension>
 
 //------------------------------------------------------------------------------
 
-struct state_hash {
-    size_t operator()(const gbwt::BidirectionalState& state) const {
-        size_t result = wang_hash_64(state.forward.node);
-        result ^= wang_hash_64(state.forward.range.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
-        result ^= wang_hash_64(state.forward.range.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
-        result ^= wang_hash_64(state.backward.node) + 0x9e3779b9 + (result << 6) + (result >> 2);
-        result ^= wang_hash_64(state.backward.range.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
-        result ^= wang_hash_64(state.backward.range.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
-        return result;
-    }
-};
-
-//------------------------------------------------------------------------------
-
 WFAAlignment WFAAlignment::from_extension(const GaplessExtension& extension) {
 
     // Start by aggregate-initializing.
@@ -858,19 +831,7 @@ void WFAAlignment::append(Edit edit, uint32_t length) {
     }
 }
 
-//#define debug_join
-
 void WFAAlignment::join(const WFAAlignment& second) {
-#ifdef debug_join
-    std::cerr << "Joining alignment of sequence " << seq_offset << " - " << (seq_offset + length)
-        << " with alignment of " << second.seq_offset << " - " << (second.seq_offset + second.length) << std::endl;
-    std::cerr << "Left alignment: ";
-    print(std::cerr);
-    std::cerr << std::endl;
-    std::cerr << "Right alignment: ";
-    second.print(std::cerr);
-    std::cerr << std::endl;
-#endif
 
     if (!ok) {
         throw std::runtime_error("Cannot join onto an alignment that is not OK");
@@ -948,8 +909,6 @@ void WFAAlignment::join(const WFAAlignment& second) {
 
     // And that's all the fields we have!
 }
-
-//#define debug_path
 
 Path WFAAlignment::to_path(const HandleGraph& graph, const std::string& sequence) const {
 
@@ -1042,10 +1001,6 @@ Path WFAAlignment::to_path(const HandleGraph& graph, const std::string& sequence
 
         assert(length_to_resolve > 0);
 
-#ifdef debug_path
-        std::cerr << "Use " << length_to_resolve << " bp of " << edit_it->second << edit_it->first << " against node " << (path_it != this->path.end() ? graph.get_id(*path_it) : (nid_t)0) << " to go from edit " << (edit_it - edits.begin()) << " offset " << current_edit_used << " = path step " << (path_it - path.begin()) << " offset " << node_cursor;
-#endif
-
         // Create a vg Edit to translate to
         vg::Edit* created = mapping_in_progress->add_edit();
 
@@ -1081,10 +1036,6 @@ Path WFAAlignment::to_path(const HandleGraph& graph, const std::string& sequence
             if (node_cursor == node_end) {
                 // Finished the node.
 
-#ifdef debug_path
-                std::cerr << " (leave node at path step " << (path_it - path.begin()) << " offset " << node_cursor << ")";
-#endif
-
                 // We already checked above, and the path cursor isn't at the end.
                 assert(path_it != this->path.end());
 
@@ -1114,9 +1065,6 @@ Path WFAAlignment::to_path(const HandleGraph& graph, const std::string& sequence
             }
         }
 
-#ifdef debug_path
-        std::cerr << " to edit " << (edit_it - edits.begin()) << " offset " << current_edit_used << " = path step " << (path_it - path.begin()) << " offset " << node_cursor << std::endl;
-#endif
     }
 
     return result;
@@ -1243,11 +1191,6 @@ const WFAExtender::ErrorModel WFAExtender::default_error_model {
     WFAExtender::ErrorModel::default_gap_length(),
     WFAExtender::ErrorModel::default_distance()
 };
-
-WFAExtender::WFAExtender() :
-    graph(nullptr), mask("ACGT"), aligner(nullptr)
-{
-}
 
 WFAExtender::WFAExtender(const gbwtgraph::GBWTGraph& graph, const Aligner& aligner, const ErrorModel& error_model) :
     graph(&graph), mask("ACGT"), aligner(&aligner), error_model(&error_model)
@@ -2047,19 +1990,11 @@ private:
 
 //------------------------------------------------------------------------------
 
-//#define debug_connect
-
 WFAAlignment WFAExtender::connect(std::string sequence, pos_t from, pos_t to) const {
     if (this->graph == nullptr || this->aligner == nullptr) {
-#ifdef debug_connect
-        std::cerr << "No graph or no aligner! Returning empty alignment!" << std::endl;
-#endif
         return WFAAlignment();
     }
     if (!this->graph->has_node(id(from))) {
-#ifdef debug_connect
-        std::cerr << "No start node! Returning empty alignment!" << std::endl;
-#endif
         return WFAAlignment();
     }
 
@@ -2068,9 +2003,6 @@ WFAAlignment WFAExtender::connect(std::string sequence, pos_t from, pos_t to) co
 
     std::int32_t score = 0;
     while (true) {
-#ifdef debug_connect
-        std::cerr << "Extend for score " << score << std::endl;
-#endif
         tree.extend(score);
 
         // Update the minimum distance for points we will still consider.
@@ -2078,26 +2010,17 @@ WFAAlignment WFAExtender::connect(std::string sequence, pos_t from, pos_t to) co
         if (distance_band < tree.max_distance) {
             tree.min_distance = tree.max_distance - distance_band;
         }
-#ifdef debug_connect
-        std::cerr << "Max distance is " << tree.max_distance << ", min distance is " << tree.min_distance << std::endl;
-#endif
 
         if (tree.candidate_point.score <= score) {
             break;
         }
 
         score = tree.next_score(score);
-#ifdef debug_connect
-        std::cerr << "Next score will be " << score << std::endl;
-#endif
 
         if (score > tree.score_bound) {
             break;
         }
 
-#ifdef debug_connect
-        std::cerr << "Next for score " << score << std::endl;
-#endif
         tree.next(score);
     }
 
@@ -2107,9 +2030,6 @@ WFAAlignment WFAExtender::connect(std::string sequence, pos_t from, pos_t to) co
     bool full_length = true;
     std::uint32_t unaligned_tail = sequence.length() - tree.candidate_point.seq_offset;
     if (tree.candidate_point.score > tree.score_bound) {
-#ifdef debug_connect
-        std::cerr << "No alignment could be found under score bound of " << tree.score_bound << "; best found was " << tree.candidate_point.score << std::endl;
-#endif
         unaligned_tail = 0;
         if (WFATree::no_pos(to)) {
             tree.trim(*(this->aligner));
@@ -2228,9 +2148,6 @@ WFAAlignment WFAExtender::connect(std::string sequence, pos_t from, pos_t to) co
         }
     }
 
-#ifdef debug_connect
-    std::cerr << "Found an alignment." << std::endl;
-#endif
     return result;
 }
 

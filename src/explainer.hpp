@@ -136,68 +136,6 @@ void TSVExplainer::field(const T& value) {
 }
 
 /**
- * Widget to serialize somewhat structured logs.
- */
-class ProblemDumpExplainer : public Explainer {
-public:
-    /// Construct a ProblemDumpExplainer that will save a dump of a problem to a file.
-    ProblemDumpExplainer(bool enabled, const std::string& name = "problem");
-    /// Close out the file being explained to
-    ~ProblemDumpExplainer();
-    
-    // We think in JSON, but with support for vg types.
-    
-    /// Begin an object in a value context.
-    void object_start();
-    /// End an object after its last value.
-    void object_end();
-    /// Begin an array in a value context.
-    void array_start();
-    /// End an array after its last value.
-    void array_end();
-    
-    /// Put the key for a value, inside an object
-    void key(const std::string& k);
-    
-    /// Put a value after a key or in an array.
-    /// Assumes the string is pre-escaped.
-    void value(const std::string& v);
-    /// Put a value after a key or in an array.
-    void value(double v);
-    /// Put a value after a key or in an array.
-    void value(size_t v);
-    /// Put a value after a key or in an array.
-    void value(int v);
-    /// Put a value after a key or in an array.
-    void value(bool v);
-    /// Put a value after a key or in an array.
-    void value(vg::id_t v);
-    /// Put a value after a key or in an array.
-    /// Represents the position as a vg Protobuf Position.
-    void value(const pos_t& v);
-    /// Put a value after a key or in an array.
-    /// Represents the graph as a single chunk vg Protobuf Graph.
-    void value(const HandleGraph& v);
-    /// Put a value after a key or in an array.
-    /// Represents a handle as a vg Protobuf Position.
-    void value(const handle_t& v, const HandleGraph& context);
-    
-protected:
-    /// Stream being written to
-    ofstream out;
-    /// Whether we need a comma before the next key or value.
-    bool need_comma = false;
-    
-    /// Write a separating comma if needed.
-    inline void comma() {
-        if (need_comma) {
-            out << ",";
-            need_comma = false;
-        }
-    }
-};
-
-/**
  * Widget to log statistics to a GraphViz file.
  */
 class DiagramExplainer : public Explainer {

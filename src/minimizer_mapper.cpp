@@ -33,7 +33,6 @@
 // Turn on debugging prints
 //#define debug
 // Turn on printing of minimizer fact tables
-//#define print_minimizer_table
 // Dump local graphs that we align against 
 //#define debug_dump_graph
 // Dump fragment length distribution information
@@ -192,53 +191,6 @@ string MinimizerMapper::log_bits(const std::vector<bool>& bits) {
         }
     }
     return ss.str();
-}
-
-void MinimizerMapper::dump_chaining_problem(const std::vector<algorithms::Anchor>& anchors, const std::vector<size_t>& cluster_seeds_sorted, const HandleGraph& graph) {
-    ProblemDumpExplainer exp(true);
-    
-    // We need to keep track of all the points we want in our problem subgraph.
-    std::vector<pos_t> seed_positions;
-    seed_positions.reserve(cluster_seeds_sorted.size());
-    
-    exp.object_start();
-    
-    // Save all the items
-    exp.key("items");
-    exp.array_start();
-    for (auto& index : cluster_seeds_sorted) {
-        exp.object_start();
-        exp.key("read_start");
-        exp.value(anchors[index].read_start());
-        exp.key("read_end");
-        exp.value(anchors[index].read_end());
-        
-        pos_t graph_start = anchors[index].graph_start();
-        seed_positions.push_back(graph_start);
-        exp.key("graph_start");
-        exp.value(graph_start);
-        exp.key("graph_end");
-        exp.value(anchors[index].graph_end());
-
-        exp.key("read_exclusion_start");
-        exp.value(anchors[index].read_exclusion_start());
-        exp.key("read_exclusion_end");
-        exp.value(anchors[index].read_exclusion_start());
-        
-        // added info of supported paths
-        exp.key("paths");
-        exp.value(static_cast<std::size_t>(anchors[index].anchor_start_paths()));
-        exp.object_end();
-    }
-    exp.array_end();
-    
-    // Get the subgraph for the cluster
-    HashGraph subgraph;
-    algorithms::extract_containing_graph(&graph, &subgraph, seed_positions, 10000);
-    exp.key("subgraph");
-    exp.value(subgraph);
-    
-    exp.object_end();
 }
 
 void MinimizerMapper::dump_debug_sequence(ostream& out, const string& sequence, size_t start_offset, size_t length_limit) {
@@ -833,9 +785,6 @@ vector<Alignment> MinimizerMapper::map_from_extensions(Alignment& aln) {
         funnel.stage("align");
     }
 
-    //How many of each minimizer ends up in an extension set that actually gets turned into an alignment?
-    vector<size_t> minimizer_extensions_count(minimizers.size(), 0);
-    
     // Now start the alignment step. Everything has to become an alignment.
 
     // We will fill this with all computed alignments in estimated score order.
@@ -1031,7 +980,6 @@ vector<Alignment> MinimizerMapper::map_from_extensions(Alignment& aln) {
             }
 
             for (size_t i = 0 ; i < minimizer_extended_cluster_count[extension_num].size() ; i++) {
-                minimizer_extensions_count[i] += minimizer_extended_cluster_count[extension_num][i];
                 if (minimizer_extended_cluster_count[extension_num][i] > 0) {
                     // This minimizer is in an extended cluster that gave rise
                     // to at least one alignment, so it is explored.
@@ -1143,10 +1091,6 @@ vector<Alignment> MinimizerMapper::map_from_extensions(Alignment& aln) {
     double mapq = (mappings.front().path().mapping_size() == 0) ? 0 : 
         get_regular_aligner()->mapq_calc->compute_max_mapping_quality(scores, false) ;
 
-#ifdef print_minimizer_table
-    double uncapped_mapq = mapq;
-#endif
-    
     if (show_work) {
         #pragma omp critical (cerr)
         {
@@ -1237,37 +1181,6 @@ vector<Alignment> MinimizerMapper::map_from_extensions(Alignment& aln) {
         }
     }
     
-#ifdef print_minimizer_table
-    cerr << aln.sequence() << "\t";
-    for (char c : aln.quality()) {
-        cerr << (char)(c+33);
-    }
-    cerr << "\t" << clusters.size();
-    for (size_t i = 0 ; i < minimizers.size() ; i++) {
-        auto& minimizer = minimizers[i];
-        cerr << "\t"
-             << minimizer.value.key.decode(minimizer.length) << "\t"
-             << minimizer.forward_offset() << "\t"
-             << minimizer.agglomeration_start << "\t"
-             << minimizer.agglomeration_length << "\t"
-             << minimizer.hits << "\t"
-             << minimizer_extensions_count[i];
-         if (minimizer_extensions_count[i]>0) {
-             crash_unless(minimizer.hits<=hard_hit_cap) ;
-         }
-    }
-    cerr << "\t" << uncapped_mapq << "\t" << mapq_explored_cap << "\t"  << mappings.front().mapping_quality() << "\t";
-    cerr << "\t";
-    for (auto& score : scores) {
-        cerr << score << ",";
-    }
-    if (track_correctness) {
-        cerr << "\t" << funnel.last_correct_stage() << endl;
-    } else {
-        cerr << "\t" << "?" << endl;
-    }
-#endif
-
     if (track_provenance && show_work && aln.sequence().size() < LONG_LIMIT) {
         // Dump the funnel info graph.
         // TODO: Add a new flag for this.
@@ -2057,10 +1970,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
     paired_alignments.reserve(alignments.size());
 
 
-#ifdef print_minimizer_table
-    vector<pair<bool, bool>> alignment_was_rescued;
-#endif
-
     //For each alignment in alignments, which paired_alignment includes it. Follows structure of alignments
     vector<std::array<vector<vector<size_t>>, 2>> alignment_groups(alignments.size());
 
@@ -2147,9 +2056,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
                     fragment_distances.emplace_back(fragment_distance);
                     better_cluster_count_by_pairs.emplace_back(better_cluster_count[fragment_num]);
                     pair_types.emplace_back(paired);
-#ifdef print_minimizer_table
-                    alignment_was_rescued.emplace_back(false, false);
-#endif
 
                     if (show_work) {
                         #pragma omp critical (cerr)
@@ -2419,9 +2325,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
                 pair_types.push_back(index.read == 0 ? rescued_from_first : rescued_from_second); 
                 better_cluster_count_by_pairs.emplace_back(better_cluster_count[mapped_index.fragment]);
 
-#ifdef print_minimizer_table
-                alignment_was_rescued.emplace_back(index.read == 1, index.read == 0);
-#endif
                 if (track_provenance) {
                     funnels[index.read].pass("max-rescue-attempts", j);
                     funnels[index.read].project(j);
@@ -2494,11 +2397,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
     //For each pair of alignments in mappings, how many equivalent or better fragment clusters were there
     vector<size_t> better_cluster_count_by_mappings;
 
-#ifdef print_minimizer_table
-    vector<pair<bool, bool>> mapping_was_rescued;
-    vector<std::array<read_alignment_index_t, 2>> pair_indices;
-#endif
-
     process_until_threshold_a(paired_alignments.size(), (std::function<double(size_t)>) [&](size_t i) -> double {
         return paired_scores[i];
     }, 0, 1, max_multimaps, rng, [&](size_t alignment_num, size_t item_count) {
@@ -2554,11 +2452,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
             }
         }
 
-#ifdef print_minimizer_table
-        mapping_was_rescued.emplace_back(alignment_was_rescued[alignment_num]);
-        pair_indices.push_back(index_pair);
-#endif
-        
         if (track_provenance) {
             // Tell the funnel
             for (auto r : {0, 1}) {
@@ -2579,10 +2472,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
         better_cluster_count_by_mappings.emplace_back(better_cluster_count_by_pairs[alignment_num]);
 
  
-#ifdef print_minimizer_table
-        std::array<read_alignment_index_t, 2> index_pair = paired_alignments[alignment_num];
-        pair_indices.push_back(index_pair);
-#endif       
         if (track_provenance) {
             for (auto r : {0, 1}) {
                 funnels[r].fail("max-multimaps", alignment_num);
@@ -2638,11 +2527,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
             mappings[r].back().set_identity(0);
             mappings[r].back().set_mapping_quality(0);
         }
-
-#ifdef print_minimizer_table
-        mapping_was_rescued.emplace_back(false, false);
-        pair_indices.emplace_back(NO_READ_INDEX, NO_READ_INDEX);
-#endif
 
     } else {
     
@@ -2869,62 +2753,6 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
         }
     }
  
-#ifdef print_minimizer_table
-
-    if (distances.size() == 0) {
-        distances.emplace_back(0);
-    }
-    for (auto r : {0, 1}) {
-        cerr << alns[r]->sequence() << "\t";
-        for (char c : alns[r]->quality()) {
-            cerr << (char)(c+33);
-        }
-        cerr << "\t" << max_fragment_num << "\t" << mapping_was_rescued[0].first << "\t" << mapping_was_rescued[0].second 
-             << "\t" << distances.front();
-        for (size_t i = 0 ; i < minimizers_by_read[r].size() ; i++) {
-            auto& minimizer = minimizers_by_read[r][i];
-            cerr << "\t"
-                 << minimizer.value.key.decode(minimizer.length) << "\t"
-                 << minimizer.forward_offset() << "\t"
-                 << minimizer.agglomeration_start << "\t"
-                 << minimizer.agglomeration_length << "\t"
-                 << minimizer.hits << "\t"
-                 << minimizer_explored_by_read[r].contains(i);
-             if (minimizer_explored_by_read[r].contains(i)) {
-                 crash_unless(minimizer.hits<=hard_hit_cap) ;
-             }
-        }
-        cerr << "\t" << uncapped_mapq << "\t" << fragment_cluster_cap << "\t" << mapq_score_groups[0] << "\t" 
-             << mapq_explored_caps[0] << "\t" << new_cluster_cap << "\t" << mappings[r].front().mapping_quality() << "\t";  
-        for (size_t i = 0 ; i < scores.size() ; i++) {
-            std::array<read_alignment_index_t, 2>& indices = pair_indices[i];
-            std::array<Alignment*, 2> paired_alignments;
-            for (auto r2 : {0, 1}) {
-                paired_alignments[r2] = &indices[r2].lookup_for_read_in(r2, alignments);
-            }
-
-            int64_t dist = distances[i];
-            crash_unless(dist == distance_between(paired_alignments[0], paired_alignments[1])); 
-
-            crash_unless(scores[i] == score_alignment_pair(paired_alignments[0], paired_alignments[1], dist));
-
-            double multiplicity = paired_multiplicities.size() == scores.size() ? paired_multiplicities[i] : 1.0;
-
-            cerr << paired_alignments[0].score() << "," 
-                 << paired_alignments[1].score() << "," 
-                 << multiplicity << "," 
-                 << scores[i] << ";";
-        }
-
-        
-        if (track_correctness) {
-            cerr << "\t" << funnels[r].last_correct_stage() << endl;
-        } else {
-            cerr << "\t?" << endl;
-        }
-    }
-#endif
-
     if (track_provenance && show_work) {
         // Dump the funnel info graph.
         #pragma omp critical (cerr)
@@ -5874,27 +5702,6 @@ Path MinimizerMapper::to_path(const ImmutablePath& path) {
     return to_return;
 }
 
-void MinimizerMapper::dfs_gbwt(const Position& from, size_t walk_distance,
-    const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const {
-   
-    // Get a handle to the node the from position is on, in the position's forward orientation
-    handle_t start_handle = gbwt_graph.get_handle(from.node_id(), from.is_reverse());
-    
-    // Delegate to the handle-based version
-    dfs_gbwt(start_handle, from.offset(), walk_distance, enter_handle, exit_handle);
-    
-}
-
-void MinimizerMapper::dfs_gbwt(handle_t from_handle, size_t from_offset, size_t walk_distance,
-    const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const {
-    
-    // Turn from_handle into a SearchState for everything on it.
-    gbwt::SearchState start_state = gbwt_graph.get_state(from_handle);
-    
-    // Delegate to the state-based version
-    dfs_gbwt(start_state, from_offset, walk_distance, enter_handle, exit_handle);
-}
-    
 void MinimizerMapper::dfs_gbwt(const gbwt::SearchState& start_state, size_t from_offset, size_t walk_distance,
     const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const {
     

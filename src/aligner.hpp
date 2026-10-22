@@ -71,7 +71,6 @@ namespace vg {
                                        Alignment& alignment,
                                        bool pinned,
                                        bool pin_left) const;
-        string graph_cigar(gssw_graph_mapping* gm) const;
 
     public:
         /// Store optimal local alignment against a graph in the Alignment object.

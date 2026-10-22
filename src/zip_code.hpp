@@ -115,12 +115,6 @@ class ZipCode {
         //A false result is inconclusive
         static bool is_farther_than(const ZipCode& zip1, const ZipCode& zip2, const size_t& limit);
 
-        //Get a tuple of the top-level structure id, prefix sum of the child of the top-level chain, and 
-        //the length of the child of the top-level chain
-        //This gets used to quickly compare the two zip codes for is_farther_than
-        static tuple<size_t, size_t, size_t> get_top_level_chain_offset();
-
-
         //////////////////Functions to work with minimizer payloads for clustering 
         // Since we're sill using the old implementation, we need to be able to 
         // switch from zipcodes to payloads and back
@@ -146,9 +140,6 @@ class ZipCode {
 
         /// Dump to a normal vector
         std::vector<size_t> to_vector() const;
-
-        /// Load from a normal vector
-        void from_vector(const std::vector<size_t>& values);
 
     private:
 
@@ -300,9 +291,6 @@ class ZipCode {
 
         ///Get the rank of a node/snarl in a snarl. Throw an exception if it isn't the child of a snarl
         size_t get_rank_in_snarl(const size_t& depth) const ;
-
-        ///Get the number of children in a snarl. Throw an exception if it isn't a snarl
-        size_t get_snarl_child_count(const size_t& depth, const SnarlDistanceIndex* distance_index=nullptr) const ;
 
         ///Get the prefix sum of a child of a chain
         ///This requires the distance index for irregular snarls (except for a top-level snarl)

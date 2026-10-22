@@ -181,11 +181,6 @@ std::vector<size_t> ZipCode::to_vector() const {
     return zipcode.to_vector();
 }
 
-void ZipCode::from_vector(const std::vector<size_t>& values) {
-    zipcode.from_vector(values);
-}
-
-
 void ZipCode::fill_in_full_decoder() {
     if (byte_count() == 0 || finished_decoding) {
         //If the zipcode is empty
@@ -548,33 +543,6 @@ size_t ZipCode::get_rank_in_snarl(const size_t& depth) const {
     } else {
         //If this is a snarl
         throw std::runtime_error("zipcodes don't store snarl ranks for snarls. Do your zipcode, minimizer, and graph files match?");
-    }
-}
-
-size_t ZipCode::get_snarl_child_count(const size_t& depth, const SnarlDistanceIndex* distance_index) const {
-
-
-    if (depth == 0) {
-        //TODO: This could be actually saved in the zipcode but I'll have to go to the distance index anyway
-        assert(distance_index != nullptr);
-        size_t child_count = 0;
-        distance_index->for_each_child(get_net_handle(depth, distance_index), [&] (const net_handle_t& child) {
-            child_count++;
-        });
-        return child_count;
-
-    } else if (!decoder[depth].is_chain) {
-        //If this is a snarl
-
-        size_t zip_value;
-        size_t zip_index = decoder[depth].offset;
-        for (size_t i = 0 ; i <= ZipCode::SNARL_CHILD_COUNT_OFFSET ; i++) {
-            std::tie(zip_value, zip_index) = zipcode.get_value_and_next_index(zip_index);
-        }
-        return zip_value;
-    } else {
-        //If this is not a snarl
-        throw std::runtime_error("trying to get the snarl child count of a non-snarl zipcode. Do your zipcode, minimizer, and graph files match?");
     }
 }
 

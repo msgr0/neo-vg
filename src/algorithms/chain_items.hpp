@@ -261,24 +261,9 @@ public:
         return score == other.score && source == other.source;
     }
     
-    /// Compare for inequality
-    inline bool operator!=(const TracedScore& other) const {
-        return !(*this == other);
-    }
-    
-    /// Compare for less-than
-    inline bool operator<(const TracedScore& other) const {
-        return score < other.score || (score == other.score && source < other.source);
-    }
-    
     /// Compare for greater-than
     inline bool operator>(const TracedScore& other) const {
         return score > other.score || (score == other.score && source > other.source);
-    }
-    
-    /// Subtraction to yield a difference in points
-    inline int operator-(const TracedScore& other) const {
-        return score - other.score;
     }
     
     // Number of points
@@ -289,21 +274,6 @@ public:
     path_flags_t paths;
     size_t rec_num=0;
 };
-
-}
-
-}
-
-namespace std {
-    /// Allow maxing TracedScore
-    inline vg::algorithms::TracedScore max(const vg::algorithms::TracedScore& a, const vg::algorithms::TracedScore& b) {
-        return a > b ? a : b;
-    }
-}
-
-namespace vg {
-
-namespace algorithms {
 
 using namespace std;
 
@@ -328,10 +298,6 @@ struct transition_info {
     // Forced indel size, i.e. abs(read - graph)
     size_t indel_size;
     
-    /// Built transition info by calculating indel size
-    inline transition_info(size_t from, size_t to, size_t graph_dist, size_t read_dist)
-        : from_anchor(from), to_anchor(to), indel_size(max(graph_dist, read_dist) - min(graph_dist, read_dist)) {}
-
     /// Build transition info from loose values
     inline transition_info(size_t from, size_t to, size_t indel_size)
         : from_anchor(from), to_anchor(to), indel_size(indel_size) {}

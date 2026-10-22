@@ -3,8 +3,6 @@
 #include <algorithm>
 
 //#define DEBUG_CLUSTER
-//#define debug_distances
-//#define EXHAUSTIVE_CLUSTER_CHECK
 
 namespace vg {
 
@@ -252,67 +250,6 @@ for (size_t i = 1 ; i < clustering_problem.all_seeds->size() ; i++) {
 
 
 
-#endif
-#ifdef EXHAUSTIVE_CLUSTER_CHECK
-    //CHeck read clusters
-    for (size_t read_num = 0 ; read_num < clustering_problem.all_seeds->size() ; read_num++) {
-        auto all_groups =  clustering_problem.read_union_find[read_num].all_groups();
-        for (size_t g1 = 0 ; g1 < all_groups.size() ; g1 ++ ){
-            auto group = all_groups[g1];
-            structures::UnionFind uf(group.size(), false);
-            for (size_t i1 = 0 ; i1 < group.size() ; i1++) {
-                size_t c = group[i1];
-                pos_t pos1 = clustering_problem.all_seeds->at(read_num)->at(c).seed->pos;
-                pos_t rev1 = make_pos_t(get_id(pos1), !is_rev(pos1), distance_index.node_length(distance_index.get_node_net_handle(get_id(pos1))) - get_offset(pos1) - 1);
-
-                for (size_t i2 = 0 ; i2 < i1 ; i2++) {
-                
-                    size_t d = group[i2];
-                
-                    pos_t pos2 = clustering_problem.all_seeds->at(read_num)->at(d).seed->pos;
-                    pos_t rev2 = make_pos_t(get_id(pos2), !is_rev(pos2), distance_index.node_length(distance_index.get_node_net_handle(get_id(pos2)))- get_offset(pos2) - 1);
-                    size_t d1 = distance_index.minimum_distance(pos1, pos2);
-                    size_t d2 = std::min(d1, distance_index.minimum_distance(pos1, rev2));
-                    size_t d3 = std::min(d2, distance_index.minimum_distance(rev1, rev2));
-                    size_t d4 = std::min(d3, distance_index.minimum_distance(rev1, pos2));
-                    if (d4 != -1 && d4 <= clustering_problem.read_distance_limit) {
-                    
-                         uf.union_groups(i1, i2);
-                    }
-                }
-                for (size_t g2 = 0 ; g2 < all_groups.size() ; g2 ++) {
-                    if (g2 != g1) {
-                        auto group2 = all_groups[g2];
-                        for (size_t d : group2) {
-                           pos_t pos2 = clustering_problem.all_seeds->at(read_num)->at(d).pos;
-                           pos_t rev2 = make_pos_t(get_id(pos2), !is_rev(pos2), distance_index.node_length(distance_index.get_node_net_handle(get_id(pos2))) - get_offset(pos2) - 1);
-                           
-                           size_t d1 = distance_index.min_distance(pos1, pos2);
-                           size_t d2 = std::min(d1, distance_index.minimum_distance(pos1, rev2));
-                           size_t d3 = std::min(d2, distance_index.minimum_distance(rev1, rev2));
-                           size_t d4 = std::min(d3, distance_index.minimum_distance(rev1, pos2));
-                           
-                           assert (d4 == -1 || d4 > clustering_problem.read_distance_limit);
-                        }  
-                    
-                    }
-                }
-            }
-            if (uf.all_groups().size() != 1) {
-                cerr << "These should be separate clusters: " << endl;
-                for (auto uf_group : uf.all_groups()) {
-                    for (size_t i : uf_group) {
-                        size_t c = group[i];
-                        cerr << clustering_problem.all_seeds->at(read_num)->at(c).pos << ":" << clustering_problem.all_seeds->at(read_num)->at(c).component << ":"
-                             << clustering_problem.all_seeds->at(read_num)->at(c).offset << ", ";
-                    }
-                    cerr << endl;
-                }
-
-            }
-            assert (uf.all_groups().size() == 1);
-        }
-    }
 #endif
     return make_tuple(std::move(clustering_problem.read_union_find), std::move(clustering_problem.fragment_union_find));
 

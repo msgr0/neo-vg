@@ -94,17 +94,6 @@ public:
     ~PrimerFinder();
 
     /**
-     * Add a Primer_pair object given primers' starting node id, offset relative
-     * to the starting node, and length, all in the POSTIVE orientation. The new
-     * primer_pair object is automatically added to primer_pairs vector - and
-     * selected_primer_pairs if conditions are met. Mainly used for unit testing.
-     */
-    void add_primer_pair(const string& path_name, const size_t& left_primer_starting_node_id,
-        const size_t& left_primer_offset, const size_t& left_primer_length,
-        const size_t& right_primer_starting_node_id,
-        const size_t& right_primer_offset, const size_t& right_primer_length);
-
-    /**
      * Read the path to the primer3 output. Primers information is parsed,
      * processed, and  stored in primer_pairs vector - and selected_primer_pairs
      * if conditions are met.
@@ -115,11 +104,6 @@ public:
      * return vector of Primer pairs
      */
     const vector<PrimerPair>& get_primer_pairs_of_chrom(const string& chrom_name) const;
-
-    /**
-     * return the total number of reference paths
-     */
-    const size_t total_reference_paths() const;
 
     vector<string> get_reference_paths(); 
 
@@ -139,46 +123,21 @@ private:
 
     /**
      * Update minimum and maximum prodcut to a primer pair object.
-     * Used in: add_primer_pair
-     *          load_primers
+     * Used in: load_primers
      */
     void update_min_max_product_size(PrimerPair& primer_pair);
 
     /**
-     * Update a Primer object given starting node id, offset relative to the starting node,
-     * and the length of primer.
-     * Used in: add_primer_pair
-     */
-    void make_primer(Primer& primer, const string& path_name, const size_t& starting_node_id,
-        const size_t& offset, const size_t& length, const bool& is_left);
-
-    /**
      * Find and store corresponding node ids to Primer object.
-     * Used in: make_primer
-     *          load_primers
+     * Used in: load_primers
      */
     void map_to_nodes(Primer& primer, const string& path_name);
-
-    /**
-     * Find the length of the longest match between two sequences. Also find and
-     * store offset in Primer object.
-     * Used in: map_to_nodes
-     */
-    size_t longest_match_len(Primer& primer, const string& left_seq, const string& right_seq,
-       const bool& first_node);
 
     /**
      * Strip empty spaces on the sides of a string.
      * Used in: load_primers
      */
     const string strip(const string& s) const;
-
-    /**
-     * Check if primers in a primer_pair object have variations on the pangenome.
-     * Used in: add_primer_node
-     *          load_primers
-     */
-    // const bool no_variation_at_primers(const PrimerPair& primer_pair) const;
 
     void update_variation(PrimerPair& primer_pair, const string& path_name);
     

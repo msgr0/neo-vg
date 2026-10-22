@@ -33,29 +33,6 @@ const vector<PrimerPair>& PrimerFinder::get_primer_pairs_of_chrom(const string& 
     return chroms.at(chrom_name);
 }
 
-// Make a new pair of primers with given attributes. Primers are processed and 
-// added to primer_pairs and selected_primer_pairs.
-void PrimerFinder::add_primer_pair(const string& path_name,
-    const size_t& left_primer_starting_node_id, const size_t& left_primer_offset,
-    const size_t& left_primer_length, const size_t& right_primer_starting_node_id,
-    const size_t& right_primer_offset, const size_t& right_primer_length) {
-
-    chroms.at(path_name).emplace_back();
-    PrimerPair& primer_pair = chroms.at(path_name).back();
-    primer_pair.chromosome_name   = path_name;
-    primer_pair.template_position = 0;
-    primer_pair.right_primer.left = false;
-
-    make_primer(primer_pair.left_primer, path_name, left_primer_starting_node_id,
-        left_primer_offset, left_primer_length, true);
-    make_primer(primer_pair.right_primer, path_name, right_primer_starting_node_id,
-        right_primer_offset, right_primer_length, false);
-    primer_pair.linear_product_size = primer_pair.right_primer.position_template
-        - primer_pair.left_primer.position_template + primer_pair.right_primer.length;
-    update_variation(primer_pair, path_name);
-    update_min_max_product_size(primer_pair);
-}
-
 void PrimerFinder::load_primers(ifstream& file_handle) {
 
     //ifstream file_handle(path_to_primers);
@@ -181,51 +158,12 @@ void PrimerFinder::load_primers(ifstream& file_handle) {
     }
 }
 
-const size_t PrimerFinder::total_reference_paths() const {
-    return chroms.size();
-}
-
 vector<string> PrimerFinder::get_reference_paths() {
     vector<string> reference_paths;
     for (const auto& chrom : chroms) {
         reference_paths.push_back(chrom.first);
     }
     return reference_paths;
-}
-
-void PrimerFinder::make_primer(Primer& primer, const string& path_name,
-    const size_t& starting_node_id, const size_t& offset, const size_t& length,
-    const bool& is_left) {
-    
-    if (is_left) {
-        primer.left = true;
-    } else {
-        primer.left = false;
-    }
-    primer.length = length;
-    string sequence = "";
-    handle_t cur_handle = graph->get_handle(starting_node_id); // get the starting node handle
-    step_handle_t cur_step_handle = graph->steps_of_handle(cur_handle)[0];
-    primer.position_template   = graph->get_position_of_step(cur_step_handle) + offset;
-    primer.position_chromosome = primer.position_template;
-    // Walk down the path and get the sequence of primer
-    if (graph->get_length(cur_handle) - offset > length) {
-        sequence += graph->get_sequence(cur_handle).substr(offset, length);
-    } else {
-        sequence += graph->get_sequence(cur_handle).substr(offset, graph->get_length(cur_handle) - offset);
-        while (sequence.size() < length) {
-            cur_step_handle = graph->get_next_step(cur_step_handle);
-            cur_handle      = graph->get_handle_of_step(cur_step_handle);
-            sequence       += graph->get_sequence(cur_handle).substr(0, min(graph->get_length(cur_handle), length-sequence.size()));
-        }
-    }
-
-    if (is_left) {
-        primer.sequence = sequence;
-    } else {
-        primer.sequence = reverse_complement(sequence); // Take the reverse complement for right primer
-    }
-    map_to_nodes(primer, path_name); // Search and store corresponding nodes ids 
 }
 
 static string get_haplotype_sequence(gbwt::size_type sequence_visit_offset, handle_t start_handle,
@@ -392,43 +330,6 @@ void PrimerFinder::map_to_nodes(Primer& primer, const string& path_name) {
     } 
 }
 
-size_t PrimerFinder::longest_match_len(Primer& primer, const string& left_seq,
-        const string& right_seq, const bool& first_node) {
-    size_t llen = left_seq.size(), rlen = right_seq.size();
-    size_t length = min(llen, rlen);
-    size_t longest_match = 0;
-
-    if (first_node) {
-        if (llen >= rlen) {
-            // Check if the first node contains the entire sequence of the priemr
-            for (size_t i = 0; i <= llen - rlen; i++) {
-                if (left_seq.substr(i, rlen) == right_seq) {
-                    longest_match = rlen;
-                    primer.offset = (primer.left) ? i : i + primer.sequence.size();
-                    return longest_match;
-                }
-            }
-        }
-        for (size_t i = 1; i <= length; i++) {
-            // Find the length of match between first node sequence's suffix and primer sequnece's prefix
-            if (left_seq.substr(llen - i, i) == right_seq.substr(0, i)) {
-                longest_match = i;
-                primer.offset = (primer.left && first_node) ? llen - i : i;
-            }
-        }
-    } else {
-        for (size_t i = 1; i <= length; i++) {
-            // Find the length of match between downstream nodes seqeunces and primer sequence
-            if (left_seq.substr(0, i) == right_seq.substr(0, i)) {
-                longest_match = i;
-                primer.offset = (!primer.left) ? i : primer.offset;
-            }
-        }
-    }
-
-    return longest_match;
-}
-        
 const string PrimerFinder::strip(const string& s) const {
     const string WHITESPACE = " \n\r\t\f\v";
     size_t end   = s.find_last_not_of(WHITESPACE);

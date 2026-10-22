@@ -125,7 +125,6 @@ void GSSWAligner::gssw_mapping_to_alignment(gssw_graph* graph,
     alignment.set_score(gm->score);
     alignment.set_query_position(0);
     Path* path = alignment.mutable_path();
-    //alignment.set_cigar(graph_cigar(gm));
     
     gssw_graph_cigar* gc = &gm->cigar;
     gssw_node_cigar* ncs = gc->elements;
@@ -297,33 +296,6 @@ void GSSWAligner::unreverse_graph_mapping(gssw_graph_mapping* gm) const {
         gm->position = 0;
     }
 }
-
-string GSSWAligner::graph_cigar(gssw_graph_mapping* gm) const {
-
-    stringstream s;
-    gssw_graph_cigar* gc = &gm->cigar;
-    gssw_node_cigar* nc = gc->elements;
-    int to_pos = 0;
-    int from_pos = gm->position;
-    //string& to_seq = *alignment.mutable_sequence();
-    s << from_pos << '@';
-    for (int i = 0; i < gc->length; ++i, ++nc) {
-        if (i > 0) from_pos = 0; // reset for each node after the first
-        Node* from_node = (Node*) nc->node->data;
-        s << from_node->id() << ':';
-        gssw_cigar* c = nc->cigar;
-        int l = c->length;
-        gssw_cigar_element* e = c->elements;
-        for (int j=0; j < l; ++j, ++e) {
-            s << e->length << e->type;
-        }
-        if (i + 1 < gc->length) {
-            s << ",";
-        }
-    }
-    return s.str();
-}
-
 
 Aligner::Aligner(const int8_t* score_matrix,
                  int8_t gap_open,

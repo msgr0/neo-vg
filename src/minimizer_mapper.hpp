@@ -602,12 +602,6 @@ class MinimizerMapper : public AlignerClient {
             return length + candidates_per_window - 1;
         }
         
-        /// How many different windows are in this minimizer's agglomeration?
-        inline size_t agglomeration_window_count() const {
-            // Work out the length of a whole window, and then from that and the window count get the overall length.
-            return agglomeration_length - window_size() + 1;
-        }
-        
         /// What is the minimizer sequence, in read orientation?
         inline string forward_sequence() const {
             string sequence = value.key.decode(length);
@@ -629,17 +623,6 @@ protected:
     /// double annotation that can safely be parsed back from JSON into an
     /// integer if it is integral.
     double distance_to_annotation(int64_t distance) const;
-    
-    /// How should we initialize chain info when it's not stored in the minimizer index?
-    inline static payload_type no_chain_info() {
-        return MIPayload::NO_CODE;  
-    } 
-    
-    /// How do we convert chain info to an actual seed of the type we are using?
-    /// Also needs to know the hit position, and the minimizer number.
-    inline static Seed chain_info_to_seed(const pos_t& hit, size_t minimizer, const ZipCode& zip) {
-        return { hit, minimizer, zip};
-    }
     
     /// Convert a collection of seeds to a collection of chaining anchors.
     std::vector<algorithms::Anchor> to_anchors(const Alignment& aln, const VectorView<Minimizer>& minimizers, std::vector<Seed>& seeds) const;
@@ -1145,39 +1128,6 @@ protected:
 //-----------------------------------------------------------------------------
 
     /**
-     * Compute MAPQ caps based on all minimizers that are explored, for some definition of explored.
-     *
-     * Needs access to the input alignment for sequence and quality
-     * information.
-     *
-     * Returns only an "extended" cap at the moment.
-     */
-    double compute_mapq_caps(const Alignment& aln, const VectorView<Minimizer>& minimizers,
-                             const SmallBitset& explored);
-
-    /**
-     * Compute a bound on the Phred score probability of having created the
-     * agglomerations of the specified minimizers by base errors from the given
-     * sequence, which was sequenced with the given qualities.
-     *
-     * No limit is imposed if broken is empty.
-     *
-     * Takes the collection of all minimizers found, and a vector of the
-     * indices of minimizers we are interested in the agglomerations of. May
-     * modify the order of that index vector.
-     *
-     * Also takes the sequence of the read (to avoid Ns) and the quality string
-     * (interpreted as a byte array).
-     *
-     * Currently computes a lower-score-bound, upper-probability-bound,
-     * suitable for use as a mapping quality cap, by assuming the
-     * easiest-to-disrupt possible layout of the windows, and the lowest
-     * possible qualities for the disrupting bases.
-     */
-    static double window_breaking_quality(const VectorView<Minimizer>& minimizers, vector<size_t>& broken,
-        const string& sequence, const string& quality_bytes);
-    
-    /**
      * Compute a bound on the Phred score probability of a mapping being wrong
      * due to base errors and unlocated minimizer hits prevented us from
      * finding the true alignment.
@@ -1318,7 +1268,9 @@ protected:
 
     /**
      * Run a DFS on valid haplotypes in the GBWT starting from the given
-     * Position, and continuing up to the given number of bases.
+     * gbwt::SearchState (which defines only some haplotypes on a handle to
+     * start with) at the given offset from the start of the handle, and
+     * continuing up to the given number of bases.
      *
      * Calls enter_handle when the DFS enters a haplotype visit to a particular
      * handle, and exit_handle when it exits a visit. These let the caller
@@ -1329,21 +1281,6 @@ protected:
      *
      * Stopping early is not permitted.
      */
-    void dfs_gbwt(const Position& from, size_t walk_distance,
-        const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
-     
-    /**
-     * The same as dfs_gbwt on a Position, but takes a handle in the
-     * backing gbwt_graph and an offset from the start of the handle instead.
-     */ 
-    void dfs_gbwt(handle_t from_handle, size_t from_offset, size_t walk_distance,
-        const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
-        
-    /**
-     * The same as dfs_gbwt on a handle and an offset, but takes a
-     * gbwt::SearchState that defines only some haplotypes on a handle to start
-     * with.
-     */ 
     void dfs_gbwt(const gbwt::SearchState& start_state, size_t from_offset, size_t walk_distance,
         const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
  
@@ -1447,9 +1384,6 @@ protected:
     /// Turn a list of bit flags into a compact representation.
     static string log_bits(const std::vector<bool>& bits);
     
-    /// Dump a whole chaining problem
-    static void dump_chaining_problem(const std::vector<algorithms::Anchor>& anchors, const std::vector<size_t>& cluster_seeds_sorted, const HandleGraph& graph);
-    
     /// Dump all the given minimizers, with optional subset restriction
     static void dump_debug_minimizers(const VectorView<Minimizer>& minimizers, const string& sequence,
                                       const vector<size_t>* to_include = nullptr, size_t start_offset = 0, size_t length_limit = std::numeric_limits<size_t>::max());
@@ -1474,10 +1408,6 @@ protected:
     
     /// Print information about a read pair to be aligned
     static void dump_debug_query(const Alignment& aln1, const Alignment& aln2);
-
-    /// Dump dotplot information for seeds.
-    /// Displays one or more named collections of runs of seeds.
-    static void dump_debug_dotplot(const std::string& name, const VectorView<Minimizer>& minimizers, const std::vector<Seed>& seeds, const std::vector<std::pair<std::string, std::vector<std::vector<size_t>>>>& seed_sets, const PathPositionHandleGraph* path_graph);
 
     /// Dump all chains for a read to separate TSV files.
     /// Each chain gets its own file. 

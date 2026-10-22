@@ -92,12 +92,6 @@ public:
     void merge_group(Iterator prev_stage_items_begin, Iterator prev_stage_items_end);
     
     /// Merge all the given item indexes from the previous stage into a new item at this stage.
-    /// The new item will be a group, sized according to the total size of
-    /// previous groups, with non-groups counting as size 1.
-    template<typename Iterator>
-    void merge_groups(Iterator prev_stage_items_begin, Iterator prev_stage_items_end);
-    
-    /// Merge all the given item indexes from the previous stage into a new item at this stage.
     /// The new item will be a single item.
     template<typename Iterator>
     void merge(Iterator prev_stage_items_begin, Iterator prev_stage_items_end);
@@ -251,11 +245,7 @@ public:
     /// number of correct results at each stage. This assumes that we've been
     /// tracking correctness all along
     void annotate_mapped_alignment(Alignment& aln, bool annotate_correctness) const;
-    
-    /// For each item in a given stage, what are the indices of the items of the
-    /// previous stage that gave rise to it?
-    vector<vector<size_t>> map_stage_results_to_previous_stage(string stage_name) const;
-    
+
 protected:
     
     /// Pick a clock to use for measuring stage duration
@@ -394,30 +384,6 @@ void Funnel::merge_group(Iterator prev_stage_items_begin, Iterator prev_stage_it
 
     // Update its size
     get_item(index).group_size = get_item(index).prev_stage_items.size();
-}
-
-template<typename Iterator>
-void Funnel::merge_groups(Iterator prev_stage_items_begin, Iterator prev_stage_items_end) {
-    // Do a non-group merge
-    merge(prev_stage_items_begin, prev_stage_items_end);
-    
-    // Find it
-    size_t index = latest();
-    
-    // Compute the total size it should have
-    auto& prev_stage = stages[stages.size() - 2];
-    size_t total_size = 0;
-    for (auto& prev : get_item(index).prev_stage_items) {
-        size_t prev_group_size = prev_stage.items[prev].group_size;
-        if (prev_group_size == 0) {
-            // Non-groups count as size 1
-            prev_group_size = 1;
-        }
-        total_size += prev_group_size;
-    }
-
-    // Update its size
-    get_item(index).group_size = total_size;
 }
 
 template<typename Iterator>

@@ -38,18 +38,6 @@
 #include <gbwtgraph/gbz.h>
 #include <gbwtgraph/minimizer.h>
 
-//#define USE_CALLGRIND
-
-#ifdef USE_CALLGRIND
-#include <valgrind/callgrind.h>
-#endif
-
-//#define USE_MEMORY_PROFILING
-
-#ifdef USE_MEMORY_PROFILING
-#include "../config/allocator_config.hpp"
-#endif
-
 #include <sys/ioctl.h>
 #ifdef __linux__
 #include <linux/perf_event.h>
@@ -2225,18 +2213,6 @@ int main_giraffe(int argc, char** argv) {
             // Stick any metadata in the emitter near the front of the stream.
             alignment_emitter->emit_extra_message("PARAMS_JSON", params_json.str());
 
-#ifdef USE_MEMORY_PROFILING
-            // Start profiling memory allocations
-            AllocatorConfig::set_profiling(true);
-            // And dump an initial snapshot
-            AllocatorConfig::snapshot();
-#endif
-
-#ifdef USE_CALLGRIND
-            // We want to profile the alignment, not the loading.
-            CALLGRIND_START_INSTRUMENTATION;
-#endif
-
             // Start timing overall mapping time now that indexes are loaded.
             first_thread_start = std::chrono::system_clock::now();
             cpu_time_before = clock();
@@ -2404,11 +2380,6 @@ int main_giraffe(int argc, char** argv) {
             } else {
                 // Map single-ended
                 
-#ifdef USE_MEMORY_PROFILING
-                size_t reads_mapped = 0;
-                size_t reads_mapped_threshold = 1;
-#endif
-
                 // All the threads start at once.
                 all_threads_start = first_thread_start;
             
@@ -2437,18 +2408,6 @@ int main_giraffe(int argc, char** argv) {
                         // Record that we mapped a read.
                         reads_mapped_by_thread.at(thread_num)++;
 
-#ifdef USE_MEMORY_PROFILING
-                        #pragma omp critical (reads_mapped)
-                        {
-                            reads_mapped++;
-                            if (reads_mapped == reads_mapped_threshold) {
-                                reads_mapped_threshold *= 2;
-                                // Dump a memory snapshot every time the mapped reads doubles.
-                                AllocatorConfig::snapshot();
-                            }
-                        }
-#endif
-                        
                         if (watchdog) {
                             watchdog->check_out(thread_num);
                         }
@@ -2481,13 +2440,6 @@ int main_giraffe(int argc, char** argv) {
         stop_perf_for_thread();
 #endif
 
-#ifdef USE_MEMORY_PROFILING
-            // Dump a final snapshot
-            AllocatorConfig::snapshot();
-            // Stop profiling memory allocations
-            AllocatorConfig::set_profiling(false);
-#endif
-        
         // Compute wall clock elapsed
         std::chrono::duration<double> all_threads_seconds = (
             all_threads_start == std::chrono::time_point<std::chrono::system_clock>::min()
