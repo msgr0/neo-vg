@@ -1754,7 +1754,7 @@ void SnarlDistanceIndexClusterer::cluster_one_chain(ClusteringProblem& clusterin
                        clustering_problem.net_handle_to_node_problem_index.at(child1.net_handle)).chain_component_start;
                 child1.prefix_sum = clustering_problem.all_node_problems.at(
                        clustering_problem.net_handle_to_node_problem_index.at(child1.net_handle)).prefix_sum_value;
-                child2.has_chain_values = true;
+                child1.has_chain_values = true;
             }
             if (!child2.is_seed && !child2.has_chain_values) {
                 //If child2 is a snarl and hasn't had its values set yet
@@ -3000,10 +3000,12 @@ void SnarlDistanceIndexClusterer::cluster_root(ClusteringProblem& clustering_pro
     }
 
     //Keep track of all clusters on the root
+    //Its seed is only a placeholder; read 1 may have no seeds, so take one from a root child
+    const SeedCache* root_seed = clustering_problem.all_node_problems.at(
+            clustering_problem.net_handle_to_node_problem_index.at(clustering_problem.root_children.front().second)).seed;
     SnarlTreeNodeProblem root_problem(distance_index.get_root(), clustering_problem.all_seeds->size(),
                                clustering_problem.seed_count_prefix_sum.back(), distance_index,
-                               &clustering_problem.all_seeds->at(0)->front(), 0);
-    //TODO: ikd about the seed here
+                               root_seed, 0);
 
     //Remember old distances
     vector<pair<size_t, size_t>> child_distances (clustering_problem.seed_count_prefix_sum.back(), 
@@ -3017,55 +3019,42 @@ void SnarlDistanceIndexClusterer::cluster_root(ClusteringProblem& clustering_pro
             return a.first < b.first;
         });   
 
-    //Go through the list of parent child pairs. Once we reach a new parent, cluster all children found up to this point
-    net_handle_t current_parent = clustering_problem.root_children.front().first;
-    vector<net_handle_t> children;
-    children.reserve(clustering_problem.root_children.size());
-    for (size_t root_child_i = 0 ; root_child_i < clustering_problem.root_children.size() ; root_child_i++) {
-        pair<net_handle_t, net_handle_t>& parent_to_child = clustering_problem.root_children[root_child_i];
-        net_handle_t& parent = parent_to_child.first;
-
-        if (current_parent == parent || root_child_i == 0) {
-            children.emplace_back(parent_to_child.second);
+    //Cluster the children of each root snarl, one run of equal parents at a time
+    const auto& root_children = clustering_problem.root_children;
+    size_t group_start = 0;
+    for (size_t group_end = 1 ; group_end <= root_children.size() ; group_end++) {
+        if (group_end < root_children.size() && root_children[group_end].first == root_children[group_start].first) {
+            continue;
         }
-        if (current_parent != parent || root_child_i == clustering_problem.root_children.size()-1) {
 #ifdef DEBUG_CLUSTER
-            cerr << "Clustering root snarl " << distance_index.net_handle_as_string(parent) << " with " << children.size() << " chidlren" << endl;
+        cerr << "Clustering root snarl " << distance_index.net_handle_as_string(root_children[group_start].first)
+             << " with " << group_end - group_start << " chidlren" << endl;
 #endif
 
-            if (children.size() > 0) {
+        for (size_t i = group_start; i < group_end ; i++) {
+            //Go through each child node of the netgraph
 
-                for (size_t i = 0; i < children.size() ; i++) {
-                    //Go through each child node of the netgraph
-
-                    SnarlTreeNodeProblem* child_problem_i = &clustering_problem.all_node_problems.at(
-                            clustering_problem.net_handle_to_node_problem_index.at(children[i]));
-                    for (const pair<size_t, size_t>& head : child_problem_i->read_cluster_heads) {
-                        child_distances[head.second + clustering_problem.seed_count_prefix_sum[head.first]] = 
-                            make_pair(clustering_problem.all_seeds->at(head.first)->at(head.second).distance_left,
-                                     clustering_problem.all_seeds->at(head.first)->at(head.second).distance_right);
-                    }
-
-                    for (size_t j = 0 ; j <= i ; j++){
-                        //Go through other child net graph nodes up to and including i
-
-                        //Get the other node and its clusters
-                        SnarlTreeNodeProblem* child_problem_j = &clustering_problem.all_node_problems.at(
-                                clustering_problem.net_handle_to_node_problem_index.at(children[j]));
-
-
-
-                        compare_and_combine_cluster_on_child_structures(clustering_problem, child_problem_i,
-                                    child_problem_j, &root_problem, child_distances, true, false);
-
-                    }
-                }
+            SnarlTreeNodeProblem* child_problem_i = &clustering_problem.all_node_problems.at(
+                    clustering_problem.net_handle_to_node_problem_index.at(root_children[i].second));
+            for (const pair<size_t, size_t>& head : child_problem_i->read_cluster_heads) {
+                child_distances[head.second + clustering_problem.seed_count_prefix_sum[head.first]] = 
+                    make_pair(clustering_problem.all_seeds->at(head.first)->at(head.second).distance_left,
+                             clustering_problem.all_seeds->at(head.first)->at(head.second).distance_right);
             }
-            current_parent = parent;
-            children.clear();
-            children.emplace_back(parent_to_child.second);
-        }
 
+            for (size_t j = group_start ; j <= i ; j++){
+                //Go through other child net graph nodes up to and including i
+
+                //Get the other node and its clusters
+                SnarlTreeNodeProblem* child_problem_j = &clustering_problem.all_node_problems.at(
+                        clustering_problem.net_handle_to_node_problem_index.at(root_children[j].second));
+
+                compare_and_combine_cluster_on_child_structures(clustering_problem, child_problem_i,
+                            child_problem_j, &root_problem, child_distances, true, false);
+
+            }
+        }
+        group_start = group_end;
     }
 #ifdef DEBUG_CLUSTER
     cerr << "\tFound clusters on the root" << endl;

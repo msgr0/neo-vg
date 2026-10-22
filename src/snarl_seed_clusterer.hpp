@@ -80,7 +80,7 @@ class SnarlDistanceIndexClusterer {
 
             Seed() = default;
             Seed(pos_t pos, size_t source, ZipCode zipcode) : pos(pos), source(source), zipcode(zipcode) {
-                zipcode.fill_in_full_decoder();
+                this->zipcode.fill_in_full_decoder();
             }
 
             //Move constructor

@@ -2252,14 +2252,15 @@ pair<vector<Alignment>, vector<Alignment>> MinimizerMapper::map_paired(Alignment
                     funnels[index.read].substage("rescue");
                 }
                 Alignment& mapped_aln = index.lookup_in(alignments);
-                Alignment rescued_aln = *alns[1 - index.read];
-                rescued_aln.clear_path();
-                
+
                 if (found_pair && (double) mapped_aln.score() < (double) best_alignment_scores[index.read] * paired_rescue_score_limit) {
                     //If we have already found paired clusters and this unpaired alignment is not good enough, do nothing
                     // TODO: Add a filter here
                     return true;
                 }
+
+                Alignment rescued_aln = *alns[1 - index.read];
+                rescued_aln.clear_path();
 
                 // Rescue the alignment (possibly leaving it unaligned if no significant alignment is found)
                 attempt_rescue(mapped_aln, rescued_aln, minimizers_by_read[1 - index.read], index.read == 0);
