@@ -642,7 +642,7 @@ TNQ_INVALID_GQ=$(grep -v "^#" tnq.vcf | awk -F'\t' '{
             if (gq !~ /^[0-9]+$/ || gq < 0 || gq > 256) print "invalid";
         }
     }
-}' | wc -l)
+}' | wc -l | tr -d " ")
 is "$TNQ_INVALID_GQ" "0" "triple nested calls have valid GQ values (0-256)"
 
 # All variant lines should have LV (nesting level) in INFO
