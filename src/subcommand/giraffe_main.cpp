@@ -2359,7 +2359,10 @@ int main_giraffe(int argc, char** argv) {
                 // Now map all the ambiguous pairs
                 // Make sure fragment length distribution is finalized first.
                 require_distribution_finalized();
-                for (pair<Alignment, Alignment>& alignment_pair : ambiguous_pair_buffer) {
+                // The buffer can hold up to MAX_BUFFERED_PAIRS pairs, so don't map them on one thread.
+                #pragma omp parallel for schedule(dynamic, 64)
+                for (size_t pair_i = 0; pair_i < ambiguous_pair_buffer.size(); pair_i++) {
+                    pair<Alignment, Alignment>& alignment_pair = ambiguous_pair_buffer[pair_i];
                     try {
                         set_crash_context(alignment_pair.first.name() + ", " + alignment_pair.second.name());
                         auto mapped_pairs = minimizer_mapper.map_paired(alignment_pair.first, alignment_pair.second);

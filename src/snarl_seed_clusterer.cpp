@@ -529,13 +529,7 @@ cerr << "Add all seeds to nodes: " << endl;
 
         if (seed->payload.parent_type == ZipCode::ROOT_SNARL) {
             //If this is a root snarl, then remember it to cluster in the root
-            if (clustering_problem.net_handle_to_node_problem_index.count(parent) == 0) {
-                clustering_problem.net_handle_to_node_problem_index.emplace(parent,
-                                                         clustering_problem.all_node_problems.size());
-                clustering_problem.all_node_problems.emplace_back(parent, clustering_problem.all_seeds->size(),
-                                             clustering_problem.seed_count_prefix_sum.back(), distance_index,
-                                             seed, 0);
-            }
+            //(cluster_root only needs the children; it builds its own root problem)
             clustering_problem.root_children.emplace_back(parent, node_net_handle);
         } else {
             //Otherwise, just compare the single child's external connectivity
@@ -693,12 +687,6 @@ void SnarlDistanceIndexClusterer::cluster_chain_level(ClusteringProblem& cluster
             //If the parent is the root, remember to cluster it
             if (is_root_snarl) {
                 //If the parent is a root snarl, then remember it to cluster in the root
-                if (clustering_problem.net_handle_to_node_problem_index.count(parent) == 0) {
-                    clustering_problem.net_handle_to_node_problem_index.emplace(parent, clustering_problem.all_node_problems.size());
-                    clustering_problem.all_node_problems.emplace_back(parent, clustering_problem.all_seeds->size(),
-                                     clustering_problem.seed_count_prefix_sum.back(), distance_index,
-                                     chain_problem->seed, chain_problem->zipcode_depth-1);
-                }
                 clustering_problem.root_children.emplace_back(parent, chain_handle);
             } else if (!is_top_level_chain) {
                 //Otherwise, cluster it with itself using external connectivity only

@@ -3703,19 +3703,22 @@ vector<Alignment> MinimizerMapper::identify_supplementary_alignments(vector<Alig
 //-----------------------------------------------------------------------------
 
 
+/// Convert the distance index's size_t "unreachable" sentinel to the int64_t one callers check for.
+static int64_t to_signed_distance(size_t distance) {
+    return distance == std::numeric_limits<size_t>::max() ? std::numeric_limits<int64_t>::max() : (int64_t) distance;
+}
+
 int64_t MinimizerMapper::distance_between(const pos_t& pos1, const pos_t& pos2) {
-    int64_t min_dist= distance_index->minimum_distance(id(pos1), is_rev(pos1), offset(pos1),
-                                                       id(pos2), is_rev(pos2), offset(pos2),
-                                                       false, &gbwt_graph);
-    return min_dist;
+    return to_signed_distance(distance_index->minimum_distance(id(pos1), is_rev(pos1), offset(pos1),
+                                                               id(pos2), is_rev(pos2), offset(pos2),
+                                                               false, &gbwt_graph));
 }
 
 int64_t MinimizerMapper::unoriented_distance_between(const pos_t& pos1, const pos_t& pos2) const {
 
-    int64_t min_dist = distance_index->minimum_distance(id(pos1), is_rev(pos1), offset(pos1),
-                                                        id(pos2), is_rev(pos2), offset(pos2),
-                                                        true, &gbwt_graph);
-    return min_dist;
+    return to_signed_distance(distance_index->minimum_distance(id(pos1), is_rev(pos1), offset(pos1),
+                                                               id(pos2), is_rev(pos2), offset(pos2),
+                                                               true, &gbwt_graph));
 }
 
 int64_t MinimizerMapper::distance_between(const Alignment& aln1, const Alignment& aln2) {

@@ -622,9 +622,16 @@ void HTSWriter::save_records(bam_hdr_t* header, vector<bam1_t*>& records, size_t
             // We're serializing writes, so we can breakpoint whenever we want.
             multiplexer.register_breakpoint(thread_number);
         } else {
-            // There's no way to do this without closing and re-opening the HTS file.
-            // So just tear down and reamke the samFile* for this thread.
-            initialize_sam_file(header, thread_number);
+            // Push everything written so far out to the backing stream and
+            // breakpoint there. For BAM, this ends the current BGZF block, and
+            // BGZF blocks from different threads concatenate fine. We used to
+            // close and reopen the samFile*, which rewrote the whole header each
+            // time: O(#contigs) per breakpoint.
+            samFile* sam_file = sam_files[thread_number];
+            if ((sam_file->is_bgzf && bgzf_flush(sam_file->fp.bgzf) != 0) || hflush(backing_files[thread_number]) != 0) {
+                logging::error("vg::HTSWriter") << "failed to flush " << format << " output" << endl;
+            }
+            multiplexer.register_breakpoint(thread_number);
         }
     }
 
