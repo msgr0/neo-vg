@@ -265,6 +265,12 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
         "maximum number of mismatches to pass through in a gapless extension"
     );
     comp_opts.add_range(
+        "max-extension-pops",
+        &MinimizerMapper::max_extension_pops,
+        MinimizerMapper::default_max_extension_pops,
+        "stop each seed's gapless extension search after INT steps once it has an extension (0 = no limit; approximate)"
+    );
+    comp_opts.add_range(
         "extension-score", 'v',
         &MinimizerMapper::extension_score_threshold,
         MinimizerMapper::default_extension_score_threshold,

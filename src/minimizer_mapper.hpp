@@ -210,6 +210,12 @@ class MinimizerMapper : public AlignerClient {
     /// start node where the limit doesn't count)?
     static constexpr size_t default_max_extension_mismatches = GaplessExtender::MAX_MISMATCHES;
     size_t max_extension_mismatches = default_max_extension_mismatches;
+
+    /// Stop each seed's gapless extension search after this many steps once it
+    /// has found any maximal extension (0 for no limit). Approximate: bounds the
+    /// time spent on reads with many haplotype branches.
+    static constexpr size_t default_max_extension_pops = 0;
+    size_t max_extension_pops = default_max_extension_pops;
     
     //////////////////
     // Alignment-from-chains/long read Giraffe specific parameters:

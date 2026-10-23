@@ -1121,6 +1121,52 @@ TEST_CASE("Local alignments", "[gapless_extender]") {
 
 //------------------------------------------------------------------------------
 
+TEST_CASE("Gapless extension step budget", "[gapless_extender][pop_budget]") {
+    gbwt::GBWT gbwt_index = build_gbwt_index();
+    gbwtgraph::GBWTGraph gbwt_graph = build_gbwt_graph(gbwt_index);
+    Aligner aligner;
+    GaplessExtender extender(gbwt_graph, aligner);
+
+    std::vector<std::pair<pos_t, size_t>> seeds {
+        { make_pos_t(4, false, 0), 1 },
+        { make_pos_t(2, false, 0), 7 },
+        { make_pos_t(5, false, 0), 11 },
+        { make_pos_t(7, false, 0), 15 },
+        { make_pos_t(6, false, 0), 20 }
+    };
+    std::string read = "AGGGxCGAGxGTAxACAAxTAA";
+    auto extend = [&](size_t max_pops) {
+        GaplessExtender::cluster_type cluster;
+        for (auto seed : seeds) {
+            cluster.insert(GaplessExtender::to_seed(seed.first, seed.second));
+        }
+        return extender.extend(cluster, read, nullptr, GaplessExtender::MAX_MISMATCHES, GaplessExtender::OVERLAP_THRESHOLD, true, max_pops);
+    };
+
+    std::vector<GaplessExtension> unlimited = extend(0);
+    REQUIRE(!unlimited.empty());
+
+    SECTION("a budget that is never reached changes nothing") {
+        std::vector<GaplessExtension> bounded = extend(1000000);
+        REQUIRE(bounded.size() == unlimited.size());
+        for (size_t i = 0; i < unlimited.size(); i++) {
+            REQUIRE(bounded[i] == unlimited[i]);
+            REQUIRE(bounded[i].score == unlimited[i].score);
+        }
+    }
+
+    SECTION("a budget of one step still returns a maximal extension for every seed") {
+        std::vector<GaplessExtension> bounded = extend(1);
+        REQUIRE(bounded.size() == unlimited.size());
+        for (size_t i = 0; i < bounded.size(); i++) {
+            REQUIRE(!bounded[i].empty());
+            REQUIRE(bounded[i].left_maximal);
+            REQUIRE(bounded[i].right_maximal);
+            REQUIRE(bounded[i].score <= unlimited[i].score);
+        }
+    }
+}
+
 TEST_CASE("Non-ACGT characters do not match", "[gapless_extender]") {
 
     // Create a single-node GBWTGraph.
@@ -2681,6 +2727,109 @@ TEST_CASE("WFAAlignment can be converted to Path", "[wfa_alignment]") {
         }
     }
     
+}
+
+TEST_CASE("FollowMemo matches CachedGBWTGraph::follow_paths", "[gapless_extender][follow_memo]") {
+    // All eight haplotypes through the toy graph, with varying multiplicities in a mixed
+    // order, so that records have several runs and ranges are non-trivial.
+    std::vector<std::vector<gbwt::node_type>> routes {
+        {1, 2, 3, 5, 6, 7, 9}, {1, 2, 3, 5, 6, 8, 9}, {1, 2, 4, 5, 6, 7, 9}, {1, 2, 4, 5, 6, 8, 9},
+        {1, 4, 5, 6, 7, 9}, {1, 4, 5, 6, 8, 9}, {1, 6, 7, 9}, {1, 6, 8, 9}
+    };
+    std::vector<gbwt::vector_type> paths;
+    for (size_t round = 0; round < 6; round++) {
+        for (size_t i = 0; i < routes.size(); i++) {
+            if ((i * 7 + round * 3) % 5 == 0) {
+                continue;
+            }
+            gbwt::vector_type path;
+            for (auto id : routes[(i * 3 + round) % routes.size()]) {
+                path.push_back(gbwt::Node::encode(id, false));
+            }
+            paths.push_back(path);
+        }
+    }
+    gbwt::GBWT index = get_gbwt(paths);
+    gbwtgraph::GBWTGraph graph = build_gbwt_graph(index);
+    gbwtgraph::CachedGBWTGraph cache(graph);
+
+    auto same_state = [](const gbwt::BidirectionalState& a, const gbwt::BidirectionalState& b) {
+        return a.forward.node == b.forward.node && a.forward.range == b.forward.range
+            && a.backward.node == b.backward.node && a.backward.range == b.backward.range;
+    };
+
+    // Run the same walks with the default threshold (these records are tiny, so the real
+    // follow_paths answers) and with threshold 0 (every record goes through a rank table).
+    size_t default_threshold = FollowMemo::min_rank_record_bytes;
+    for (size_t threshold : {default_threshold, size_t(0)}) {
+        SECTION("rank tables for records of at least " + std::to_string(threshold) + " bytes") {
+            FollowMemo::min_rank_record_bytes = threshold;
+            FollowMemo::clear_rank_tables();
+
+            // One memo shared by all walks, so that states reached from different starts
+            // hit entries with a different range on the other side.
+            FollowMemo memo;
+            size_t compared = 0;
+
+            std::function<void(const gbwt::BidirectionalState&, size_t)> walk = [&](const gbwt::BidirectionalState& state, size_t depth) {
+                for (bool left : {false, true}) {
+                    std::vector<gbwt::BidirectionalState> real, memoized;
+                    cache.follow_paths(state, left, [&](const gbwt::BidirectionalState& next) {
+                        real.push_back(next);
+                        return true;
+                    });
+                    // Query twice: the first call fills the memo and the second one is a hit.
+                    for (int round = 0; round < 2; round++) {
+                        memoized.clear();
+                        memo.follow(&cache, state, left, [&](const gbwt::BidirectionalState& next) {
+                            memoized.push_back(next);
+                            return true;
+                        });
+                        REQUIRE(memoized.size() == real.size());
+                        for (size_t i = 0; i < real.size(); i++) {
+                            REQUIRE(same_state(memoized[i], real[i]));
+                        }
+                        compared++;
+                    }
+
+                    // Returning false from the iteratee must stop after the first state.
+                    size_t calls = 0;
+                    memo.follow(&cache, state, left, [&](const gbwt::BidirectionalState&) {
+                        calls++;
+                        return false;
+                    });
+                    REQUIRE(calls == std::min<size_t>(1, real.size()));
+
+                    if (depth > 0) {
+                        for (auto& next : real) {
+                            walk(next, depth - 1);
+                        }
+                    }
+                }
+            };
+
+            for (nid_t id = 1; id <= 9; id++) {
+                for (bool is_reverse : {false, true}) {
+                    walk(cache.get_bd_state(graph.get_handle(id, is_reverse)), 6);
+                }
+            }
+
+            // The walk must have exercised real reuse, not just misses.
+            REQUIRE(compared > 100);
+            REQUIRE(memo.memo.size() < compared / 2);
+
+            // An empty state yields nothing, as in the plain call.
+            size_t calls = 0;
+            memo.follow(&cache, gbwt::BidirectionalState(), false, [&](const gbwt::BidirectionalState&) {
+                calls++;
+                return true;
+            });
+            REQUIRE(calls == 0);
+
+            FollowMemo::min_rank_record_bytes = default_threshold;
+            FollowMemo::clear_rank_tables();
+        }
+    }
 }
 
 //------------------------------------------------------------------------------

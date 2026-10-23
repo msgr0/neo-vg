@@ -6,7 +6,9 @@
  */
 
 #include <functional>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "aligner.hpp"
 
@@ -127,6 +129,75 @@ private:
 //------------------------------------------------------------------------------
 
 /**
+ * Memoizes CachedGBWTGraph::follow_paths within one GaplessExtender::extend() call.
+ *
+ * The successor states depend only on the record, the range on the followed side and
+ * the direction; the other side's range just shifts by a per-successor offset. Seeds in
+ * a cluster re-extend the same states, so most calls are repeats. Results are identical
+ * to calling follow_paths directly.
+ *
+ * On a memo miss, large records are answered from a per-thread table of decoded runs
+ * (binary search instead of scanning the compressed record from its start). The tables
+ * assume one GBWT index per process; call clear_rank_tables() if the index changes.
+ *
+ * Not thread-safe; use one per extend() call.
+ */
+struct FollowMemo {
+    struct Key {
+        gbwt::node_type node; gbwt::size_type first, second; bool left;
+        bool operator==(const Key& o) const { return node == o.node && first == o.first && second == o.second && left == o.left; }
+    };
+    struct KeyHash {
+        size_t operator()(const Key& k) const {
+            uint64_t h = k.node * 0x9E3779B97F4A7C15ull;
+            h ^= (k.first + 0x9E3779B97F4A7C15ull + (h << 6) + (h >> 2));
+            h ^= (k.second * 0xC2B2AE3D27D4EB4Full + (h << 6) + (h >> 2));
+            return h ^ (k.left ? 0x5555 : 0);
+        }
+    };
+    /// A successor: its state on the followed side, and how far the other side's range start moves.
+    struct Entry { gbwt::SearchState side; gbwt::size_type shift; };
+
+    std::unordered_map<Key, std::vector<Entry>, KeyHash> memo;
+
+    /// Records with less than this many bytes of run data are not given a rank table.
+    static size_t min_rank_record_bytes;
+    /// Drop the calling thread's rank tables.
+    static void clear_rank_tables();
+
+    static const gbwt::SearchState& side(const gbwt::BidirectionalState& s, bool left) { return left ? s.backward : s.forward; }
+    static gbwt::SearchState& side(gbwt::BidirectionalState& s, bool left) { return left ? s.backward : s.forward; }
+    static const gbwt::SearchState& other(const gbwt::BidirectionalState& s, bool left) { return left ? s.forward : s.backward; }
+    static gbwt::SearchState& other(gbwt::BidirectionalState& s, bool left) { return left ? s.forward : s.backward; }
+
+    /// Compute the entries for a non-empty state without the memo.
+    static void fill(const gbwtgraph::CachedGBWTGraph* cache, const gbwt::BidirectionalState& state, bool left, std::vector<Entry>& entries);
+
+    template<typename F>
+    void follow(const gbwtgraph::CachedGBWTGraph* cache, const gbwt::BidirectionalState& state, bool left, F&& iteratee) {
+        if (state.empty()) {
+            cache->follow_paths(state, left, std::forward<F>(iteratee));
+            return;
+        }
+        const gbwt::SearchState& sd = side(state, left);
+        Key key {sd.node, sd.range.first, sd.range.second, left};
+        auto it = memo.find(key);
+        if (it == memo.end()) {
+            std::vector<Entry> entries;
+            fill(cache, state, left, entries);
+            it = memo.emplace(key, std::move(entries)).first;
+        }
+        for (const Entry& e : it->second) {
+            gbwt::BidirectionalState next = state;
+            side(next, left) = e.side;
+            other(next, left).range.first += e.shift;
+            other(next, left).range.second = other(next, left).range.first + e.side.size() - 1;
+            if (!iteratee(next)) { return; }
+        }
+    }
+};
+
+/**
  * A class that supports haplotype-consistent seed extension using GBWTGraph. Each seed
  * is a pair of matching read/graph positions and each extension is a gapless alignment
  * of an interval of the read to a haplotype.
@@ -190,8 +261,12 @@ public:
      * max_mismatches mismatches in the entire extension, and at least
      * max_mismatches / 2 mismatches on each flank.
      * Use the provided CachedGBWTGraph or allocate a new one.
+     * If max_pops_per_seed is nonzero, the search from each seed stops after that
+     * many steps once it has found any maximal extension. This bounds the work on
+     * seeds with many haplotype branches but is an approximation: the extension
+     * kept for a seed may then be worse than the best one. Zero means no limit.
      */
-    std::vector<GaplessExtension> extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache = nullptr, size_t max_mismatches = MAX_MISMATCHES, double overlap_threshold = OVERLAP_THRESHOLD, bool trim = true) const;
+    std::vector<GaplessExtension> extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache = nullptr, size_t max_mismatches = MAX_MISMATCHES, double overlap_threshold = OVERLAP_THRESHOLD, bool trim = true, size_t max_pops_per_seed = 0) const;
 
     /**
      * Determine whether the extension set contains non-overlapping

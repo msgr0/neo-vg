@@ -4,9 +4,12 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <memory>
 #include <queue>
 #include <set>
+#include <unordered_map>
 
+#include <gbwt/internal.h>
 #include <structures/immutable_list.hpp>
 
 namespace vg {
@@ -517,7 +520,118 @@ bool trim_mismatches(GaplessExtension& extension, const gbwtgraph::CachedGBWTGra
 
 //------------------------------------------------------------------------------
 
-std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache, size_t max_mismatches, double overlap_threshold, bool trim) const {
+namespace {
+
+/// Decoded runs of one large GBWT record. Answers rank queries by binary search.
+struct RankTable {
+    size_t d = 0;
+    std::vector<gbwt::node_type> succ;
+    std::vector<gbwt::size_type> off;       // Offset in the successor record, per outrank.
+    std::vector<gbwt::rank_type> rev_rank;  // The reverse_rank used by CompressedRecord::bdLF, per outrank.
+    std::vector<gbwt::size_type> start;     // Record offset where each run starts, plus the record size.
+    std::vector<gbwt::rank_type> sym;       // Outrank of each run.
+    std::vector<gbwt::size_type> cnt;       // Cumulative outrank counts before each run: (runs + 1) * d.
+
+    size_t bytes() const { return (start.size() + cnt.size() + off.size()) * sizeof(gbwt::size_type) + sym.size() * sizeof(gbwt::rank_type) + 256; }
+
+    /// Number of occurrences of outrank r in record offsets [0, pos).
+    gbwt::size_type rank(gbwt::size_type pos, gbwt::rank_type r) const {
+        size_t n = sym.size();
+        size_t i = std::upper_bound(start.begin(), start.end(), pos) - start.begin();
+        i = (i == 0 ? 0 : i - 1);
+        if (i >= n) { return cnt[n * d + r]; }
+        return cnt[i * d + r] + (sym[i] == r ? pos - start[i] : 0);
+    }
+
+    static std::unique_ptr<RankTable> build(const gbwt::CompressedRecord& rec) {
+        auto t = std::make_unique<RankTable>();
+        t->d = rec.outdegree();
+        for (gbwt::rank_type i = 0; i < t->d; i++) {
+            gbwt::node_type to = rec.successor(i);
+            t->succ.push_back(to);
+            t->off.push_back(rec.offset(i));
+            // Same choice of reverse_rank as CompressedRecord::bdLF().
+            gbwt::rank_type rr = 0;
+            if (to != gbwt::ENDMARKER) {
+                rr = rec.edgeTo(gbwt::Node::reverse(to));
+                if (rr >= t->d) { rr = i; }
+                else if (!gbwt::Node::is_reverse(to)) { rr++; }
+            }
+            t->rev_rank.push_back(rr);
+        }
+        std::vector<gbwt::size_type> running(t->d, 0);
+        gbwt::size_type pos = 0;
+        for (gbwt::CompressedRecordGenericIterator<gbwt::DummyRankSupport> iter(rec); !iter.end(); ++iter) {
+            t->start.push_back(pos);
+            t->sym.push_back(iter->first);
+            t->cnt.insert(t->cnt.end(), running.begin(), running.end());
+            running[iter->first] += iter->second;
+            pos += iter->second;
+        }
+        t->start.push_back(pos);
+        t->cnt.insert(t->cnt.end(), running.begin(), running.end());
+        return t;
+    }
+};
+
+/// Per-thread rank tables, kept across reads. Memory is capped; everything is dropped when the cap is hit.
+struct RankStore {
+    static constexpr size_t MAX_BYTES = 256 * 1024 * 1024;
+
+    const gbwt::GBWT* index = nullptr;
+    std::unordered_map<gbwt::node_type, std::unique_ptr<RankTable>> tables; // nullptr means the record is too small.
+    size_t bytes = 0;
+
+    void clear() { tables.clear(); bytes = 0; }
+
+    const RankTable* get(const gbwt::GBWT* idx, gbwt::node_type node, size_t min_record_bytes) {
+        if (idx != index) { clear(); index = idx; }
+        auto it = tables.find(node);
+        if (it != tables.end()) { return it->second.get(); }
+        gbwt::CompressedRecord rec = idx->record(node);
+        if (rec.data_size < min_record_bytes) { tables.emplace(node, nullptr); return nullptr; }
+        auto t = RankTable::build(rec);
+        if (bytes + t->bytes() > MAX_BYTES) { clear(); }
+        bytes += t->bytes();
+        return tables.emplace(node, std::move(t)).first->second.get();
+    }
+};
+
+thread_local RankStore rank_store;
+
+}
+
+size_t FollowMemo::min_rank_record_bytes = 256;
+
+void FollowMemo::clear_rank_tables() {
+    rank_store.clear();
+}
+
+void FollowMemo::fill(const gbwtgraph::CachedGBWTGraph* cache, const gbwt::BidirectionalState& state, bool left, std::vector<Entry>& entries) {
+    const gbwt::SearchState& sd = side(state, left);
+    const RankTable* t = rank_store.get(cache->cache.index, sd.node, min_rank_record_bytes);
+    if (t == nullptr) {
+        cache->follow_paths(state, left, [&](const gbwt::BidirectionalState& next) -> bool {
+            entries.push_back({side(next, left), other(next, left).range.first - other(state, left).range.first});
+            return true;
+        });
+        return;
+    }
+    // Same successors, in the same order, as follow_paths(): skip the endmarker and empty results.
+    if (sd.range.second < sd.range.first) { return; }
+    for (gbwt::rank_type i = 0; i < t->d; i++) {
+        if (t->succ[i] == gbwt::ENDMARKER) { continue; }
+        gbwt::size_type a = t->rank(sd.range.first, i), b = t->rank(sd.range.second + 1, i);
+        if (b == a) { continue; }
+        gbwt::size_type shift = 0;
+        for (gbwt::rank_type r = 0; r < t->rev_rank[i]; r++) {
+            if (r != i) { shift += t->rank(sd.range.second + 1, r) - t->rank(sd.range.first, r); }
+        }
+        entries.push_back({gbwt::SearchState(t->succ[i], t->off[i] + a, t->off[i] + b - 1), shift});
+    }
+}
+
+std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache, size_t max_mismatches, double overlap_threshold, bool trim, size_t max_pops_per_seed) const {
 
     std::vector<GaplessExtension> result;
     if (this->graph == nullptr || this->aligner == nullptr || cluster.empty() || sequence.empty()) {
@@ -525,6 +639,7 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
     }
     result.reserve(cluster.size());
     this->mask(sequence);
+    FollowMemo follow_memo;
 
     // Allocate a cache if we were not provided with one.
     bool free_cache = (cache == nullptr);
@@ -551,6 +666,7 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
         };
 
         // Match the initial node and add it to the queue.
+        size_t seed_pops = 0;
         std::priority_queue<std::pair<GaplessExtension, size_t>> extensions;
         // Each extension gets a unique deduplicating number to break score
         // ties and make the queue order stable across different backing STL
@@ -582,6 +698,12 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
         // Extend the most promising extensions first, using alignment scores for priority.
         // First make the extension right-maximal and then left-maximal.
         while (!extensions.empty()) {
+            // Approximation: stop searching from this seed once the budget is spent and
+            // there is some maximal extension to keep.
+            if (max_pops_per_seed != 0 && seed_pops >= max_pops_per_seed && !best_match.empty()) {
+                break;
+            }
+            seed_pops++;
             GaplessExtension curr = std::move(extensions.top().first);
             extensions.pop();
 
@@ -605,7 +727,7 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
                 uint32_t mismatch_limit = std::max(
                     static_cast<uint32_t>(max_mismatches + 1),
                     static_cast<uint32_t>(max_mismatches / 2 + curr.old_score + 1));
-                cache->follow_paths(curr.state, false, [&](const gbwt::BidirectionalState& next_state) -> bool {
+                follow_memo.follow(cache, curr.state, false, [&](const gbwt::BidirectionalState& next_state) -> bool {
                     handle_t handle = gbwtgraph::GBWTGraph::node_to_handle(next_state.forward.node);
                     GaplessExtension next {
                         { }, curr.offset, next_state,
@@ -649,7 +771,7 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
                 uint32_t mismatch_limit = std::max(
                     static_cast<uint32_t>(max_mismatches + 1),
                     static_cast<uint32_t>(max_mismatches / 2 + curr.old_score + 1));
-                cache->follow_paths(curr.state, true, [&](const gbwt::BidirectionalState& next_state) -> bool {
+                follow_memo.follow(cache, curr.state, true, [&](const gbwt::BidirectionalState& next_state) -> bool {
                     handle_t handle = gbwtgraph::GBWTGraph::node_to_handle(gbwt::Node::reverse(next_state.backward.node));
                     size_t node_length = cache->get_length(handle);
                     GaplessExtension next {
