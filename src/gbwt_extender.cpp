@@ -601,7 +601,7 @@ thread_local RankStore rank_store;
 
 }
 
-size_t FollowMemo::min_rank_record_bytes = 256;
+size_t FollowMemo::min_rank_record_bytes = 0;
 
 void FollowMemo::clear_rank_tables() {
     rank_store.clear();

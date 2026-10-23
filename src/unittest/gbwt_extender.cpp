@@ -2758,10 +2758,10 @@ TEST_CASE("FollowMemo matches CachedGBWTGraph::follow_paths", "[gapless_extender
             && a.backward.node == b.backward.node && a.backward.range == b.backward.range;
     };
 
-    // Run the same walks with the default threshold (these records are tiny, so the real
-    // follow_paths answers) and with threshold 0 (every record goes through a rank table).
+    // Run the same walks with no rank tables (the real follow_paths answers) and with
+    // threshold 0 (every record goes through a rank table).
     size_t default_threshold = FollowMemo::min_rank_record_bytes;
-    for (size_t threshold : {default_threshold, size_t(0)}) {
+    for (size_t threshold : {std::numeric_limits<size_t>::max(), size_t(0)}) {
         SECTION("rank tables for records of at least " + std::to_string(threshold) + " bytes") {
             FollowMemo::min_rank_record_bytes = threshold;
             FollowMemo::clear_rank_tables();
