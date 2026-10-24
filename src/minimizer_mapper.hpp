@@ -216,6 +216,12 @@ class MinimizerMapper : public AlignerClient {
     /// time spent on reads with many haplotype branches.
     static constexpr size_t default_max_extension_pops = 0;
     size_t max_extension_pops = default_max_extension_pops;
+
+    /// Memoize GBWT steps and use per-thread rank tables in gapless extension.
+    /// Identical output; a big CPU win on SILVA-like graphs, extra memory and
+    /// no win (or a loss) on human short reads, so off by default.
+    static constexpr bool default_use_follow_memo = false;
+    bool use_follow_memo = default_use_follow_memo;
     
     //////////////////
     // Alignment-from-chains/long read Giraffe specific parameters:

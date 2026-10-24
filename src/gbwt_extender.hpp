@@ -160,6 +160,9 @@ struct FollowMemo {
 
     std::unordered_map<Key, std::vector<Entry>, KeyHash> memo;
 
+    /// If false, follow() calls CachedGBWTGraph::follow_paths directly (no memo, no rank tables).
+    bool enabled = true;
+
     /// Records with less than this many bytes of run data are not given a rank table.
     /// Default 0: tables for every record (on SILVA, 39% less CPU than 256, same output).
     static size_t min_rank_record_bytes;
@@ -176,7 +179,7 @@ struct FollowMemo {
 
     template<typename F>
     void follow(const gbwtgraph::CachedGBWTGraph* cache, const gbwt::BidirectionalState& state, bool left, F&& iteratee) {
-        if (state.empty()) {
+        if (!enabled || state.empty()) {
             cache->follow_paths(state, left, std::forward<F>(iteratee));
             return;
         }
@@ -266,8 +269,11 @@ public:
      * many steps once it has found any maximal extension. This bounds the work on
      * seeds with many haplotype branches but is an approximation: the extension
      * kept for a seed may then be worse than the best one. Zero means no limit.
+     * If use_follow_memo is set, GBWT steps are memoized and answered from rank tables
+     * (FollowMemo). Same results, less CPU on graphs with many repeated states (e.g. SILVA),
+     * but more memory and not always faster, so it is off by default.
      */
-    std::vector<GaplessExtension> extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache = nullptr, size_t max_mismatches = MAX_MISMATCHES, double overlap_threshold = OVERLAP_THRESHOLD, bool trim = true, size_t max_pops_per_seed = 0) const;
+    std::vector<GaplessExtension> extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache = nullptr, size_t max_mismatches = MAX_MISMATCHES, double overlap_threshold = OVERLAP_THRESHOLD, bool trim = true, size_t max_pops_per_seed = 0, bool use_follow_memo = false) const;
 
     /**
      * Determine whether the extension set contains non-overlapping

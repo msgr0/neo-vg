@@ -1135,12 +1135,12 @@ TEST_CASE("Gapless extension step budget", "[gapless_extender][pop_budget]") {
         { make_pos_t(6, false, 0), 20 }
     };
     std::string read = "AGGGxCGAGxGTAxACAAxTAA";
-    auto extend = [&](size_t max_pops) {
+    auto extend = [&](size_t max_pops, bool memo = false) {
         GaplessExtender::cluster_type cluster;
         for (auto seed : seeds) {
             cluster.insert(GaplessExtender::to_seed(seed.first, seed.second));
         }
-        return extender.extend(cluster, read, nullptr, GaplessExtender::MAX_MISMATCHES, GaplessExtender::OVERLAP_THRESHOLD, true, max_pops);
+        return extender.extend(cluster, read, nullptr, GaplessExtender::MAX_MISMATCHES, GaplessExtender::OVERLAP_THRESHOLD, true, max_pops, memo);
     };
 
     std::vector<GaplessExtension> unlimited = extend(0);
@@ -1152,6 +1152,15 @@ TEST_CASE("Gapless extension step budget", "[gapless_extender][pop_budget]") {
         for (size_t i = 0; i < unlimited.size(); i++) {
             REQUIRE(bounded[i] == unlimited[i]);
             REQUIRE(bounded[i].score == unlimited[i].score);
+        }
+    }
+
+    SECTION("the follow memo gives the same extensions as plain follow_paths") {
+        std::vector<GaplessExtension> memoized = extend(0, true);
+        REQUIRE(memoized.size() == unlimited.size());
+        for (size_t i = 0; i < unlimited.size(); i++) {
+            REQUIRE(memoized[i] == unlimited[i]);
+            REQUIRE(memoized[i].score == unlimited[i].score);
         }
     }
 

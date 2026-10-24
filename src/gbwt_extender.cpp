@@ -631,7 +631,7 @@ void FollowMemo::fill(const gbwtgraph::CachedGBWTGraph* cache, const gbwt::Bidir
     }
 }
 
-std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache, size_t max_mismatches, double overlap_threshold, bool trim, size_t max_pops_per_seed) const {
+std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std::string sequence, const gbwtgraph::CachedGBWTGraph* cache, size_t max_mismatches, double overlap_threshold, bool trim, size_t max_pops_per_seed, bool use_follow_memo) const {
 
     std::vector<GaplessExtension> result;
     if (this->graph == nullptr || this->aligner == nullptr || cluster.empty() || sequence.empty()) {
@@ -640,6 +640,7 @@ std::vector<GaplessExtension> GaplessExtender::extend(cluster_type& cluster, std
     result.reserve(cluster.size());
     this->mask(sequence);
     FollowMemo follow_memo;
+    follow_memo.enabled = use_follow_memo;
 
     // Allocate a cache if we were not provided with one.
     bool free_cache = (cache == nullptr);

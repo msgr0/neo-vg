@@ -4690,7 +4690,7 @@ vector<GaplessExtension> MinimizerMapper::extend_seed_group(const std::vector<si
     }
     
     // Do the extension, allowing trimming to maximal-score subregion if we don't need to map back to seeds responsible for and contained in each extension.
-    vector<GaplessExtension> extensions = extender->extend(seed_matchings, sequence, nullptr, max_mismatches, GaplessExtender::OVERLAP_THRESHOLD, seeds_used == nullptr, this->max_extension_pops);
+    vector<GaplessExtension> extensions = extender->extend(seed_matchings, sequence, nullptr, max_mismatches, GaplessExtender::OVERLAP_THRESHOLD, seeds_used == nullptr, this->max_extension_pops, this->use_follow_memo);
 
     if (show_work) {
         #pragma omp critical (cerr)

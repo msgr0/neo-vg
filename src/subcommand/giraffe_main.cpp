@@ -270,6 +270,12 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
         MinimizerMapper::default_max_extension_pops,
         "stop each seed's gapless extension search after INT steps once it has an extension (0 = no limit; approximate)"
     );
+    comp_opts.add_flag(
+        "follow-memo",
+        &MinimizerMapper::use_follow_memo,
+        MinimizerMapper::default_use_follow_memo,
+        "memoize GBWT steps and use rank tables in gapless extension (same output, less CPU on SILVA-like graphs, more memory)"
+    );
     comp_opts.add_range(
         "extension-score", 'v',
         &MinimizerMapper::extension_score_threshold,
