@@ -222,6 +222,13 @@ class MinimizerMapper : public AlignerClient {
     /// no win (or a loss) on human short reads, so off by default.
     static constexpr bool default_use_follow_memo = false;
     bool use_follow_memo = default_use_follow_memo;
+
+    /// When aligning between or off chain anchors, dagify only the part of the
+    /// strand-split local graph reachable from the anchors, instead of all of
+    /// it (upstream vg). Same accuracy, less CPU and memory, but node numbering
+    /// differs, so ties between equal-scoring alignments can break differently.
+    static constexpr bool default_dagify_reachable_only = true;
+    bool dagify_reachable_only = default_dagify_reachable_only;
     
     //////////////////
     // Alignment-from-chains/long read Giraffe specific parameters:
@@ -1073,7 +1080,7 @@ protected:
      * function that translates from handle in the dagified graph to node ID
      * and orientation in the base graph.
      */
-    static void with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback);
+    static void with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback, bool reachable_only = default_dagify_reachable_only);
     
     /**
      * Determine the gap limit to use when aligning the given range of sequence
@@ -1105,7 +1112,7 @@ protected:
      *
      * Returns whether a graph was aligned against or not.
      */
-    static bool align_sequence_between(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name = nullptr, size_t max_dp_cells = std::numeric_limits<size_t>::max(), const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding = algorithms::pad_band_random_walk());
+    static bool align_sequence_between(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name = nullptr, size_t max_dp_cells = std::numeric_limits<size_t>::max(), const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding = algorithms::pad_band_random_walk(), bool dagify_reachable_only = default_dagify_reachable_only);
 
 public:
     /**
@@ -1113,7 +1120,7 @@ public:
      * same answer (modulo reverse-complementation) no matter whether the
      * sequence and anchors are reverse-complemented or not.
      */
-    static bool align_sequence_between_consistently(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name = nullptr, size_t max_dp_cells = std::numeric_limits<size_t>::max(), const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding = algorithms::pad_band_random_walk());
+    static bool align_sequence_between_consistently(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name = nullptr, size_t max_dp_cells = std::numeric_limits<size_t>::max(), const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding = algorithms::pad_band_random_walk(), bool dagify_reachable_only = default_dagify_reachable_only);
 
 protected:
     /**

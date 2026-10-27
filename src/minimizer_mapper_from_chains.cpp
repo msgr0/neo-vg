@@ -13,6 +13,7 @@
 #include "crash.hpp"
 #include "multipath_alignment.hpp"
 #include "split_strand_graph.hpp"
+#include "subgraph_overlay.hpp"
 #include "subgraph.hpp"
 #include "statistics.hpp"
 #include "algorithms/alignment_path_offsets.hpp"
@@ -2621,7 +2622,7 @@ Alignment MinimizerMapper::find_chain_alignment(
                 if (stats) {
                     start_time = std::chrono::high_resolution_clock::now();
                 }
-                bool did_aln = align_sequence_between_consistently(empty_pos_t(), right_anchor, graph_horizon, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), tail_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding);
+                bool did_aln = align_sequence_between_consistently(empty_pos_t(), right_anchor, graph_horizon, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), tail_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding, this->dagify_reachable_only);
                 if (stats) {
                     stop_time = std::chrono::high_resolution_clock::now();
                     if (did_aln) {
@@ -2868,7 +2869,7 @@ Alignment MinimizerMapper::find_chain_alignment(
             if (stats) {
                 start_time = std::chrono::high_resolution_clock::now();
             }
-            bool did_aln = MinimizerMapper::align_sequence_between_consistently((*here).graph_end(), (*next).graph_start(), path_length+max_gap_length, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), link_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding);
+            bool did_aln = MinimizerMapper::align_sequence_between_consistently((*here).graph_end(), (*next).graph_start(), path_length+max_gap_length, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), link_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding, this->dagify_reachable_only);
             if (stats) {
                 stop_time = std::chrono::high_resolution_clock::now();
                 if (did_aln) {
@@ -3013,7 +3014,7 @@ Alignment MinimizerMapper::find_chain_alignment(
                 if (stats) {
                     start_time = std::chrono::high_resolution_clock::now();
                 }
-                bool did_aln = align_sequence_between_consistently(left_anchor_included, empty_pos_t(), graph_horizon, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), tail_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding);
+                bool did_aln = align_sequence_between_consistently(left_anchor_included, empty_pos_t(), graph_horizon, max_gap_length, &this->gbwt_graph, this->get_regular_aligner(), tail_aln, &aln.name(), this->max_dp_cells, this->choose_band_padding, this->dagify_reachable_only);
                 if (stats) {
                     stop_time = std::chrono::high_resolution_clock::now();
                     if (did_aln) {
@@ -3086,7 +3087,7 @@ Alignment MinimizerMapper::find_chain_alignment(
     return result;
 }
 
-void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback) {
+void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback, bool reachable_only) {
     
     if (is_empty(left_anchor) && is_empty(right_anchor)) {
         throw ChainAlignmentFailedError("Cannot align sequence between two unset positions");
@@ -3329,7 +3330,27 @@ void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const 
     
     // Do the dagification from those input handles.
     // TODO: Note that this can add tips! We should come up with a dagification method that is guaranteed not to!
-    auto dagification_result = handlegraph::algorithms::dagify_from(&split_graph, bounding_handles, &dagified_graph, max_path_length);
+    // dagify_from() dagifies the whole graph and then keeps only what oriented walks
+    // from the bounding handles reach. The strand-split graph normally holds a second,
+    // unreachable copy of every node, so (if asked) hand it just the reachable part.
+    std::unordered_set<nid_t> reachable_ids;
+    if (reachable_only) {
+        std::unordered_set<handle_t> seen(bounding_handles.begin(), bounding_handles.end());
+        std::vector<handle_t> stack(bounding_handles.begin(), bounding_handles.end());
+        while (!stack.empty()) {
+            handle_t here = stack.back();
+            stack.pop_back();
+            reachable_ids.insert(split_graph.get_id(here));
+            split_graph.follow_edges(here, false, [&](const handle_t& next) {
+                if (seen.insert(next).second) {
+                    stack.push_back(next);
+                }
+            });
+        }
+    }
+    SubgraphOverlay reachable_graph(&split_graph, &reachable_ids);
+    const HandleGraph* to_dagify = reachable_only ? (const HandleGraph*) &reachable_graph : &split_graph;
+    auto dagification_result = handlegraph::algorithms::dagify_from(to_dagify, bounding_handles, &dagified_graph, max_path_length);
     auto& dagified_to_split = dagification_result.first;
     auto& anchor_handles = dagification_result.second;
     
@@ -3399,7 +3420,7 @@ size_t MinimizerMapper::longest_detectable_gap_in_range(const Alignment& aln, co
     return aligner->scorer->longest_detectable_gap(aln, sequence_end);
 }
 
-bool MinimizerMapper::align_sequence_between(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name, size_t max_dp_cells, const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding) {
+bool MinimizerMapper::align_sequence_between(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name, size_t max_dp_cells, const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding, bool dagify_reachable_only) {
 
     bool did_aln = true;
     // Get the dagified local graph, and the back translation
@@ -3611,15 +3632,15 @@ bool MinimizerMapper::align_sequence_between(const pos_t& left_anchor, const pos
         }
     
         // Now the alignment is filled in!
-    });
+    }, dagify_reachable_only);
 
     return did_aln;
 }
 
-bool MinimizerMapper::align_sequence_between_consistently(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name, size_t max_dp_cells, const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding) {
+bool MinimizerMapper::align_sequence_between_consistently(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, size_t max_gap_length, const HandleGraph* graph, const GSSWAligner* aligner, Alignment& alignment, const std::string* alignment_name, size_t max_dp_cells, const std::function<size_t(const Alignment&, const HandleGraph&)>& choose_band_padding, bool dagify_reachable_only) {
     if (left_anchor < right_anchor) {
         // Left anchor is unambiguously first, so align as-is
-        return align_sequence_between(left_anchor, right_anchor, max_path_length, max_gap_length, graph, aligner, alignment, alignment_name, max_dp_cells, choose_band_padding);
+        return align_sequence_between(left_anchor, right_anchor, max_path_length, max_gap_length, graph, aligner, alignment, alignment_name, max_dp_cells, choose_band_padding, dagify_reachable_only);
     }
 
     // Otherwise left anchor is equal or greater.
@@ -3640,7 +3661,7 @@ bool MinimizerMapper::align_sequence_between_consistently(const pos_t& left_anch
         // we still might get inconsistencies by read strand in the final
         // output, since the read around it might be in either orientation
         // relative to the flow of the reference.
-        return align_sequence_between(left_anchor, right_anchor, max_path_length, max_gap_length, graph, aligner, alignment, alignment_name, max_dp_cells, choose_band_padding);
+        return align_sequence_between(left_anchor, right_anchor, max_path_length, max_gap_length, graph, aligner, alignment, alignment_name, max_dp_cells, choose_band_padding, dagify_reachable_only);
     }
 
     // Now we know a swap is required.
@@ -3651,7 +3672,7 @@ bool MinimizerMapper::align_sequence_between_consistently(const pos_t& left_anch
     pos_t flipped_right_anchor = is_empty(left_anchor) ? empty_pos_t() : reverse(left_anchor, get_node_length(id(left_anchor)));
 
     // Do the alignment
-    auto result = align_sequence_between(flipped_left_anchor, flipped_right_anchor, max_path_length, max_gap_length, graph, aligner, flipped_query, alignment_name, max_dp_cells, choose_band_padding);
+    auto result = align_sequence_between(flipped_left_anchor, flipped_right_anchor, max_path_length, max_gap_length, graph, aligner, flipped_query, alignment_name, max_dp_cells, choose_band_padding, dagify_reachable_only);
 
     // Flip and send the answer
     reverse_complement_alignment_in_place(&flipped_query, get_node_length);

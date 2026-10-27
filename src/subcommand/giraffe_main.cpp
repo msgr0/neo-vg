@@ -360,6 +360,12 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
     // Configure chaining
     auto& chaining_opts = parser->add_group<MinimizerMapper>("long-read/chaining parameters");
     chaining_opts.add_flag(
+        "no-dagify-reachable-only",
+        &MinimizerMapper::dagify_reachable_only,
+        MinimizerMapper::default_dagify_reachable_only,
+        "dagify the whole strand-split local graph before chain alignment, as upstream vg does (same accuracy, slower, more memory; different tie-breaks)"
+    );
+    chaining_opts.add_flag(
         "align-from-chains",
         &MinimizerMapper::align_from_chains,
         MinimizerMapper::default_align_from_chains,
