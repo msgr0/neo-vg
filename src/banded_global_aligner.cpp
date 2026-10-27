@@ -249,7 +249,8 @@ BandedGlobalAligner<IntType>::BAMatrix::~BAMatrix() {
 
 template <class IntType>
 void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& graph, int8_t* score_mat, int8_t* nt_table,
-                                                         int8_t gap_open, int8_t gap_extend, bool qual_adjusted, IntType min_inf) {
+                                                         int8_t gap_open, int8_t gap_extend, bool qual_adjusted, IntType min_inf,
+                                                         const int32_t* read_codes) {
     
 #ifdef debug_banded_aligner_fill_matrix
     cerr << "[BAMatrix::fill_matrix] beginning DP on matrix for node " << as_integer(node) << endl;;
@@ -422,10 +423,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
         
         IntType match_score;
         if (qual_adjusted) {
-            match_score = score_mat[25 * base_quality[seed_next_top_diag_iter] + 5 * nt_table[node_seq[0]] + nt_table[read[seed_next_top_diag_iter]]];
+            match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[seed_next_top_diag_iter]];
         }
         else {
-            match_score = score_mat[5 * nt_table[node_seq[0]] + nt_table[read[seed_next_top_diag_iter]]];
+            match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[seed_next_top_diag_iter]];
         }
         
         if (beyond_top_of_matrix) {
@@ -477,10 +478,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
             // extend a match
             diag_idx = seed->cell(diag - seed_next_top_diag, seed_node_seq_len - 1);
             if (qual_adjusted) {
-                match_score = score_mat[25 * base_quality[diag] + 5 * nt_table[node_seq[0]] + nt_table[read[diag]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[diag]];
             }
             else {
-                match_score = score_mat[5 * nt_table[node_seq[0]] + nt_table[read[diag]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[diag]];
             }
             
 #ifdef debug_banded_aligner_fill_matrix
@@ -517,10 +518,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
             idx = cell(seed_next_bottom_diag_iter - top_diag, 0);
             diag_idx = seed->cell(seed_next_bottom_diag_iter - seed_next_top_diag, seed_node_seq_len - 1);
             if (qual_adjusted) {
-                match_score = score_mat[25 * base_quality[seed_next_bottom_diag_iter] + 5 * nt_table[node_seq[0]] + nt_table[read[seed_next_bottom_diag_iter]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[seed_next_bottom_diag_iter]];
             }
             else {
-                match_score = score_mat[5 * nt_table[node_seq[0]] + nt_table[read[seed_next_bottom_diag_iter]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[seed_next_bottom_diag_iter]];
             }
             
 #ifdef debug_banded_aligner_fill_matrix
@@ -564,14 +565,14 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
         int64_t iter_stop = bottom_diag >= (int64_t) read.length() ? band_height + (int64_t) read.length() - bottom_diag - 1 : band_height;
         // match of first nucleotides
         if (qual_adjusted) {
-            match[idx] = max<IntType>(score_mat[25 * base_quality[0] + 5 * nt_table[node_seq[0]] + nt_table[read[0]]], match[idx]);
+            match[idx] = max<IntType>(score_mat[5 * nt_table[node_seq[0]] + read_codes[0]], match[idx]);
             
 #ifdef debug_banded_aligner_fill_matrix
             cerr << "[BAMatrix::fill_matrix]: set quality adjusted initial match cell to " << (int) match[idx] << " from node char " << node_seq[0] << ", read char " << read[0] << ", base qual " << (int) base_quality[0] << " for adjusted matrix index " << 25 * base_quality[0] + 5 * nt_table[node_seq[0]] + nt_table[read[0]] << " and score " << (int) score_mat[25 * base_quality[0] + 5 * nt_table[node_seq[0]] + nt_table[read[0]]] << endl;
 #endif
         }
         else {
-             match[idx] = max<IntType>(match[idx] = score_mat[5 * nt_table[node_seq[0]] + nt_table[read[0]]], match[idx]);
+             match[idx] = max<IntType>(match[idx] = score_mat[5 * nt_table[node_seq[0]] + read_codes[0]], match[idx]);
         }
         
         // only way to end an alignment in a gap here is to row and column gap
@@ -584,10 +585,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
             // score of a match in this cell
             IntType match_score;
             if (qual_adjusted) {
-                match_score = score_mat[25 * base_quality[top_diag + i] + 5 * nt_table[node_seq[0]] + nt_table[read[top_diag + i]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[top_diag + i]];
             }
             else {
-                match_score = score_mat[5 * nt_table[node_seq[0]] + nt_table[read[top_diag + i]]];
+                match_score = score_mat[5 * nt_table[node_seq[0]] + read_codes[top_diag + i]];
             }
             // must take one lead gap to get into first column
             match[idx] = max<IntType>(match_score - gap_open - (top_diag + i - 1) * gap_extend, match[idx]);
@@ -635,10 +636,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
         
         IntType match_score;
         if (qual_adjusted) {
-            match_score = score_mat[25 * base_quality[iter_start + top_diag + j] + 5 * nt_table[node_seq[j]] + nt_table[read[iter_start + top_diag + j]]];
+            match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[iter_start + top_diag + j]];
         }
         else {
-            match_score = score_mat[5 * nt_table[node_seq[j]] + nt_table[read[iter_start + top_diag + j]]];
+            match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[iter_start + top_diag + j]];
         }
         if (top_diag_outside || top_diag_abutting) {
             // match after implied gap along top edge
@@ -682,10 +683,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
             left_idx = cell(i + 1, j - 1);
             
             if (qual_adjusted) {
-                match_score = score_mat[25 * base_quality[i + top_diag + j] + 5 * nt_table[node_seq[j]] + nt_table[read[i + top_diag + j]]];
+                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[i + top_diag + j]];
             }
             else {
-                match_score = score_mat[5 * nt_table[node_seq[j]] + nt_table[read[i + top_diag + j]]];
+                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[i + top_diag + j]];
             }
             
             match[idx] = match_score + max(max(match[diag_idx], insert_row[diag_idx]), insert_col[diag_idx]);
@@ -710,10 +711,10 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
             diag_idx = cell(iter_stop - 1, j - 1);
             
             if (qual_adjusted) {
-                match_score = score_mat[25 * base_quality[iter_stop + top_diag + j - 1] + 5 * nt_table[node_seq[j]] + nt_table[read[iter_stop + top_diag + j - 1]]];
+                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[iter_stop + top_diag + j - 1]];
             }
             else {
-                match_score = score_mat[5 * nt_table[node_seq[j]] + nt_table[read[iter_stop + top_diag + j - 1]]];
+                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[iter_stop + top_diag + j - 1]];
             }
             
             match[idx] = match_score + max(max(match[diag_idx], insert_row[diag_idx]), insert_col[diag_idx]);
@@ -2303,6 +2304,15 @@ void BandedGlobalAligner<IntType>::align(int8_t* score_mat, int8_t* nt_table, in
     IntType min_inf = numeric_limits<IntType>::min() + max<IntType>((IntType) -max_mismatch, max<IntType>(gap_open, gap_extend));
     
     
+    // Score lookups add the read base's code (and its quality row) to the node
+    // base's; work out the read's part once instead of in every cell.
+    const string& read = alignment.sequence();
+    const string& base_quality = alignment.quality();
+    vector<int32_t> read_codes(read.size());
+    for (size_t k = 0; k < read.size(); k++) {
+        read_codes[k] = nt_table[read[k]] + (adjust_for_base_quality ? 25 * base_quality[k] : 0);
+    }
+    
     // fill each nodes matrix in topological order
     for (int64_t i = 0; i < banded_matrices.size(); i++) {
         BAMatrix* band_matrix = banded_matrices[i];
@@ -2319,7 +2329,8 @@ void BandedGlobalAligner<IntType>::align(int8_t* score_mat, int8_t* nt_table, in
         cerr << "[BandedGlobalAligner::align] at node " << graph.get_id(band_matrix->node) << " at index " << i << " with sequence " << graph.get_id(band_matrix->node) << endl;
         cerr << "[BandedGlobalAligner::align] node is not masked, filling matrix" << endl;
 #endif
-        band_matrix->fill_matrix(graph, score_mat, nt_table, gap_open, gap_extend, adjust_for_base_quality, min_inf);
+        band_matrix->fill_matrix(graph, score_mat, nt_table, gap_open, gap_extend, adjust_for_base_quality, min_inf,
+                                  read_codes.data());
     }
     
     traceback(score_mat, nt_table, gap_open, gap_extend, min_inf);

@@ -173,7 +173,7 @@ namespace vg {
         
         /// Use DP to fill the band with alignment scores
         void fill_matrix(const HandleGraph& graph, int8_t* score_mat, int8_t* nt_table, int8_t gap_open,
-                         int8_t gap_extend, bool qual_adjusted, IntType min_inf);
+                         int8_t gap_extend, bool qual_adjusted, IntType min_inf, const int32_t* read_codes);
         
         void init_traceback_indexes(const HandleGraph& graph, int64_t& i, int64_t& j);
         
