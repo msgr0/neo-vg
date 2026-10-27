@@ -187,6 +187,12 @@ namespace vg {
                                  const int8_t* score_mat, const int8_t* nt_table, const int8_t gap_open,
                                  const int8_t gap_extend, const bool qual_adjusted, IntType const min_inf);
         
+        /// Index of a cell in this band (row = diagonal - top_diag, col = node offset).
+        /// The band is stored column by column, because fill_matrix() walks down columns.
+        inline int64_t cell(int64_t row, int64_t col) const {
+            return col * (bottom_diag - top_diag + 1) + row;
+        }
+        
         /// Debugging function
         void print_full_matrices(const HandleGraph& graph);
         /// Debugging function
