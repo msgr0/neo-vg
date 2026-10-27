@@ -1394,7 +1394,7 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
                 *l = concat_mappings(*l, m, trim_internal_deletions);
             } else {
                 if (from_length(m) || to_length(m)) {
-                    *s.add_mapping() = m;
+                    *s.add_mapping() = std::move(m);
                 } else {
 #ifdef debug_simplify
                     std::cerr << "Drop empty mapping" << std::endl;
@@ -1402,7 +1402,7 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
                 }
             }
         } else {
-            *s.add_mapping() = m;
+            *s.add_mapping() = std::move(m);
         }
     }
     // we will return this path after a final cleanup
@@ -1410,9 +1410,9 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
     r.set_name(p.name());
     // remove any edit-less mappings that may have resulted from left-shifting indels
     for (size_t i = 0; i < s.mapping_size(); ++i) {
-        auto& m = s.mapping(i);
+        auto& m = *s.mutable_mapping(i);
         if (!m.edit_size()) continue; // skips empty mappings
-        *r.add_mapping() = m;
+        *r.add_mapping() = std::move(m);
         // remove position if it's empty
         auto& l = *r.mutable_mapping(r.mapping_size()-1);
         if (l.has_position() && l.position().node_id()==0) {
@@ -1424,7 +1424,7 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
     int total_to_length = path_to_length(r);
     int seen_to_length = 0;
     for (size_t i = 0; i < r.mapping_size(); ++i) {
-        auto& m = r.mapping(i);
+        auto& m = *r.mutable_mapping(i);
         int curr_to_length = mapping_to_length(m);
         // skip bits at the beginning and end
         if ((!seen_to_length && !curr_to_length)
@@ -1447,7 +1447,7 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
                 }
             } else {
                 // internal segment
-                n = m;
+                n = std::move(m);
             }
         } else {
             // our first matching mapping
@@ -1468,28 +1468,25 @@ Path simplify(const Path& p, bool trim_internal_deletions) {
                 }
             }
         }
-        *q.add_mapping() = n;
         seen_to_length += mapping_to_length(n);
+        *q.add_mapping() = std::move(n);
     }
     q.set_name(r.name());
-    assert(path_to_length(q) == path_to_length(r));
+    assert(path_to_length(q) == total_to_length);
 
     // now set ranks and clear empty positions and edits
     for (size_t i = 0; i < q.mapping_size(); ++i) {
-        auto& m = q.mapping(i);
-        Mapping n;
-        //auto* m = q.mutable_mapping(i);
-        n.set_rank(i+1);
-        if (m.position().node_id() != 0) {
+        auto& m = *q.mutable_mapping(i);
+        m.set_rank(i+1);
+        if (m.position().node_id() == 0) {
             // this is an empty position, so let's remove it
-            *n.mutable_position() = m.position();
+            m.clear_position();
         }
-        for (auto& e : m.edit()) {
-            if (!edit_is_empty(e)) {
-                *n.add_edit() = e;
+        for (int j = m.edit_size() - 1; j >= 0; --j) {
+            if (edit_is_empty(m.edit(j))) {
+                m.mutable_edit()->DeleteSubrange(j, 1);
             }
         }
-        *q.mutable_mapping(i) = n;
     }
 
     return q;
