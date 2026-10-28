@@ -48,6 +48,8 @@
 //Do a brute force check that clusters are correct
 //#define debug_validate_clusters
 //#define debug_write_minimizers
+// Run both the fast acyclic dagify and dagify_from() and crash if they differ
+//#define debug_dagify_fast_path
 // Debug generation of alignments from chains
 
 namespace vg {
@@ -3104,6 +3106,148 @@ Alignment MinimizerMapper::find_chain_alignment(
     return result;
 }
 
+/// The result of dagify_from(): the translation from dagified node ID to
+/// input node ID, and the dagified copies of the start handles.
+using DagifyResult = std::pair<std::unordered_map<nid_t, nid_t>, std::vector<handle_t>>;
+
+/**
+ * Fast path for dagify_from() on a graph that is already a DAG with every
+ * edge going forward to forward, and every node reachable from the start
+ * handles (as the reachable part of a strand-split local graph always is).
+ * dagify_from() then just copies the graph, but slowly. Make the same
+ * create_handle() and create_edge() calls it would make, in the same order,
+ * so the result is identical, including node IDs and edge order.
+ *
+ * Returns false, leaving into untouched, if the graph is not like that.
+ */
+static bool dagify_acyclic(const HandleGraph& graph, const std::vector<handle_t>& start_handles,
+                           MutableHandleGraph& into, DagifyResult& result) {
+    // Number the nodes in for_each_handle() order and record their edges, in
+    // follow_edges() order, as indexes.
+    std::vector<handle_t> nodes;
+    graph.for_each_handle([&](const handle_t& h) {
+        nodes.push_back(h);
+    });
+    size_t n = nodes.size();
+    std::unordered_map<nid_t, size_t> index_of;
+    index_of.reserve(n);
+    for (size_t i = 0; i < n; i++) {
+        index_of[graph.get_id(nodes[i])] = i;
+    }
+    // Neighbors of node i on side s (0 = right, 1 = left) are adj[s][begin[s][i]..begin[s][i+1]).
+    std::vector<size_t> adj[2], begin[2];
+    for (int side = 0; side < 2; side++) {
+        begin[side].reserve(n + 1);
+        for (size_t i = 0; i < n; i++) {
+            begin[side].push_back(adj[side].size());
+            bool forward_only = graph.follow_edges(nodes[i], side == 1, [&](const handle_t& other) {
+                if (graph.get_is_reverse(other)) {
+                    return false;
+                }
+                adj[side].push_back(index_of.at(graph.get_id(other)));
+                return true;
+            });
+            if (!forward_only) {
+                return false;
+            }
+        }
+        begin[side].push_back(adj[side].size());
+    }
+
+    // strongly_connected_components() runs a DFS from each node forward and
+    // then reverse, in for_each_handle() order, following edges in order. In a
+    // DAG every node is its own component, emitted when the first of its
+    // orientations finishes. Reproduce that order, and bail on any back edge.
+    // State s = 2 * node + orientation; reverse orientations walk left edges.
+    enum : uint8_t { PRE = 0, CURR, POST };
+    std::vector<uint8_t> state(2 * n, PRE);
+    std::vector<bool> emitted(n, false);
+    std::vector<size_t> component_order;
+    component_order.reserve(n);
+    std::vector<std::pair<size_t, size_t>> stack; // state, next edge offset
+    for (size_t root = 0; root < 2 * n; root++) {
+        if (state[root] != PRE) {
+            continue;
+        }
+        state[root] = CURR;
+        stack.emplace_back(root, begin[root & 1][root >> 1]);
+        while (!stack.empty()) {
+            auto& frame = stack.back();
+            size_t here = frame.first;
+            int side = here & 1;
+            if (frame.second < begin[side][(here >> 1) + 1]) {
+                size_t next = 2 * adj[side][frame.second++] + side;
+                if (state[next] == CURR) {
+                    // A cycle (or self loop)
+                    return false;
+                }
+                if (state[next] == PRE) {
+                    state[next] = CURR;
+                    stack.emplace_back(next, begin[side][next >> 1]);
+                }
+            } else {
+                state[here] = POST;
+                if (!emitted[here >> 1]) {
+                    emitted[here >> 1] = true;
+                    component_order.push_back(here >> 1);
+                }
+                stack.pop_back();
+            }
+        }
+    }
+
+    // Copy the nodes, one per component, in component order.
+    auto& translator = result.first;
+    translator.clear();
+    translator.reserve(n);
+    std::vector<handle_t> copy(n);
+    for (size_t i : component_order) {
+        copy[i] = into.create_handle(graph.get_sequence(nodes[i]));
+        translator[into.get_id(copy[i])] = graph.get_id(nodes[i]);
+    }
+    // Copy the edges in for_each_edge() order.
+    for (size_t i = 0; i < n; i++) {
+        nid_t id = graph.get_id(nodes[i]);
+        for (size_t k = begin[0][i]; k < begin[0][i + 1]; k++) {
+            if (id <= graph.get_id(nodes[adj[0][k]])) {
+                into.create_edge(copy[i], copy[adj[0][k]]);
+            }
+        }
+        for (size_t k = begin[1][i]; k < begin[1][i + 1]; k++) {
+            if (id < graph.get_id(nodes[adj[1][k]])) {
+                into.create_edge(copy[adj[1][k]], copy[i]);
+            }
+        }
+    }
+    // A start handle maps to its node's copy, in the same orientation.
+    result.second.clear();
+    for (auto& h : start_handles) {
+        handle_t c = copy[index_of.at(graph.get_id(h))];
+        result.second.push_back(graph.get_is_reverse(h) ? into.flip(c) : c);
+    }
+    return true;
+}
+
+#ifdef debug_dagify_fast_path
+/// Crash unless two graphs have the same nodes, sequences and edge orders.
+static void crash_unless_same_graph(const HandleGraph& a, const HandleGraph& b) {
+    crash_unless(a.get_node_count() == b.get_node_count());
+    a.for_each_handle([&](const handle_t& h) {
+        crash_unless(b.has_node(a.get_id(h)));
+        handle_t g = b.get_handle(a.get_id(h));
+        crash_unless(a.get_sequence(h) == b.get_sequence(g));
+        for (bool rev : {false, true}) {
+            for (bool left : {false, true}) {
+                std::vector<std::pair<nid_t, bool>> ea, eb;
+                a.follow_edges(rev ? a.flip(h) : h, left, [&](const handle_t& o) { ea.emplace_back(a.get_id(o), a.get_is_reverse(o)); });
+                b.follow_edges(rev ? b.flip(g) : g, left, [&](const handle_t& o) { eb.emplace_back(b.get_id(o), b.get_is_reverse(o)); });
+                crash_unless(ea == eb);
+            }
+        }
+    });
+}
+#endif
+
 void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const pos_t& right_anchor, size_t max_path_length, const HandleGraph& graph, const std::function<void(DeletableHandleGraph&, const handle_t&, const handle_t&, const std::function<std::pair<nid_t, bool>(const handle_t&)>&)>& callback, bool reachable_only) {
     
     if (is_empty(left_anchor) && is_empty(right_anchor)) {
@@ -3367,7 +3511,23 @@ void MinimizerMapper::with_dagified_local_graph(const pos_t& left_anchor, const 
     }
     SubgraphOverlay reachable_graph(&split_graph, &reachable_ids);
     const HandleGraph* to_dagify = reachable_only ? (const HandleGraph*) &reachable_graph : &split_graph;
-    auto dagification_result = handlegraph::algorithms::dagify_from(to_dagify, bounding_handles, &dagified_graph, max_path_length);
+    DagifyResult dagification_result;
+    if (!reachable_only || !dagify_acyclic(reachable_graph, bounding_handles, dagified_graph, dagification_result)) {
+        dagification_result = handlegraph::algorithms::dagify_from(to_dagify, bounding_handles, &dagified_graph, max_path_length);
+    }
+#ifdef debug_dagify_fast_path
+    else {
+        bdsg::HashGraph slow_graph;
+        auto slow = handlegraph::algorithms::dagify_from(to_dagify, bounding_handles, &slow_graph, max_path_length);
+        crash_unless_same_graph(dagified_graph, slow_graph);
+        crash_unless(slow.first == dagification_result.first);
+        crash_unless(slow.second.size() == dagification_result.second.size());
+        for (size_t i = 0; i < slow.second.size(); i++) {
+            crash_unless(slow_graph.get_id(slow.second[i]) == dagified_graph.get_id(dagification_result.second[i]));
+            crash_unless(slow_graph.get_is_reverse(slow.second[i]) == dagified_graph.get_is_reverse(dagification_result.second[i]));
+        }
+    }
+#endif
     auto& dagified_to_split = dagification_result.first;
     auto& anchor_handles = dagification_result.second;
     
