@@ -250,7 +250,7 @@ BandedGlobalAligner<IntType>::BAMatrix::~BAMatrix() {
 template <class IntType>
 void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& graph, int8_t* score_mat, int8_t* nt_table,
                                                          int8_t gap_open, int8_t gap_extend, bool qual_adjusted, IntType min_inf,
-                                                         const int32_t* read_codes) {
+                                                         const int32_t* read_codes, const int8_t* query_profile) {
     
 #ifdef debug_banded_aligner_fill_matrix
     cerr << "[BAMatrix::fill_matrix] beginning DP on matrix for node " << as_integer(node) << endl;;
@@ -675,31 +675,28 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
         }
         
         
-        for (int64_t i = iter_start + 1; i < iter_stop - 1; i++) {
-            // indices of the current and previous cells in the rectangularized band
-            idx = cell(i, j);
-            up_idx = cell(i - 1, j);
-            diag_idx = cell(i, j - 1);
-            left_idx = cell(i + 1, j - 1);
-            
-            if (qual_adjusted) {
-                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[i + top_diag + j]];
+        // The interior cells' match and column-insert scores only read the
+        // previous column, so fill them in one pass the compiler can
+        // vectorize, and then run the row-insert recurrence down the column.
+        {
+            const int64_t col = cell(0, j);
+            const int64_t prev_col = cell(0, j - 1);
+            IntType* __restrict M = match + col;
+            IntType* __restrict C = insert_col + col;
+            IntType* __restrict R = insert_row + col;
+            const IntType* __restrict Mp = match + prev_col;
+            const IntType* __restrict Cp = insert_col + prev_col;
+            const IntType* __restrict Rp = insert_row + prev_col;
+            // match scores against this column's node base, indexed by read position
+            const int8_t* scores = query_profile + nt_table[node_seq[j]] * (int64_t) read.size();
+            const int64_t diag = top_diag + j;
+            for (int64_t i = iter_start + 1; i < iter_stop - 1; i++) {
+                M[i] = scores[i + diag] + max(max(Mp[i], Rp[i]), Cp[i]);
+                C[i] = max(max(Mp[i + 1] - gap_open, Rp[i + 1] - gap_open), Cp[i + 1] - gap_extend);
             }
-            else {
-                match_score = score_mat[5 * nt_table[node_seq[j]] + read_codes[i + top_diag + j]];
+            for (int64_t i = iter_start + 1; i < iter_stop - 1; i++) {
+                R[i] = max(max(M[i - 1] - gap_open, R[i - 1] - gap_extend), C[i - 1] - gap_open);
             }
-            
-            match[idx] = match_score + max(max(match[diag_idx], insert_row[diag_idx]), insert_col[diag_idx]);
-            
-            insert_row[idx] = max(max(match[up_idx] - gap_open, insert_row[up_idx] - gap_extend),
-                                  insert_col[up_idx] - gap_open);
-            
-            insert_col[idx] = max(max(match[left_idx] - gap_open, insert_row[left_idx] - gap_open),
-                                  insert_col[left_idx] - gap_extend);
-            
-#ifdef debug_banded_aligner_fill_matrix
-            cerr << "[BAMatrix::fill_matrix]: in interior of matrix at rectangle coords (" << i << ", " << j << "), match score of node char " << j << " (" << node_seq[j] << ") and read char " << i + top_diag + j << " (" << read[i + top_diag + j] << ") is " << (int) match_score << ", leading gap length is " << cumulative_seq_len + j << " for total match matrix score of " << (int) match[idx] << endl;
-#endif
         }
         
         // stop iteration one cell early to handle logic on bottom edge of band
@@ -2313,6 +2310,14 @@ void BandedGlobalAligner<IntType>::align(int8_t* score_mat, int8_t* nt_table, in
         read_codes[k] = nt_table[read[k]] + (adjust_for_base_quality ? 25 * base_quality[k] : 0);
     }
     
+    // And the score of each read base against each node base, row by node base.
+    vector<int8_t> query_profile(5 * read.size());
+    for (size_t b = 0; b < 5; b++) {
+        for (size_t k = 0; k < read.size(); k++) {
+            query_profile[b * read.size() + k] = score_mat[5 * b + read_codes[k]];
+        }
+    }
+    
     // fill each nodes matrix in topological order
     for (int64_t i = 0; i < banded_matrices.size(); i++) {
         BAMatrix* band_matrix = banded_matrices[i];
@@ -2330,7 +2335,7 @@ void BandedGlobalAligner<IntType>::align(int8_t* score_mat, int8_t* nt_table, in
         cerr << "[BandedGlobalAligner::align] node is not masked, filling matrix" << endl;
 #endif
         band_matrix->fill_matrix(graph, score_mat, nt_table, gap_open, gap_extend, adjust_for_base_quality, min_inf,
-                                  read_codes.data());
+                                  read_codes.data(), query_profile.data());
     }
     
     traceback(score_mat, nt_table, gap_open, gap_extend, min_inf);
