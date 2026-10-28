@@ -2663,6 +2663,21 @@ Alignment MinimizerMapper::find_chain_alignment(
     }
 
     size_t longest_attempted_connection = 0;
+    // Each graph distance between chain items gets asked for up to 3 times in
+    // a row, so remember the last two.
+    std::pair<size_t, size_t> distance_keys[2] = {{SIZE_MAX, SIZE_MAX}, {SIZE_MAX, SIZE_MAX}};
+    size_t distance_values[2];
+    size_t distance_slot = 0;
+    auto graph_distance = [&](size_t from_item, size_t to_item) {
+        for (size_t i = 0; i < 2; i++) {
+            if (distance_keys[i] == std::make_pair(from_item, to_item)) {
+                return distance_values[i];
+            }
+        }
+        distance_slot ^= 1;
+        distance_keys[distance_slot] = {from_item, to_item};
+        return distance_values[distance_slot] = algorithms::get_graph_distance(to_chain[from_item], to_chain[to_item], *distance_index, gbwt_graph);
+    };
     while(next_it != chain.end()) {
         // Do each region between successive gapless extensions
         
@@ -2693,7 +2708,7 @@ Alignment MinimizerMapper::find_chain_alignment(
         // i.e. the distances in the read and graph are different
 
         // Keep track of the total distance from the previous seed to the next one we choose in the graph
-        size_t total_graph_distance = algorithms::get_graph_distance(*here, *next, *distance_index, gbwt_graph);
+        size_t total_graph_distance = graph_distance(*here_it, *next_it);
         size_t prev_read_distance = algorithms::get_read_distance(*here, *next);
 
         // The sum of the differences between read and graph lengths
@@ -2713,8 +2728,7 @@ Alignment MinimizerMapper::find_chain_alignment(
                 cur_graph_distance = std::numeric_limits<size_t>::max();
             } else {
                 // Distance from end of this anchor to start of next anchor
-                cur_graph_distance = algorithms::get_graph_distance(*skip_to, to_chain[*(skip_to_it+1)], 
-                                                                    *distance_index, gbwt_graph);
+                cur_graph_distance = graph_distance(*skip_to_it, *(skip_to_it+1));
                 // Also add in distance from start of this anchor to end of this anchor
                 cur_graph_distance += skip_to->length();
                 // Combined those are graph start -> start dist we are trying to skip past
@@ -2761,7 +2775,7 @@ Alignment MinimizerMapper::find_chain_alignment(
         size_t link_start = (*here).read_end();
         size_t link_length = (*next).read_start() - link_start;
         string linking_bases = aln.sequence().substr(link_start, link_length);
-        size_t graph_dist = algorithms::get_graph_distance(*here, *next, *distance_index, gbwt_graph);
+        size_t graph_dist = graph_distance(*here_it, *next_it);
         
         if (link_length == 0 && graph_dist == 0) {
             // These items abut in the read and the graph, so we assume we can just connect them.

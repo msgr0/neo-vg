@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <queue>
 #include <set>
@@ -1651,8 +1652,10 @@ public:
     // Start and end positions in the graph (exclusive).
     pos_t from, to;
 
-    // Node identifiers are offsets in this vector. Node 0 is the root.
-    std::vector<WFANode> nodes;
+    // Node identifiers are offsets in this deque. Node 0 is the root.
+    // A deque, so adding nodes never copies the old ones (their hash maps
+    // cannot be moved without exceptions, so a vector would copy them).
+    std::deque<WFANode> nodes;
 
     // Best alignment found so far. If we reached the target position in the
     // graph, the score includes the implicit insertion at the end but the
@@ -1702,9 +1705,8 @@ public:
         // is outside the alignment, we may already have exhausted the node.
         handle_t handle = this->graph.get_handle(id(this->from), is_rev(this->from));
         gbwt::SearchState state = this->graph.get_state(handle);
-        WFANode root(this->graph, state, this->to, 0);
-        root.update(WFANode::MATCHES, 0, 0, 0, offset(this->from) + 1);
-        this->nodes.push_back(root);
+        this->nodes.emplace_back(this->graph, state, this->to, 0);
+        this->nodes.back().update(WFANode::MATCHES, 0, 0, 0, offset(this->from) + 1);
 
         // Determine score bound based on the error model and sequence length.
         std::int32_t max_mismatches = error_model.mismatches.evaluate(sequence.length());
