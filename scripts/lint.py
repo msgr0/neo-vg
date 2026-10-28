@@ -41,6 +41,8 @@ SKIP_SUBCMDS = {'test', 'help'}
 """Subcommands to skip in the consistency check."""
 UNITTEST_ONLY_SUBCMDS = {'test'}
 """Subcommands built only into nvg-unittest, so absent from nvg's docs and autocomplete."""
+IGNORE_SUBCMDS = {'debug'}
+"""Subcommands to ignore entirely."""
 AUTOCOMP_FILES = ['autocomp.bash', 'autocomplete.sh']
 """Where to double-check subcommand autocomplete existence."""
 MANPAGE_HEADER_FILE = 'doc/nvgmanmd.desc.md'
@@ -1005,6 +1007,8 @@ if __name__ == "__main__":
 
         subcmd_name = base_file_name.removesuffix(SUBCMD_END).replace('_', '-')
         full_file_name = os.path.join(SUBCMD_DIR, base_file_name)
+        if subcmd_name in IGNORE_SUBCMDS:
+            continue
         if is_subcommand_deprecated(full_file_name):
             deprecated_subcmds.add(subcmd_name)
         else:
