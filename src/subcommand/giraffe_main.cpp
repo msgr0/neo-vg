@@ -366,6 +366,12 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
         "dagify the whole strand-split local graph before chain alignment, as upstream vg does (same accuracy, slower, more memory; different tie-breaks)"
     );
     chaining_opts.add_flag(
+        "no-exact-long-links",
+        &MinimizerMapper::exact_long_links,
+        MinimizerMapper::default_exact_long_links,
+        "send chain links longer than --max-chain-connection straight to banded alignment, without first looking for an exact haplotype match (slower; different tie-breaks)"
+    );
+    chaining_opts.add_flag(
         "align-from-chains",
         &MinimizerMapper::align_from_chains,
         MinimizerMapper::default_align_from_chains,

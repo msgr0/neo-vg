@@ -2522,6 +2522,10 @@ Alignment MinimizerMapper::find_chain_alignment(
     // We need a WFAExtender to do tail and intervening alignments.
     // Note that the extender expects anchoring matches!!!
     WFAExtender wfa_extender(gbwt_graph, aligner, wfa_error_model); 
+    // And one that only finds exact matches, for links too long for the
+    // regular one; an all-zero error model gives a score bound of 0.
+    WFAExtender::ErrorModel exact_error_model {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    WFAExtender exact_extender(gbwt_graph, aligner, exact_error_model);
     
     // Keep a couple cursors in the chain: extension before and after the linking up we need to do.
     auto here_it = chain.begin();
@@ -2812,6 +2816,19 @@ Alignment MinimizerMapper::find_chain_alignment(
                 // We got the right alignment.
                 // Put the alignment back into full read space
                 link_alignment.seq_offset += (*here).read_end();
+            }
+        } else if (exact_long_links && link_length > max_chain_connection
+                   && link_length <= max_middle_dp_length && graph_dist * link_length <= max_dp_cells) {
+            // Too long for the regular WFA, so we would go to banded alignment.
+            // But most such links match some haplotype exactly, and that
+            // alignment is optimal, so look for it first.
+            pos_t left_anchor = (*here).graph_end();
+            get_offset(left_anchor)--;
+            link_alignment = connect_consistently(linking_bases, left_anchor, (*next).graph_start(), exact_extender);
+            if (link_alignment) {
+                crash_unless(link_alignment.length == linking_bases.size());
+                link_alignment.seq_offset += (*here).read_end();
+                link_alignment_source = "exact WFAExtender";
             }
         }
         

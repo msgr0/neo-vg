@@ -229,6 +229,13 @@ class MinimizerMapper : public AlignerClient {
     /// differs, so ties between equal-scoring alignments can break differently.
     static constexpr bool default_dagify_reachable_only = true;
     bool dagify_reachable_only = default_dagify_reachable_only;
+
+    /// Before banded-aligning a chain link longer than max_chain_connection,
+    /// look for a GBWT haplotype that spells it exactly (WFA with no errors
+    /// allowed). Such a match is an optimal global alignment, so this only
+    /// changes which of several equal-score paths is reported.
+    static constexpr bool default_exact_long_links = true;
+    bool exact_long_links = default_exact_long_links;
     
     //////////////////
     // Alignment-from-chains/long read Giraffe specific parameters:
