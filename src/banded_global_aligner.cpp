@@ -9,6 +9,8 @@
 #include "vg/io/json2pb.h"
 
 #include <array>
+#include <condition_variable>
+#include <mutex>
 
 //#define debug_banded_aligner_objects
 //#define debug_banded_aligner_graph_processing
@@ -16,12 +18,42 @@
 //#define debug_banded_aligner_traceback
 //#define debug_banded_aligner_print_matrices
 //#define debug_jemalloc
+// Crash on any access to a DP cell that is not stored
+//#define debug_banded_aligner_cells
 
 #ifdef debug_jemalloc
 #include <jemalloc/jemalloc.h>
 #endif
 
 namespace vg {
+
+// Rare giant banded alignments (billions of cells, gigabytes of touched DP
+// memory each) cluster at hard loci, and when several run at once on
+// different threads they set the peak RSS of a whole run. So big problems
+// wait until their DP memory fits in a process-wide budget (or nothing else
+// big is running). Smaller problems are not counted.
+// ponytail: one fixed global budget; make it a parameter if 4 GB is ever wrong for a machine.
+static constexpr uint64_t DP_BUDGET_MIN_BYTES = 256ull << 20;
+static constexpr uint64_t DP_BUDGET_BYTES = 4ull << 30;
+static std::mutex dp_budget_mutex;
+static std::condition_variable dp_budget_freed;
+static uint64_t dp_budget_in_use = 0;
+
+static void acquire_dp_budget(uint64_t bytes) {
+    std::unique_lock<std::mutex> lock(dp_budget_mutex);
+    dp_budget_freed.wait(lock, [&]() {
+        return dp_budget_in_use == 0 || dp_budget_in_use + bytes <= DP_BUDGET_BYTES;
+    });
+    dp_budget_in_use += bytes;
+}
+
+static void release_dp_budget(uint64_t bytes) {
+    {
+        std::lock_guard<std::mutex> lock(dp_budget_mutex);
+        dp_budget_in_use -= bytes;
+    }
+    dp_budget_freed.notify_all();
+}
 
 template<class IntType>
 BandedGlobalAligner<IntType>::BABuilder::BABuilder(Alignment& alignment) :
@@ -248,6 +280,19 @@ BandedGlobalAligner<IntType>::BAMatrix::~BAMatrix() {
 }
 
 template <class IntType>
+void BandedGlobalAligner<IntType>::BAMatrix::check_cell(int64_t row, int64_t col) const {
+    int64_t band_height = bottom_diag - top_diag + 1;
+    int64_t read_pos = top_diag + row + col;
+    if (col < 0 || col >= (int64_t) col_base.size() || row < 0 || row >= band_height
+        || read_pos < 0 || read_pos >= (int64_t) alignment.sequence().size()) {
+        cerr << "error:[BAMatrix::cell] access to unstored cell row " << row << " col " << col
+             << " (read position " << read_pos << ") in band " << top_diag << " to " << bottom_diag
+             << " of node with " << col_base.size() << " columns" << endl;
+        abort();
+    }
+}
+
+template <class IntType>
 void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& graph, int8_t* score_mat, int8_t* nt_table,
                                                          int8_t gap_open, int8_t gap_extend, bool qual_adjusted, IntType min_inf,
                                                          const int32_t* read_codes, const int8_t* query_profile) {
@@ -259,7 +304,18 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
     // note: bottom has the higher index
     int64_t band_height = bottom_diag - top_diag + 1;
     int64_t ncols = graph.get_length(node);
-    int64_t band_size = band_height * ncols;
+    // Only store the rows of each column that fall inside the read (row i of
+    // column j is read position top_diag + i + j); fill_matrix() never fills
+    // the others, and the band can be many times taller than the read.
+    int64_t read_length = alignment.sequence().size();
+    col_base.resize(ncols);
+    int64_t band_size = 0;
+    for (int64_t j = 0; j < ncols; j++) {
+        int64_t first_row = max<int64_t>(0, -(top_diag + j));
+        int64_t last_row = min<int64_t>(band_height - 1, read_length - 1 - top_diag - j);
+        col_base[j] = band_size - first_row;
+        band_size += max<int64_t>(0, last_row - first_row + 1);
+    }
     
 #ifdef debug_banded_aligner_fill_matrix
     cerr << "[BAMatrix::fill_matrix]: allocating matrices of height " << band_height << " and width " << ncols << " for a total cell count of " << band_size << endl;
@@ -342,7 +398,7 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
      * that is not represented in the matrix (this requires a number of edge cases)
      */
     
-    if (!band_size) {
+    if (!band_height || !ncols) {
         return;
     }
     
@@ -679,23 +735,24 @@ void BandedGlobalAligner<IntType>::BAMatrix::fill_matrix(const HandleGraph& grap
         // previous column, so fill them in one pass the compiler can
         // vectorize, and then run the row-insert recurrence down the column.
         {
-            const int64_t col = cell(0, j);
-            const int64_t prev_col = cell(0, j - 1);
-            IntType* __restrict M = match + col;
-            IntType* __restrict C = insert_col + col;
-            IntType* __restrict R = insert_row + col;
-            const IntType* __restrict Mp = match + prev_col;
-            const IntType* __restrict Cp = insert_col + prev_col;
-            const IntType* __restrict Rp = insert_row + prev_col;
+            // Row i of this column and the previous one is at col + i and prev_col + i.
+            const int64_t col = col_base[j];
+            const int64_t prev_col = col_base[j - 1];
+            IntType* __restrict M = match;
+            IntType* __restrict C = insert_col;
+            IntType* __restrict R = insert_row;
+            const IntType* __restrict Mp = match;
+            const IntType* __restrict Cp = insert_col;
+            const IntType* __restrict Rp = insert_row;
             // match scores against this column's node base, indexed by read position
             const int8_t* scores = query_profile + nt_table[node_seq[j]] * (int64_t) read.size();
             const int64_t diag = top_diag + j;
             for (int64_t i = iter_start + 1; i < iter_stop - 1; i++) {
-                M[i] = scores[i + diag] + max(max(Mp[i], Rp[i]), Cp[i]);
-                C[i] = max(max(Mp[i + 1] - gap_open, Rp[i + 1] - gap_open), Cp[i + 1] - gap_extend);
+                M[col + i] = scores[i + diag] + max(max(Mp[prev_col + i], Rp[prev_col + i]), Cp[prev_col + i]);
+                C[col + i] = max(max(Mp[prev_col + i + 1] - gap_open, Rp[prev_col + i + 1] - gap_open), Cp[prev_col + i + 1] - gap_extend);
             }
             for (int64_t i = iter_start + 1; i < iter_stop - 1; i++) {
-                R[i] = max(max(M[i - 1] - gap_open, R[i - 1] - gap_extend), C[i - 1] - gap_open);
+                R[col + i] = max(max(M[col + i - 1] - gap_open, R[col + i - 1] - gap_extend), C[col + i - 1] - gap_open);
             }
         }
         
@@ -2104,6 +2161,31 @@ BandedGlobalAligner<IntType>::BandedGlobalAligner(Alignment& alignment, const Ha
             throw NoAlignmentInBandException();
         }
     }
+    
+    if (total_cells * 3 * sizeof(IntType) >= DP_BUDGET_MIN_BYTES) {
+        // fill_matrix() only touches the cells that fall inside the read, and
+        // the bands are stored column by column, so count just those.
+        int64_t read_length = alignment.sequence().size();
+        uint64_t touched_cells = 0;
+        for (int64_t i = 0; i < topological_order.size(); i++) {
+            if (!node_masked[i]) {
+                int64_t node_seq_len = graph.get_length(topological_order[i]);
+                for (int64_t j = 0; j < node_seq_len; j++) {
+                    // Diagonal d in column j is read position d + j.
+                    int64_t lo = max<int64_t>(band_ends[i].first, -j);
+                    int64_t hi = min<int64_t>(band_ends[i].second, read_length - 1 - j);
+                    if (hi >= lo) {
+                        touched_cells += hi - lo + 1;
+                    }
+                }
+            }
+        }
+        uint64_t bytes = touched_cells * 3 * sizeof(IntType);
+        if (bytes >= DP_BUDGET_MIN_BYTES) {
+            acquire_dp_budget(bytes);
+            budgeted_bytes = bytes;
+        }
+    }
 }
 
 template <class IntType>
@@ -2113,6 +2195,9 @@ BandedGlobalAligner<IntType>::~BandedGlobalAligner() {
         if (banded_matrix != nullptr) {
             delete banded_matrix;
         }
+    }
+    if (budgeted_bytes) {
+        release_dp_budget(budgeted_bytes);
     }
 }
 

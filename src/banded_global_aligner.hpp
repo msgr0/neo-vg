@@ -130,6 +130,8 @@ namespace vg {
         
         /// Dynamic programming matrices for each node
         vector<BAMatrix*> banded_matrices;
+        /// Bytes of DP memory held against the process-wide budget for big problems
+        uint64_t budgeted_bytes = 0;
         
         /// Map from node IDs to the index used in internal vectors
         unordered_map<int64_t, int64_t> node_id_to_idx;
@@ -189,10 +191,17 @@ namespace vg {
                                  const int8_t gap_extend, const bool qual_adjusted, IntType const min_inf);
         
         /// Index of a cell in this band (row = diagonal - top_diag, col = node offset).
-        /// The band is stored column by column, because fill_matrix() walks down columns.
+        /// The band is stored column by column, because fill_matrix() walks down
+        /// columns, and each column only stores the rows that fall inside the read.
         inline int64_t cell(int64_t row, int64_t col) const {
-            return col * (bottom_diag - top_diag + 1) + row;
+#ifdef debug_banded_aligner_cells
+            check_cell(row, col);
+#endif
+            return col_base[col] + row;
         }
+        
+        /// Crash if a cell is not stored.
+        void check_cell(int64_t row, int64_t col) const;
         
         /// Debugging function
         void print_full_matrices(const HandleGraph& graph);
@@ -214,6 +223,9 @@ namespace vg {
         
         /// Matrices for nodes with edges into this node
         vector<BAMatrix*> seeds;
+        
+        /// Where each column's row 0 would be stored; only rows inside the read are.
+        vector<int64_t> col_base;
         
         /// DP matrix
         IntType* match;
