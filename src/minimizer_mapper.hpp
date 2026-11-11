@@ -951,7 +951,29 @@ protected:
                                        std::vector<double>& scores, std::vector<double>& multiplicity_by_mapping,
                                        LazyRNG& rng, Funnel& funnel) const;
 
-    
+    /**
+     * Find supplementary alignments for a read mapped from chains, and store
+     * them in the primary's supplementary field.
+     *
+     * A supplementary aligns a part of the read that the primary leaves
+     * unaligned, to some other place in the graph. identify_supplementaries()
+     * picks them among the alignments made from chains, leaving out the
+     * secondaries. A candidate that overlaps the primary by more than
+     * max_supplementary_overlap read bases is another placement of the
+     * primary's part of the read, so it is skipped.
+     *
+     * Each supplementary gets a MAPQ from the alignments made for most of its
+     * own part of the read. The MAPQ of the primary caps it.
+     *
+     * @pre mappings.front() is the mapped primary, with its MAPQ set.
+     *
+     * @param alignments All alignments made from chains for the read,
+     * including copies of the mappings.
+     * @param mappings The output mappings, primary first. Only the primary
+     * changes.
+     */
+    void attach_chain_supplementaries(const std::vector<Alignment>& alignments,
+                                      std::vector<Alignment>& mappings) const;
 
     /**
      * Turn a chain into an Alignment.

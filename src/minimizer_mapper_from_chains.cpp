@@ -1061,6 +1061,10 @@ vector<Alignment> MinimizerMapper::map_from_chains(Alignment& aln) {
         }
     }
 
+    if (find_supplementaries && mappings.front().path().mapping_size() != 0) {
+        attach_chain_supplementaries(alignments, mappings);
+    }
+
     // Remember the scores
     set_compressed_annotation(mappings.front(),"secondary_scores", scores);
 
@@ -2418,6 +2422,84 @@ void MinimizerMapper::pick_mappings_from_alignments(const Alignment& aln, const 
             funnel.introduce();
             funnel.score(funnel.latest(), scores.back());
         }
+    }
+}
+
+void MinimizerMapper::attach_chain_supplementaries(const std::vector<Alignment>& alignments,
+                                                   std::vector<Alignment>& mappings) const {
+    auto primary_interval = aligned_interval(mappings.front());
+
+    // pick_mappings_from_alignments copied the output mappings out of
+    // alignments, so alignments still holds the primary and the secondaries.
+    // We know a copy by its score, read interval and start position.
+    auto is_copy = [](const Alignment& a, const Alignment& b) {
+        return a.score() == b.score() && aligned_interval(a) == aligned_interval(b) &&
+            make_pos_t(a.path().mapping(0).position()) == make_pos_t(b.path().mapping(0).position());
+    };
+
+    // The primary goes first, then each alignment that lies on one side of
+    // it. Others overlap the primary by more than max_supplementary_overlap,
+    // and identify_supplementaries would reject them anyway.
+    std::vector<Alignment> pieces;
+    for (auto& candidate : alignments) {
+        if (candidate.score() <= 0 || candidate.path().mapping_size() == 0) {
+            continue;
+        }
+        auto interval = aligned_interval(candidate);
+        if (interval.second > primary_interval.first + (int64_t)max_supplementary_overlap &&
+            interval.first < primary_interval.second - (int64_t)max_supplementary_overlap) {
+            continue;
+        }
+        if (std::any_of(mappings.begin() + 1, mappings.end(), [&](const Alignment& m) { return is_copy(m, candidate); })) {
+            continue;
+        }
+        if (pieces.empty()) {
+            pieces.emplace_back(std::move(mappings.front()));
+        }
+        pieces.push_back(candidate);
+    }
+    if (pieces.empty()) {
+        return;
+    }
+
+    vector<size_t> chosen = identify_supplementaries(pieces, min_supplementary_read_coverage,
+                                                     max_supplementary_separation, max_supplementary_overlap,
+                                                     max_supplementary_uncovered_end, min_supplementary_score_fraction,
+                                                     min_supplementary_size, 0);
+    mappings.front() = std::move(pieces.front());
+    Alignment& primary = mappings.front();
+
+    for (size_t i : chosen) {
+        Alignment& supplementary = pieces[i];
+        auto interval = aligned_interval(supplementary);
+        int64_t length = interval.second - interval.first;
+
+        // The rivals of a supplementary are the alignments made for most of
+        // its part of the read. The supplementary is itself one of them, and
+        // goes first.
+        // ponytail: compares whole-alignment scores, not scores over the shared part of the read.
+        vector<double> scores{(double) supplementary.score()};
+        for (auto& rival : alignments) {
+            auto rival_interval = aligned_interval(rival);
+            int64_t shared = std::min(interval.second, rival_interval.second) - std::max(interval.first, rival_interval.first);
+            if (rival.score() > 0 && 2 * shared > length && !is_copy(rival, supplementary)) {
+                scores.push_back(rival.score());
+            }
+        }
+        if (scores.size() > 1) {
+            // Scale the scores as map_from_chains does for the primary, and
+            // like it, use a lone score unscaled.
+            for (auto& score : scores) {
+                if (mapq_score_window > 0) {
+                    score = score * mapq_score_window / supplementary.sequence().size();
+                }
+                score *= mapq_score_scale;
+            }
+        }
+        double mapq = get_regular_aligner()->mapq_calc->compute_first_mapping_quality(scores, false);
+        supplementary.set_mapping_quality(std::max(std::min<double>(mapq, primary.mapping_quality()), 0.0));
+
+        *primary.add_supplementary() = std::move(supplementary);
     }
 }
 

@@ -160,6 +160,12 @@ static std::unique_ptr<GroupedOptionGroup> get_options() {
         MinimizerMapper::default_find_supplementaries,
         "identify and report supplementary alignments"
     );
+    result_opts.add_range(
+        "max-supplementary-uncovered-end",
+        &MinimizerMapper::max_supplementary_uncovered_end,
+        MinimizerMapper::default_max_supplementary_uncovered_end,
+        "leave at most INT bases at each end of the read outside the primary and supplementary alignments"
+    );
     
     // Configure normal Giraffe mapping computation
     auto& comp_opts = parser->add_group<MinimizerMapper>("computational parameters");
@@ -1032,7 +1038,10 @@ int main_giraffe(int argc, char** argv) {
         .add_entry<double>("wfa-max-mismatches-per-base", 0.05)
         .add_entry<int>("wfa-max-max-mismatches", 15)
         .add_entry<int>("rec-penalty-aln", 28)
-        .add_entry<bool>("prune-low-cplx", true);
+        .add_entry<bool>("prune-low-cplx", true)
+        // The pieces of a split HiFi read often leave a few dozen to a few
+        // hundred bases at a read end unaligned.
+        .add_entry<size_t>("max-supplementary-uncovered-end", 200);
 
     Preset r10_base;
 

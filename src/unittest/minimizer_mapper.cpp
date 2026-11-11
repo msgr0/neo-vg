@@ -38,6 +38,7 @@ public:
     using MinimizerMapper::connect_consistently;
     using MinimizerMapper::to_anchor;
     using MinimizerMapper::fix_dozeu_end_deletions;
+    using MinimizerMapper::attach_chain_supplementaries;
 };
 
 TEST_CASE("Fragment length distribution gets reasonable value", "[giraffe][mapping]") {
@@ -1178,6 +1179,64 @@ TEST_CASE("MinimizerMapper can fix up alignments with deletions on the ends", "[
     REQUIRE(aln.path().mapping(0).edit(0).from_length() == 1);
     REQUIRE(aln.path().mapping(0).edit(0).to_length() == 1);
     REQUIRE(aln.path().mapping(0).edit(0).sequence() == "");
+}
+
+/// Make an alignment of a 1000 bp read that aligns read bases [start, end)
+/// as matches to the given node and softclips the rest.
+static Alignment piece_of_read(size_t start, size_t end, nid_t node_id, int32_t score) {
+    Alignment aln;
+    aln.set_sequence(std::string(1000, 'A'));
+    aln.set_score(score);
+    auto mapping = aln.mutable_path()->add_mapping();
+    mapping->mutable_position()->set_node_id(node_id);
+    if (start > 0) {
+        auto clip = mapping->add_edit();
+        clip->set_to_length(start);
+        clip->set_sequence(std::string(start, 'A'));
+    }
+    auto match = mapping->add_edit();
+    match->set_from_length(end - start);
+    match->set_to_length(end - start);
+    if (end < 1000) {
+        auto clip = mapping->add_edit();
+        clip->set_to_length(1000 - end);
+        clip->set_sequence(std::string(1000 - end, 'A'));
+    }
+    return aln;
+}
+
+TEST_CASE("MinimizerMapper attaches chain alignments of other parts of the read as supplementaries", "[giraffe][mapping][supplementary]") {
+    gbwtgraph::GBWTGraph gbwt_graph;
+    gbwt::GBWT gbwt;
+    gbwt_graph.set_gbwt(gbwt);
+    gbwtgraph::DefaultMinimizerIndex minimizer_index(2);
+    SnarlDistanceIndex distance_index;
+    PathPositionHandleGraph* handle_graph = nullptr;
+    TestMinimizerMapper test_mapper (gbwt_graph, minimizer_index, &distance_index, handle_graph);
+
+    Alignment primary = piece_of_read(0, 600, 1, 600);
+    primary.set_mapping_quality(30);
+    // The alignments made from chains: the primary itself, the rest of the
+    // read elsewhere, and another placement of most of the primary's part.
+    std::vector<Alignment> alignments {primary, piece_of_read(605, 1000, 2, 390), piece_of_read(100, 700, 3, 500)};
+    std::vector<Alignment> mappings {primary};
+
+    test_mapper.attach_chain_supplementaries(alignments, mappings);
+
+    REQUIRE(mappings.size() == 1);
+    REQUIRE(mappings[0].score() == 600);
+    REQUIRE(mappings[0].mapping_quality() == 30);
+    REQUIRE(mappings[0].supplementary_size() == 1);
+    REQUIRE(mappings[0].supplementary(0).path().mapping(0).position().node_id() == 2);
+    // It has no rivals for its part of the read, so only the primary's MAPQ caps it.
+    REQUIRE(mappings[0].supplementary(0).mapping_quality() == 30);
+
+    SECTION("A secondary is not also a supplementary") {
+        mappings.push_back(alignments[1]);
+        mappings[0].clear_supplementary();
+        test_mapper.attach_chain_supplementaries(alignments, mappings);
+        REQUIRE(mappings[0].supplementary_size() == 0);
+    }
 }
 
 
