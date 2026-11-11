@@ -921,6 +921,20 @@ vector<Alignment> MinimizerMapper::map_from_chains(Alignment& aln) {
         scaled_score *= mapq_score_scale;
         scaled_scores.push_back(scaled_score);
     }
+    if (alignments.size() == 1) {
+        // Only one alignment was made for this read. Its MAPQ comes from
+        // comparing its score with 0, the score of no alignment. The scaling
+        // above is meant for score differences between competing alignments.
+        // Applied to a single score, it makes MAPQ grow with read length, and
+        // a unique HiFi read shorter than about 12 kb gets less than 60. We
+        // use the unscaled score.
+        //
+        // We test how many alignments were made, and ignore how many passed
+        // the filters. An alignment that was dropped for sharing nodes with
+        // the best one can be another copy of a tandem repeat, and then the
+        // read is ambiguous.
+        scaled_scores[0] = scores[0];
+    }
 
     if (show_work) {
         #pragma omp critical (cerr)
@@ -943,7 +957,7 @@ vector<Alignment> MinimizerMapper::map_from_chains(Alignment& aln) {
     // maximum score, we need to use compute_first_mapping_quality and not
     // compute_max_mapping_quality.
     double mapq = (mappings.front().path().mapping_size() == 0) ? 0 : 
-        get_regular_aligner()->mapq_calc->compute_first_mapping_quality(scaled_scores, false, &multiplicity_by_alignment) ;
+        get_regular_aligner()->mapq_calc->compute_first_mapping_quality(scaled_scores, false, &multiplicity_by_mapping);
 
 #ifdef debug_write_minimizers
 #pragma omp critical
