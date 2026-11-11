@@ -121,6 +121,13 @@ inline double subtract_log(double log_x, double log_y) {
 }
 
 /**
+ * Convert a number ln to the same number log 10.
+ */
+inline double ln_to_log10(double ln) {
+    return ln / log(10);
+}
+
+/**
  * Assume that we have n independent random events that occur with probability
  * p each (p is interpreted as a real number between 0 at 0 and 1 at its
  * maximum value). Return an approximate probability for at least one event

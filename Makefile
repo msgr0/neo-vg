@@ -6,6 +6,10 @@ IO_SRC_DIR:=$(SRC_DIR)/io
 SUBCOMMAND_SRC_DIR:=$(SRC_DIR)/subcommand
 UNITTEST_SRC_DIR:=$(SRC_DIR)/unittest
 UNITTEST_SUPPORT_SRC_DIR:=$(SRC_DIR)/unittest/support
+# Machine-written code that no one has yet read and cleared for reading. It builds like src/.
+ARTIFACTS_SRC_DIR:=artifacts
+ARTIFACTS_UNITTEST_SRC_DIR:=$(ARTIFACTS_SRC_DIR)/unittest
+ARTIFACTS_UNITTEST_SUPPORT_SRC_DIR:=$(ARTIFACTS_UNITTEST_SRC_DIR)/support
 BIN_DIR:=bin
 UNITTEST_BIN_DIR:=$(BIN_DIR)/unittest
 OBJ_DIR:=obj
@@ -18,6 +22,12 @@ IO_SHARED_OBJ_DIR:=$(SHARED_OBJ_DIR)/io
 SUBCOMMAND_OBJ_DIR:=$(OBJ_DIR)/subcommand
 UNITTEST_OBJ_DIR:=$(OBJ_DIR)/unittest
 UNITTEST_SUPPORT_OBJ_DIR:=$(OBJ_DIR)/unittest/support
+ARTIFACTS_OBJ_DIR:=$(OBJ_DIR)/artifacts
+ARTIFACTS_SHARED_OBJ_DIR:=$(SHARED_OBJ_DIR)/artifacts
+ARTIFACTS_UNITTEST_OBJ_DIR:=$(ARTIFACTS_OBJ_DIR)/unittest
+ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR:=$(ARTIFACTS_UNITTEST_OBJ_DIR)/support
+# The per-file unit test binaries from artifacts/ go beside the ones from src/.
+ARTIFACTS_UNITTEST_BIN_DIR:=$(UNITTEST_BIN_DIR)
 LIB_DIR:=lib
 # INC_DIR must be a relative path
 INC_DIR:=include
@@ -44,6 +54,10 @@ include $(wildcard $(SUBCOMMAND_OBJ_DIR)/*.d)
 include $(wildcard $(UNITTEST_OBJ_DIR)/*.d)
 include $(wildcard $(UNITTEST_SUPPORT_OBJ_DIR)/*.d)
 include $(wildcard $(UNITTEST_BIN_DIR)/*.d)
+include $(wildcard $(ARTIFACTS_OBJ_DIR)/*.d)
+include $(wildcard $(ARTIFACTS_SHARED_OBJ_DIR)/*.d)
+include $(wildcard $(ARTIFACTS_UNITTEST_OBJ_DIR)/*.d)
+include $(wildcard $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/*.d)
 include $(wildcard test/*.d)
 
 # What pkg-config-controlled system dependencies should we use compile and link flags from?
@@ -389,10 +403,17 @@ IO_SRC = $(wildcard $(IO_SRC_DIR)/*.cpp)
 SUBCOMMAND_SRC = $(wildcard $(SUBCOMMAND_SRC_DIR)/*.cpp)
 UNITTEST_SRC = $(wildcard $(UNITTEST_SRC_DIR)/*.cpp)
 UNITTEST_SUPPORT_SRC = $(wildcard $(UNITTEST_SUPPORT_SRC_DIR)/*.cpp)
+ARTIFACTS_SRC = $(wildcard $(ARTIFACTS_SRC_DIR)/*.cpp)
+ARTIFACTS_UNITTEST_SRC = $(wildcard $(ARTIFACTS_UNITTEST_SRC_DIR)/*.cpp)
+ARTIFACTS_UNITTEST_SUPPORT_SRC = $(wildcard $(ARTIFACTS_UNITTEST_SUPPORT_SRC_DIR)/*.cpp)
 
 # These are put into libvg. Grab everything except main
 OBJ = $(filter-out $(OBJ_DIR)/main.o,$(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC)))
 SHARED_OBJ = $(patsubst $(OBJ_DIR)/%.o,$(SHARED_OBJ_DIR)/%.o,$(OBJ))
+
+# The library code in artifacts/ also goes into libvg
+ARTIFACTS_OBJ = $(patsubst $(ARTIFACTS_SRC_DIR)/%.cpp,$(ARTIFACTS_OBJ_DIR)/%.o,$(ARTIFACTS_SRC))
+ARTIFACTS_SHARED_OBJ = $(patsubst $(ARTIFACTS_OBJ_DIR)/%.o,$(ARTIFACTS_SHARED_OBJ_DIR)/%.o,$(ARTIFACTS_OBJ))
 
 # And all the algorithms
 ALGORITHMS_OBJ = $(patsubst $(ALGORITHMS_SRC_DIR)/%.cpp,$(ALGORITHMS_OBJ_DIR)/%.o,$(ALGORITHMS_SRC))
@@ -412,14 +433,20 @@ SUBCOMMAND_OBJ = $(patsubst $(SUBCOMMAND_SRC_DIR)/%.cpp,$(SUBCOMMAND_OBJ_DIR)/%.
 
 # These aren't put into libvg. But they do go into the main vg binary to power its self-test.
 UNITTEST_OBJ = $(patsubst $(UNITTEST_SRC_DIR)/%.cpp,$(UNITTEST_OBJ_DIR)/%.o,$(UNITTEST_SRC))
+# And so do the unit tests in artifacts/
+ARTIFACTS_UNITTEST_OBJ = $(patsubst $(ARTIFACTS_UNITTEST_SRC_DIR)/%.cpp,$(ARTIFACTS_UNITTEST_OBJ_DIR)/%.o,$(ARTIFACTS_UNITTEST_SRC))
 
 # These support the tests and go in the main vg binary and all the test binaries
 UNITTEST_SUPPORT_OBJ_COMMON = $(filter-out $(UNITTEST_SUPPORT_OBJ_DIR)/driver.o,$(patsubst $(UNITTEST_SUPPORT_SRC_DIR)/%.cpp,$(UNITTEST_SUPPORT_OBJ_DIR)/%.o,$(UNITTEST_SUPPORT_SRC)))
 # These are the ones that go in all the test binaries (including the test driver with main())
+# The test support code in artifacts/ goes wherever the common test support code goes
+ARTIFACTS_UNITTEST_SUPPORT_OBJ = $(patsubst $(ARTIFACTS_UNITTEST_SUPPORT_SRC_DIR)/%.cpp,$(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/%.o,$(ARTIFACTS_UNITTEST_SUPPORT_SRC))
+UNITTEST_SUPPORT_OBJ_COMMON += $(ARTIFACTS_UNITTEST_SUPPORT_OBJ)
 UNITTEST_SUPPORT_OBJ = $(UNITTEST_SUPPORT_OBJ_DIR)/driver.o $(UNITTEST_SUPPORT_OBJ_COMMON)
 
 # These are per-test-suite binaries we can build faster
 UNITTEST_EXE = $(patsubst $(UNITTEST_SRC_DIR)/%.cpp,$(UNITTEST_BIN_DIR)/%,$(UNITTEST_SRC))
+ARTIFACTS_UNITTEST_EXE = $(patsubst $(ARTIFACTS_UNITTEST_SRC_DIR)/%.cpp,$(ARTIFACTS_UNITTEST_BIN_DIR)/%,$(ARTIFACTS_UNITTEST_SRC))
 
 
 ELFUTILS_DIR:=deps/elfutils
@@ -536,11 +563,11 @@ DEPS += $(LIB_DIR)/cleaned_old_elfutils_v004
 .PHONY: clean clean-tests get-deps deps lint test unittest set-path objs static static-docker docs man version
 
 # Aggregate all libvg deps, and exe deps other than libvg
-LIBVG_DEPS = $(OBJ) $(ALGORITHMS_OBJ) $(IO_OBJ) $(DEP_OBJ) $(DEPS)
-LIBVG_SHARED_DEPS = $(SHARED_OBJ) $(ALGORITHMS_SHARED_OBJ) $(IO_SHARED_OBJ) $(DEP_SHARED_OBJ) $(DEPS)
+LIBVG_DEPS = $(OBJ) $(ARTIFACTS_OBJ) $(ALGORITHMS_OBJ) $(IO_OBJ) $(DEP_OBJ) $(DEPS)
+LIBVG_SHARED_DEPS = $(SHARED_OBJ) $(ARTIFACTS_SHARED_OBJ) $(ALGORITHMS_SHARED_OBJ) $(IO_SHARED_OBJ) $(DEP_SHARED_OBJ) $(DEPS)
 # The unit tests and the `test` subcommand live in a separate binary, $(EXE)-unittest
 NVG_SUBCOMMAND_OBJ = $(filter-out $(SUBCOMMAND_OBJ_DIR)/test_main.o,$(SUBCOMMAND_OBJ))
-UNITTEST_EXE_OBJ = $(UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ_DIR)/test_main.o
+UNITTEST_EXE_OBJ = $(UNITTEST_OBJ) $(ARTIFACTS_UNITTEST_OBJ) $(UNITTEST_SUPPORT_OBJ_COMMON) $(SUBCOMMAND_OBJ_DIR)/test_main.o
 EXE_DEPS = $(OBJ_DIR)/main.o $(NVG_SUBCOMMAND_OBJ) $(CONFIG_OBJ) $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS)
 
 # We have a target we can build to do everything but link the library and executable
@@ -548,15 +575,17 @@ objs: $(LIBVG_DEPS) $(EXE_DEPS)
 
 $(LIB_DIR)/libvg.a: $(LIBVG_DEPS)
 	rm -f $@
-	ar rs $@ $(OBJ) $(ALGORITHMS_OBJ) $(IO_OBJ) $(DEP_OBJ)
+	ar rs $@ $(OBJ) $(ARTIFACTS_OBJ) $(ALGORITHMS_OBJ) $(IO_OBJ) $(DEP_OBJ)
 	
 $(LIB_DIR)/libvg.$(SHARED_SUFFIX): $(LIBVG_SHARED_DEPS)
 	rm -f $@
-	$(CXX) -shared -o $@ $(SHARED_OBJ) $(ALGORITHMS_SHARED_OBJ) $(IO_SHARED_OBJ) $(DEP_SHARED_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) 
+	$(CXX) -shared -o $@ $(SHARED_OBJ) $(ARTIFACTS_SHARED_OBJ) $(ALGORITHMS_SHARED_OBJ) $(IO_SHARED_OBJ) $(DEP_SHARED_OBJ) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) 
 
 # Each test set can have its own binary, and not link everything static
 $(UNITTEST_EXE): $(UNITTEST_BIN_DIR)/%: $(UNITTEST_OBJ_DIR)/%.o $(UNITTEST_SUPPORT_OBJ) $(CONFIG_OBJ) $(LIB_DIR)/libvg.$(SHARED_SUFFIX)
-	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $@ $< $(UNITTEST_SUPPORT_OBJ) $(CONFIG_OBJ) $(LIB_DIR)/libvg.$(SHARED_SUFFIX) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $@ $< $(UNITTEST_SUPPORT_OBJ) $(CONFIG_OBJ) $(LIB_DIR)/libvg.$(SHARED_SUFFIX) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS) $(LD_CAIRO_LIB_FLAGS)
+$(ARTIFACTS_UNITTEST_EXE): $(ARTIFACTS_UNITTEST_BIN_DIR)/%: $(ARTIFACTS_UNITTEST_OBJ_DIR)/%.o $(UNITTEST_SUPPORT_OBJ) $(CONFIG_OBJ) $(LIB_DIR)/libvg.$(SHARED_SUFFIX)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) -o $@ $< $(UNITTEST_SUPPORT_OBJ) $(CONFIG_OBJ) $(LIB_DIR)/libvg.$(SHARED_SUFFIX) $(LD_LIB_DIR_FLAGS) $(LDFLAGS) $(LD_LIB_FLAGS) $(LD_STATIC_LIB_FLAGS) $(LD_STATIC_LIB_DEPS) $(LD_EXE_LIB_FLAGS) $(LD_CAIRO_LIB_FLAGS)
 
 # For a normal dynamic build we remove the static build marker
 $(BIN_DIR)/$(EXE): $(LIB_DIR)/libvg.a $(EXE_DEPS)
@@ -601,11 +630,11 @@ deps: $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS)
 # Record the compiler commands that building vg runs, for editors and linters.
 # The dry run needs the dependencies to really be built first.
 # Depend on the sources so that new source files get picked up.
-compile_commands.json: Makefile $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS) $(SRC) $(ALGORITHMS_SRC) $(IO_SRC) $(SUBCOMMAND_SRC) $(UNITTEST_SRC) $(UNITTEST_SUPPORT_SRC)
+compile_commands.json: Makefile $(DEPS) $(LINK_DEPS) $(PRE_LINK_DEPS) $(SRC) $(ARTIFACTS_SRC) $(ARTIFACTS_UNITTEST_SRC) $(ARTIFACTS_UNITTEST_SUPPORT_SRC) $(ALGORITHMS_SRC) $(IO_SRC) $(SUBCOMMAND_SRC) $(UNITTEST_SRC) $(UNITTEST_SUPPORT_SRC)
 	$(MAKE) --dry-run --always-make $(BIN_DIR)/$(EXE) >$(OBJ_DIR)/dry_run_build_log.txt
 	compiledb --overwrite --output $@ --parse $(OBJ_DIR)/dry_run_build_log.txt
 
-lint: $(SRC_DIR)/*.cpp $(SRC_DIR)/*.hpp $(ALGORITHMS_SRC_DIR)/*.cpp $(ALGORITHMS_SRC_DIR)/*.hpp $(SUBCOMMAND_SRC_DIR)/*.cpp $(SUBCOMMAND_SRC_DIR)/*.hpp $(UNITTEST_SRC_DIR)/*.cpp $(UNITTEST_SRC_DIR)/*.hpp $(UNITTEST_SUPPORT_SRC_DIR)/*.cpp
+lint: $(ARTIFACTS_SRC_DIR)/*.cpp $(ARTIFACTS_SRC_DIR)/*.hpp $(ARTIFACTS_UNITTEST_SRC_DIR)/*.cpp $(SRC_DIR)/*.cpp $(SRC_DIR)/*.hpp $(ALGORITHMS_SRC_DIR)/*.cpp $(ALGORITHMS_SRC_DIR)/*.hpp $(SUBCOMMAND_SRC_DIR)/*.cpp $(SUBCOMMAND_SRC_DIR)/*.hpp $(UNITTEST_SRC_DIR)/*.cpp $(UNITTEST_SRC_DIR)/*.hpp $(UNITTEST_SUPPORT_SRC_DIR)/*.cpp
 	scripts/lint.py 1>&2
 
 test: lint $(BIN_DIR)/$(EXE) $(BIN_DIR)/$(EXE)-unittest $(LIB_DIR)/libvg.a test/build_graph $(BIN_DIR)/shuf
@@ -830,14 +859,15 @@ $(LIB_DIR)/libtabixpp.a: $(LIB_DIR)/libhts.a $(TABIXPP_DIR)/*.cpp $(TABIXPP_DIR)
 # because there's no way to turn off vcflib's pybind11 build and pybind11 will
 # try and use the latest installed Python over the default one that probably
 # has headers.
-# We now need to tell it to build in static mode so we get a static library.
+# We now need to tell it to build static libraries, and to make them position-independent so that
+# libvg.so can contain them.
 # And we also now need to tell it to actually build its bundled WFA.
 #
 # Note that on MacOS we rely on the Makefile putting GNU coreutils on the PATH
 # in order to avoid the dreaded "Could NOT find Threads".
 $(LIB_DIR)/libvcflib%a $(LIB_DIR)/libwfa2%a: $(LIB_DIR)/libhts.a $(LIB_DIR)/libtabixpp.a $(VCFLIB_DIR)/src/*.cpp $(VCFLIB_DIR)/src/*.hpp $(VCFLIB_DIR)/contrib/*/*.cpp $(VCFLIB_DIR)/contrib/*/*.h $(LIB_DIR)/cleaned_old_catch
 	rm -f $(VCFLIB_DIR)/contrib/WFA2-lib/VERSION
-	+cd $(VCFLIB_DIR) && rm -Rf build && mkdir build && cd build && PKG_CONFIG_PATH="$(CWD)/$(LIB_DIR)/pkgconfig:$(PKG_CONFIG_PATH)" cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DZIG=OFF -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$(CWD) -DCMAKE_PREFIX_PATH="$(if $(CMAKE_PREFIX_PATH),$(CMAKE_PREFIX_PATH);)/usr;$(OMP_PREFIXES)" -DPYTHON_EXECUTABLE="$(shell which python3)" -DBUILD_STATIC=ON -DBUILD_ONLY_LIB=ON -DWFA_GITMODULE=ON $(if $(OMP_LIBRARY),-DOpenMP_omp_LIBRARY="$(OMP_LIBRARY)") .. && cmake --build . --target vcflib wfa2_static
+	+cd $(VCFLIB_DIR) && rm -Rf build && mkdir build && cd build && PKG_CONFIG_PATH="$(CWD)/$(LIB_DIR)/pkgconfig:$(PKG_CONFIG_PATH)" cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DZIG=OFF -DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$(CWD) -DCMAKE_PREFIX_PATH="$(if $(CMAKE_PREFIX_PATH),$(CMAKE_PREFIX_PATH);)/usr;$(OMP_PREFIXES)" -DPYTHON_EXECUTABLE="$(shell which python3)" -DBUILD_STATIC_LIBS=ON -DBUILD_POSITION_INDEPENDENT_CODE=ON -DWFA_GITMODULE=ON $(if $(OMP_LIBRARY),-DOpenMP_omp_LIBRARY="$(OMP_LIBRARY)") .. && cmake --build . --target vcflib wfa2_static
 	cp -p $(VCFLIB_DIR)/contrib/filevercmp/*.h* $(INC_DIR)
 	cp -p $(VCFLIB_DIR)/contrib/fastahack/*.h* $(INC_DIR)
 	cp -p $(VCFLIB_DIR)/contrib/smithwaterman/*.h* $(INC_DIR)
@@ -1047,8 +1077,20 @@ $(SUBCOMMAND_OBJ): $(SUBCOMMAND_OBJ_DIR)/%.o : $(SUBCOMMAND_SRC_DIR)/%.cpp $(SUB
 $(UNITTEST_OBJ): $(UNITTEST_OBJ_DIR)/%.o : $(UNITTEST_SRC_DIR)/%.cpp $(UNITTEST_OBJ_DIR)/%.d | $(DEPS)
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
 	@touch $@
-$(UNITTEST_SUPPORT_OBJ): $(UNITTEST_SUPPORT_OBJ_DIR)/%.o : $(UNITTEST_SUPPORT_SRC_DIR)/%.cpp $(UNITTEST_SUPPORT_OBJ_DIR)/%.d | $(DEPS)
+$(filter $(UNITTEST_SUPPORT_OBJ_DIR)/%,$(UNITTEST_SUPPORT_OBJ)): $(UNITTEST_SUPPORT_OBJ_DIR)/%.o : $(UNITTEST_SUPPORT_SRC_DIR)/%.cpp $(UNITTEST_SUPPORT_OBJ_DIR)/%.d | $(DEPS)
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
+$(ARTIFACTS_OBJ): $(ARTIFACTS_OBJ_DIR)/%.o : $(ARTIFACTS_SRC_DIR)/%.cpp $(ARTIFACTS_OBJ_DIR)/%.d | $(DEPS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
+	@touch $@
+$(ARTIFACTS_SHARED_OBJ): $(ARTIFACTS_SHARED_OBJ_DIR)/%.o : $(ARTIFACTS_SRC_DIR)/%.cpp $(ARTIFACTS_SHARED_OBJ_DIR)/%.d | $(DEPS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -fPIC -c -o $@ $< $(FILTER)
+	@touch $@
+$(ARTIFACTS_UNITTEST_OBJ): $(ARTIFACTS_UNITTEST_OBJ_DIR)/%.o : $(ARTIFACTS_UNITTEST_SRC_DIR)/%.cpp $(ARTIFACTS_UNITTEST_OBJ_DIR)/%.d | $(DEPS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
+	@touch $@
+$(ARTIFACTS_UNITTEST_SUPPORT_OBJ): $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/%.o : $(ARTIFACTS_UNITTEST_SUPPORT_SRC_DIR)/%.cpp $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/%.d | $(DEPS)
+	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
+	@touch $@
 	@touch $@
 test/build_graph.o: test/%.o : test/%.cpp test/%.d | $(DEPS)
 	$(CXX) $(INCLUDE_FLAGS) $(CXXFLAGS) $(DEPGEN_FLAGS) $(PROTOBUF_RELEASE_FLAGS) -c -o $@ $< $(FILTER)
@@ -1072,10 +1114,14 @@ $(CONFIG_OBJ_DIR)/%.d: ;
 $(IO_OBJ_DIR)/%.d: ;
 $(SUBCOMMAND_OBJ_DIR)/%.d: ;
 $(UNITTEST_OBJ_DIR)/%.d: ;
+$(ARTIFACTS_OBJ_DIR)/%.d: ;
+$(ARTIFACTS_SHARED_OBJ_DIR)/%.d: ;
+$(ARTIFACTS_UNITTEST_OBJ_DIR)/%.d: ;
+$(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/%.d: ;
 test/%.d: ;
 
 # Don't delete them.
-.PRECIOUS: $(OBJ_DIR)/%.d $(ALGORITHMS_OBJ_DIR)/%.d $(CONFIG_OBJ_DIR)/%.d $(IO_OBJ_DIR)/%.d $(SUBCOMMAND_OBJ_DIR)/%.d $(UNITTEST_OBJ_DIR)/%.d test/%.d
+.PRECIOUS: $(OBJ_DIR)/%.d $(ALGORITHMS_OBJ_DIR)/%.d $(CONFIG_OBJ_DIR)/%.d $(IO_OBJ_DIR)/%.d $(SUBCOMMAND_OBJ_DIR)/%.d $(UNITTEST_OBJ_DIR)/%.d $(ARTIFACTS_OBJ_DIR)/%.d $(ARTIFACTS_SHARED_OBJ_DIR)/%.d $(ARTIFACTS_UNITTEST_OBJ_DIR)/%.d $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/%.d test/%.d
 # Use no implicit rules
 .SUFFIXES:
 
@@ -1102,6 +1148,10 @@ $(shell if [ ! -d $(IO_SHARED_OBJ_DIR) ]; then mkdir -p $(IO_SHARED_OBJ_DIR); fi
 $(shell if [ ! -d $(SUBCOMMAND_OBJ_DIR) ]; then mkdir -p $(SUBCOMMAND_OBJ_DIR); fi)
 $(shell if [ ! -d $(UNITTEST_OBJ_DIR) ]; then mkdir -p $(UNITTEST_OBJ_DIR); fi)
 $(shell if [ ! -d $(UNITTEST_SUPPORT_OBJ_DIR) ]; then mkdir -p $(UNITTEST_SUPPORT_OBJ_DIR); fi)
+$(shell if [ ! -d $(ARTIFACTS_OBJ_DIR) ]; then mkdir -p $(ARTIFACTS_OBJ_DIR); fi)
+$(shell if [ ! -d $(ARTIFACTS_SHARED_OBJ_DIR) ]; then mkdir -p $(ARTIFACTS_SHARED_OBJ_DIR); fi)
+$(shell if [ ! -d $(ARTIFACTS_UNITTEST_OBJ_DIR) ]; then mkdir -p $(ARTIFACTS_UNITTEST_OBJ_DIR); fi)
+$(shell if [ ! -d $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR) ]; then mkdir -p $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR); fi)
 $(shell if [ ! -d $(INC_DIR) ]; then mkdir -p $(INC_DIR); fi)
 
 # run pre-build.sh before we make anything at all.
@@ -1126,6 +1176,10 @@ clean-vg:
 	$(RM) -f $(ALGORITHMS_SHARED_OBJ_DIR)/*.o $(ALGORITHMS_SHARED_OBJ_DIR)/*.d
 	$(RM) -f $(IO_OBJ_DIR)/*.o $(IO_OBJ_DIR)/*.d
 	$(RM) -f $(IO_SHARED_OBJ_DIR)/*.o $(IO_SHARED_OBJ_DIR)/*.d
+	$(RM) -f $(ARTIFACTS_OBJ_DIR)/*.o $(ARTIFACTS_OBJ_DIR)/*.d
+	$(RM) -f $(ARTIFACTS_SHARED_OBJ_DIR)/*.o $(ARTIFACTS_SHARED_OBJ_DIR)/*.d
+	$(RM) -f $(ARTIFACTS_UNITTEST_OBJ_DIR)/*.o $(ARTIFACTS_UNITTEST_OBJ_DIR)/*.d
+	$(RM) -f $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/*.o $(ARTIFACTS_UNITTEST_SUPPORT_OBJ_DIR)/*.d
 	$(RM) -f $(SRC_DIR)/vg_git_version.hpp $(SRC_DIR)/vg_environment_version.hpp
 
 clean: clean-vcflib

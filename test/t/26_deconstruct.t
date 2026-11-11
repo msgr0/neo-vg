@@ -11,13 +11,13 @@ nvg mod -U 10 msgas/hla_v.vg | nvg mod -c - > hla_v.vg
 nvg index hla_v.vg -x hla.xg
 
 nvg deconstruct hla.xg -p "gi|157734152:29563108-29564082" > hla_decon.vcf
-is $(grep -v "#" hla_decon.vcf | wc -l) 17 "deconstructed hla vcf has correct number of sites"
+is $(grep -v "#" hla_decon.vcf | wc -l | tr -d " ") 17 "deconstructed hla vcf has correct number of sites"
 is $(grep -v "#" hla_decon.vcf | grep 822 | awk '{print $4 "-" $5}') "C-CGCGGGCGCCGTGGATGGAGCA" "deconstructed hla vcf has correct insertion"
 nvg deconstruct hla.xg -p "gi|568815592:29791752-29792749" > hla_decon.vcf
-is $(grep -v "#" hla_decon.vcf | wc -l) 17 "deconstructed hla vcf with other path has correct number of sites"
+is $(grep -v "#" hla_decon.vcf | wc -l | tr -d " ") 17 "deconstructed hla vcf with other path has correct number of sites"
 is $(grep -v "#" hla_decon.vcf | grep 824 | awk '{print $4 "-" $5}') "CGCGGGCGCCGTGGATGGAGCA-C" "deconstructed hla vcf has correct deletion"
 
-nvg deconstruct hla.xg -p "gi|568815592:29791752-29792749" > hla_decon_path.vcf
+nvg deconstruct hla.xg -p "gi|568815592:29791752-29792749" -e > hla_decon_path.vcf
 grep -v "#" hla_decon.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5}' | sort > hla_decon.tsv
 grep -v "#" hla_decon_path.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5}' | sort > hla_decon_path.tsv
 diff hla_decon.tsv hla_decon_path.tsv
@@ -39,7 +39,7 @@ cp sv/x.inv.gfa inv.gfa
 printf "P\ty\t1+,2-,3+\t9M,20M,21M\n" >> inv.gfa
 nvg view -Fv inv.gfa > inv.vg
 nvg index inv.vg -x inv.xg
-nvg deconstruct inv.xg -p x > inv_decon.vcf
+nvg deconstruct inv.xg -p x -e > inv_decon.vcf
 grep -v "#" inv_decon.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' > inv_decon.tsv
 printf "x\t10\tCTTGGAAATTTTCTGGAGTT\tAACTCCAGAAAATTTCCAAG\t1\n" > inv_truth.tsv
 diff inv_decon.tsv inv_truth.tsv
@@ -47,7 +47,7 @@ is "$?" 0 "deconstruct correctly handles a simple inversion"
 
 rm -f inv_decon.vcf inv_decon.tsv inv_truth.tsv
 
-nvg deconstruct inv.xg -p y > inv_decon.vcf
+nvg deconstruct inv.xg -p y -e > inv_decon.vcf
 grep -v "#" inv_decon.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' > inv_decon.tsv
 printf "y\t10\tAACTCCAGAAAATTTCCAAG\tCTTGGAAATTTTCTGGAGTT\t1\n" > inv_truth.tsv
 diff inv_decon.tsv inv_truth.tsv
@@ -68,7 +68,7 @@ nvg construct -v small/x.vcf.gz -r small/x.fa | nvg view -g - > cyclic_small.gfa
  printf "P\ty\t1+,3+,5+,6+,8+,9+,11+,12+,14+,15+,17+,18+,20+,21+,23+,24+,26+,27+,29+,30+,32+,33+,30+,31+,33+,35+,36+,38+,40+,41+,43+,44+,46+,47+,49+,50+,52+,53+,55+,56+,57+,60+,61+,62+,64+,65+,67+,68+,70+,71+,73+,74+,76+,78+,79+,81+,83+,84+,86+,87+,89+,90+,92+,94+,95+,97+,98+,100+,101+,102+,103+,104+,106+,107+,109+,110+,112+,114+,115+,117+,118+,120+,122+,123+,124+,126+,127+,129+,130+,132+,133+,135+,136+,137+,139+,141+,142+,144+,145+,147+,148+,149+,151+,152+,154+,155+,157+,158+,159+,160+,162+,163+,165+,166+,168+,169+,171+,172+,174+,176+,177+,179+,181+,182+,184+,185+,187+,188+,190+,191+,193+,195+,196+,198+,199+,201+,202+,204+,205+,206+,207+,209+,210+,211+,212+,214+,215+\t8M,1M,1M,3M,1M,19M,1M,4M,1M,12M,1M,6M,32M,9M,1M,2M,1M,18M,1M,19M,1M,17M,19M,1M,17M,1M,12M,5M,1M,8M,1M,12M,1M,3M,1M,13M,1M,2M,1M,32M,18M,1M,1M,3M,1M,9M,1M,6M,1M,2M,1M,14M,1M,1M,32M,1M,1M,5M,1M,19M,1M,23M,1M,1M,6M,1M,2M,1M,32M,26M,1M,6M,1M,14M,1M,11M,22M,1M,9M,1M,20M,12M,1M,32M,30M,1M,17M,1M,6M,1M,14M,1M,1M,11M,6M,1M,9M,1M,15M,1M,32M,10M,1M,17M,1M,1M,1M,12M,1M,4M,1M,17M,1M,9M,1M,3M,1M,30M,1M,1M,1M,16M,1M,10M,1M,10M,1M,1M,1M,14M,1M,1M,5M,1M,1M,1M,3M,1M,10M,1M,4M,1M,27M,2M,25M,1M,1M\n" >> cyclic_small.gfa
 nvg view -Fv cyclic_small.gfa > cyclic_small.vg
 nvg index cyclic_small.vg -x cyclic_small.xg
-nvg deconstruct cyclic_small.xg -p y > cyclic_small_decon.vcf
+nvg deconstruct cyclic_small.xg -p y -e > cyclic_small_decon.vcf
 grep -v "#" cyclic_small_decon.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' > cyclic_small_decon.tsv
 printf "y\t121\tTGACGTTTGACAATCTATCACTAGGGGTAATGTGGGGAAACGTTTGACAATCTATCACCAGGGGTAATGTGGGGAAA\tTGACGTTTGACAATCTATCACTAGGGGTAATGTGGGGAAA\t1\n" > cyclic_small_truth.tsv
 diff cyclic_small_decon.tsv cyclic_small_truth.tsv
@@ -76,7 +76,7 @@ is "$?" 0 "deconstruct correctly handles a cycle in the reference path when cont
 
 rm -f cyclic_small_decon.vcf cyclic_small_decon.tsv cyclic_small_truth.tsv
 
-nvg deconstruct cyclic_small.xg -p x > cyclic_small_decon.vcf
+nvg deconstruct cyclic_small.xg -p x -e > cyclic_small_decon.vcf
 grep -v "#" cyclic_small_decon.vcf | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' > cyclic_small_decon.tsv
 printf "x\t121\tTGACGTTTGACAATCTATCACTAGGGGTAATGTGGGGAAA\tTGACGTTTGACAATCTATCACTAGGGGTAATGTGGGGAAACGTTTGACAATCTATCACCAGGGGTAATGTGGGGAAA\t1\n" > cyclic_small_truth.tsv
 diff cyclic_small_decon.tsv cyclic_small_truth.tsv
@@ -93,8 +93,8 @@ nvg find -x cyclic_tiny.xg  -n 10 -n 11 -n 12 -n 13 -n 14 -n 15 -c 1 > cycle.vg
 # TODO: Make deconstruct see through subpaths to the base path
 nvg view cycle.vg | sed 's/\([xy]\)\[[-0-9]*\]/\1/g' >cycle-asfullpaths.gfa
 nvg index cycle-asfullpaths.gfa -x cycle.xg
-nvg deconstruct cycle.xg -p y -t 1 > cycle_decon.vcf
-is $(grep -v "#" cycle_decon.vcf | wc -l) 1 "cyclic reference deconstruction has correct number of variants"
+nvg deconstruct cycle.xg -p y -e -t 1 > cycle_decon.vcf
+is $(grep -v "#" cycle_decon.vcf | wc -l | tr -d " ") 1 "cyclic reference deconstruction has correct number of variants"
 grep -v "#" cycle_decon.vcf | grep 20 | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' > cycle_decon.tsv
 grep -v "#" cycle_decon.vcf | grep 44 | awk '{print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $10}' >> cycle_decon.tsv
 printf "y\t44\tA\tT\t1\n" > cycle_decon_truth.tsv
@@ -112,13 +112,13 @@ printf "P\talt2.3\t1+,2+,4+,6+,8+,9+,11+,12+,14+,15+\t*\n" >> tiny_names.gfa
 printf "P\talt2.4\t1+,2+,4+,6+,8+,9+,11+,12+,14+,15+\t*\n" >> tiny_names.gfa
 nvg view -Fv tiny_names.gfa > tiny_names.vg
 nvg index tiny_names.vg -x tiny_names.xg
-nvg deconstruct tiny_names.xg -P ref | sort > tiny_names_decon.vcf
-is $(grep -v "#" tiny_names_decon.vcf | wc -l) 2 "-P -H options return correct number of variants"
-is $(grep -v "#" tiny_names_decon.vcf | grep ref.1 | wc -l) 2 "-P -H options use correct reference name"
-is $(grep -v "#" tiny_names_decon.vcf | grep ref.1 | grep 14 | grep "CONFLICT=alt1" | wc -l) 0 "-P -H does not find conflict in alt1 in second variant"
-nvg deconstruct tiny_names.vg -P ref | sort > tiny_names_decon_vg.vcf
+nvg deconstruct tiny_names.xg -P ref -H . -e -d 1 | sort > tiny_names_decon.vcf
+is $(grep -v "#" tiny_names_decon.vcf | wc -l | tr -d " ") 2 "-P -H options return correct number of variants"
+is $(grep -v "#" tiny_names_decon.vcf | grep ref.1 | wc -l | tr -d " ") 2 "-P -H options use correct reference name"
+is $(grep -v "#" tiny_names_decon.vcf | grep ref.1 | grep 14 | grep "CONFLICT=alt1" | wc -l | tr -d " ") 0 "-P -H does not find conflict in alt1 in second variant"
+nvg deconstruct tiny_names.vg -P ref -H . -e -d 1 | sort > tiny_names_decon_vg.vcf
 diff tiny_names_decon.vcf tiny_names_decon_vg.vcf
-is "$?" 0 "deconstructing vg graph gives same output as xg graph"
+is "$?" 0 "deconstructing nvg graph gives same output as xg graph"
 
 rm -f tiny_names.gfa tiny_names.vg tiny_names.xg tiny_names_decon.vcf tiny_names_decon_vg.vcf
 
@@ -156,12 +156,12 @@ is "$(tail -1 small_cluster_0.vcf | awk '{print $5}')" "GATTTGA,G" "cluster-free
 is "$(tail -1 small_cluster_3.vcf | awk '{print $5}')" "G" "clustered deconstruction finds fewer alt alleles"
 is "$(tail -1 small_cluster_3.vcf | awk '{print $10}')" "0:0.333:0" "clustered deconstruction finds correct allele info"
 
-# --cluster-min-len gates when the site's core length is below the threshold.
+# With --cluster-min-len, -L clusters only at sites whose core length is at least that many bp.
 # small_cluster's only snarl has core length 6 bp.
 nvg deconstruct small_cluster.gfa -p x -L 0.3 --cluster-min-len 0 > small_cluster_3_off.vcf
 is "$(tail -1 small_cluster_3_off.vcf | awk '{print $5}')" "G" "--cluster-min-len 0 is equivalent to clustering everywhere"
 nvg deconstruct small_cluster.gfa -p x -L 0.3 --cluster-min-len 50 > small_cluster_3_50.vcf
-is "$(tail -1 small_cluster_3_50.vcf | awk '{print $5}')" "GATTTGA,G" "--cluster-min-len 50 gates clustering on a small site"
+is "$(tail -1 small_cluster_3_50.vcf | awk '{print $5}')" "GATTTGA,G" "--cluster-min-len 50 prevents clustering at a small site"
 nvg deconstruct small_cluster.gfa -p x -L 0.3 --cluster-min-len 6 > small_cluster_3_6.vcf
 is "$(tail -1 small_cluster_3_6.vcf | awk '{print $5}')" "G" "--cluster-min-len at the site length still clusters"
 nvg deconstruct small_cluster.gfa -p x --cluster-min-len 50 2>/dev/null > small_cluster_min_only.vcf
@@ -170,10 +170,10 @@ is "$?" 0 "--cluster-min-len without -L is a no-op"
 
 rm -f small_cluster.gfa small_cluster_0.vcf small_cluster_3.vcf small_cluster_3_off.vcf small_cluster_3_50.vcf small_cluster_3_6.vcf small_cluster_min_only.vcf
 
-# --cluster-min-len gates on CORE LENGTH -- the longest allele once the prefix and suffix shared by
-# every allele are stripped -- not on the raw snarl interior.  Measuring the interior would gate a
-# 1bp SNP on the size of whatever snarl happens to contain it, and would disagree with nvg call,
-# whose records are flattened down to an anchor base.
+# --cluster-min-len is compared with the core length: the length of the longest allele once the
+# prefix and suffix shared by every allele are stripped.  With the raw snarl interior instead,
+# whether a 1bp SNP is clustered would depend on the size of the snarl that contains it, and vg
+# deconstruct would disagree with nvg call, whose records are flattened down to an anchor base.
 core_nalt() { nvg deconstruct nesting/$1.gfa -p x -L 0.6 --cluster-min-len $2 2>/dev/null | awk -F'\t' '$1!~/^#/{printf "%d", split($5,a,",")}'; }
 
 is "$(core_nalt core_snp_in_flanks 50)" "2" "a 1bp SNP in a large snarl is not clustered at --cluster-min-len 50"
@@ -181,10 +181,11 @@ is "$(core_nalt core_sv60 50)"         "1" "a 60bp SV is still clustered at --cl
 is "$(core_nalt core_del61 50)"        "1" "a 61bp deletion is still clustered (the reference allele is measured)"
 is "$(core_nalt core_ins49 50)"        "2" "a 49bp insertion is not clustered at 50 (the anchor base is not counted)"
 is "$(core_nalt core_ins50 50)"        "1" "a 50bp insertion is clustered at 50"
-# 50 is the DEFAULT, so -L on its own must gate identically.  Every metric assertion in this file
-# passes --cluster-min-len 0 for exactly that reason.
+# --cluster-min-len defaults to 50, so -L on its own must cluster the same sites as
+# --cluster-min-len 50.  Every metric assertion in this file passes --cluster-min-len 0 for that
+# reason.
 default_nalt() { nvg deconstruct nesting/$1.gfa -p x -L 0.6 2>/dev/null | awk -F'\t' '$1!~/^#/{printf "%d", split($5,a,",")}'; }
-is "$(default_nalt core_snp_in_flanks)" "$(core_nalt core_snp_in_flanks 50)" "-L alone gates a small variant like --cluster-min-len 50"
+is "$(default_nalt core_snp_in_flanks)" "$(core_nalt core_snp_in_flanks 50)" "-L alone treats a small variant like --cluster-min-len 50"
 is "$(default_nalt core_sv60)"          "$(core_nalt core_sv60 50)"          "-L alone still clusters an SV"
 
 # A PURE DELETION -- a traversal straight from snarl start to snarl end -- used to keep its boundary
@@ -192,9 +193,9 @@ is "$(default_nalt core_sv60)"          "$(core_nalt core_sv60 50)"          "-L
 # similarity was therefore structurally 0 and no -L could ever merge it.  It is now scored against
 # the site: two deletions that both remove 59 of a 60bp site score 59/60.
 # The ladder is -L 0.99 / 0.983334 / 0.983333 / 0.6 / 0.1, printing the ALT count at each.
-# --cluster-min-len 0 so this ladder measures the METRIC alone: the gate now defaults to 50, which
-# would decide del1_vs_snp1 (a 1bp site) before the similarity was ever consulted.  The gate has its
-# own ladder in core_nalt below.
+# --cluster-min-len 0 makes this ladder measure the similarity alone.  At the default of 50,
+# del1_vs_snp1 (a 1bp site) would never be clustered, whatever its similarity.  The core_nalt tests
+# above cover --cluster-min-len.
 dladder() { for L in 0.99 0.983334 0.983333 0.6 0.1 ; do
     nvg deconstruct nesting/$1.gfa -p x -L $L --cluster-min-len 0 2>/dev/null |
       awk -F'\t' '$1!~/^#/{n=split($5,a,","); if($5=="."||$5=="")n=0; printf "%d",n}' ; done ; }
@@ -301,7 +302,7 @@ is "$?" 0 "nested deconstruction gets correct allele for snp inside deletion"
 # where it lands on a gref contig at LV=0 with CH=1.  Nothing else distinguishes the two.
 is "$(grep -v ^# nested_snp_in_del.vcf | grep -o 'LV=[0-9]*' | tr '\n' ' ')" "LV=0 LV=1 " "a SNP inside a deletion stays nested on its own contig"
 is "$(grep -v ^# nested_snp_in_del.vcf | grep -o 'CH=[0-9]*' | tr '\n' ' ')" "CH=0 CH=0 " "a SNP inside a deletion takes no contig hop"
-is $(grep -v ^# nested_snp_in_del.vcf | cut -f1 | sort -u | wc -l) 1 "both records are on the base contig"
+is $(grep -v ^# nested_snp_in_del.vcf | cut -f1 | sort -u | wc -l | tr -d " ") 1 "both records are on the base contig"
 
 rm -f nested_snp_in_del.gref.pg nested_snp_in_del.vcf nested_snp_in_del.tsv nested_snp_in_del_truth.tsv
 
@@ -327,14 +328,14 @@ is $(grep -v ^# nested_snp_in_ins.vcf | grep -c "LV=0") 2 "both sites are top-le
 is $(grep -v ^# nested_snp_in_ins.vcf | grep -c "CH=1") 1 "the nested allele is one contig hop from the base reference"
 # The LV=0 record on the gref contig must keep PS: vcfbub's rescue of the children of
 # popped bubbles is keyed on it, and it is the only in-VCF link back to the base site.
-is $(grep -v ^# nested_snp_in_ins.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=1/ && $8 ~ /PS=/' | wc -l) 1 "a per-contig top-level site on a gref contig still carries PS"
+is $(grep -v ^# nested_snp_in_ins.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=1/ && $8 ~ /PS=/' | wc -l | tr -d " ") 1 "a per-contig top-level site on a gref contig still carries PS"
 
 # The cover selects three contigs here (gref_x, gref_x_1_alt, gref_x_2_alt) but
 # gref_x_2_alt carries no variant, and a reference contig that produced no record is not
 # worth declaring.  So the header has two.
 is $(grep -c "^##contig" nested_snp_in_ins.vcf) 2 "contigs with no records are not declared"
 is $(grep -c "^##contig=<ID=gref_x_2_alt," nested_snp_in_ins.vcf) 0 "the undeclared contig is the one with no records"
-is $(grep -v "^#" nested_snp_in_ins.vcf | cut -f1 | sort -u | wc -l) 2 "every declared contig has records, and every contig with records is declared"
+is $(grep -v "^#" nested_snp_in_ins.vcf | cut -f1 | sort -u | wc -l | tr -d " ") 2 "every declared contig has records, and every contig with records is declared"
 # The contig set comes from the records, not the snarl tree, so it does not need -a.
 nvg deconstruct nested_snp_in_ins.gref.pg -P gref_x > nested_snp_in_ins.flat.vcf
 is $(grep -c "^##contig" nested_snp_in_ins.flat.vcf) 1 "pruning works without -a"
@@ -347,8 +348,8 @@ for thread_opt in "-t 1" "-t 2" ""; do
     thread_label=${thread_opt:- default}
     nvg paths --compute-gref --min-gref-len 0 $thread_opt -x nesting/nested_snp_in_nested_ins.gfa -Q x > nested_snp_in_nested_ins.gref.pg
     nvg deconstruct nested_snp_in_nested_ins.gref.pg -P gref_x -a > nested_snp_in_nested_ins.vcf
-    is $(grep -v ^# nested_snp_in_nested_ins.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l) 1 "one absolutely top-level site in double-nested SNP ($thread_label)"
-    is $(grep -v ^# nested_snp_in_nested_ins.vcf | grep "LV=" | wc -l) 3 "all nested sites found in double-nested SNP ($thread_label)"
+    is $(grep -v ^# nested_snp_in_nested_ins.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l | tr -d " ") 1 "one absolutely top-level site in double-nested SNP ($thread_label)"
+    is $(grep -v ^# nested_snp_in_nested_ins.vcf | grep "LV=" | wc -l | tr -d " ") 3 "all nested sites found in double-nested SNP ($thread_label)"
     is "$(grep -v ^# nested_snp_in_nested_ins.vcf | grep -o 'LV=[0-9]*' | tr '\n' ' ')" "LV=0 LV=0 LV=1 " "per-contig levels in double-nested SNP ($thread_label)"
     rm -f nested_snp_in_nested_ins.gref.pg nested_snp_in_nested_ins.vcf
 done
@@ -356,7 +357,7 @@ done
 # Test: Nested site with cycle
 nvg paths --compute-gref --min-gref-len 0 -x nesting/nested_snp_in_ins_cycle.gfa -Q x > nested_snp_in_ins_cycle.gref.pg
 nvg deconstruct nested_snp_in_ins_cycle.gref.pg -P gref_x -a > nested_snp_in_ins_cycle.vcf
-is $(grep -v ^# nested_snp_in_ins_cycle.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l) 1 "one absolutely top-level site found in nested cycle"
+is $(grep -v ^# nested_snp_in_ins_cycle.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l | tr -d " ") 1 "one absolutely top-level site found in nested cycle"
 is $(grep -v ^# nested_snp_in_ins_cycle.vcf | grep -c "CH=1") 1 "the nested site is one contig hop out, in nested cycle"
 rm -f nested_snp_in_ins_cycle.gref.pg nested_snp_in_ins_cycle.vcf
 
@@ -373,8 +374,8 @@ rm -f mnp.gref.pg mnp.vcf mnp_truth.tsv mnp.tsv
 # Test 1: Deep nesting (3+ levels) - triple nested SNP
 nvg paths --compute-gref --min-gref-len 0 -x nesting/triple_nested.gfa -Q x > triple_nested.gref.pg
 nvg deconstruct triple_nested.gref.pg -P gref_x -a > triple_nested.vcf
-is $(grep -v ^# triple_nested.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l) 1 "one absolutely top-level site in triple nested"
-is $(grep -v ^# triple_nested.vcf | grep "LV=" | wc -l) 5 "all nested sites found in triple nested"
+is $(grep -v ^# triple_nested.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l | tr -d " ") 1 "one absolutely top-level site in triple nested"
+is $(grep -v ^# triple_nested.vcf | grep "LV=" | wc -l | tr -d " ") 5 "all nested sites found in triple nested"
 # One hop into the insertion, then four levels of nesting all on that one gref contig.
 is "$(grep -v ^# triple_nested.vcf | grep -o 'LV=[0-9]*' | tr '\n' ' ')" "LV=0 LV=0 LV=1 LV=2 LV=3 " "LV is the per-contig level in triple nested"
 is "$(grep -v ^# triple_nested.vcf | grep -o 'CH=[0-9]*' | tr '\n' ' ')" "CH=0 CH=1 CH=1 CH=1 CH=1 " "CH counts steps into non-reference sequence"
@@ -383,27 +384,27 @@ rm -f triple_nested.gref.pg triple_nested.vcf
 # Test 2: Multiple children at same level - insertion with 2 nested SNPs
 nvg paths --compute-gref --min-gref-len 0 -x nesting/insertion_with_three_snps.gfa -Q x > insertion_with_three_snps.gref.pg
 nvg deconstruct insertion_with_three_snps.gref.pg -P gref_x -a > multi_child.vcf
-is $(grep -v ^# multi_child.vcf | grep "LV=" | wc -l) 3 "expected number of sites with LV field"
-is $(grep -v ^# multi_child.vcf | grep LV=1 | wc -l) 2 "two child SNPs found at level 1"
+is $(grep -v ^# multi_child.vcf | grep "LV=" | wc -l | tr -d " ") 3 "expected number of sites with LV field"
+is $(grep -v ^# multi_child.vcf | grep LV=1 | wc -l | tr -d " ") 2 "two child SNPs found at level 1"
 rm -f insertion_with_three_snps.gref.pg multi_child.vcf
 
 # Test 3: NestingInfo field propagation - verify LV field
 nvg paths --compute-gref --min-gref-len 0 -x nesting/nested_snp_in_ins.gfa -Q x > field_check.gref.pg
 nvg deconstruct field_check.gref.pg -P gref_x -a > field_check.vcf
-is $(grep -v ^# field_check.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l) 1 "LV/CH present and zero for the top-level site"
+is $(grep -v ^# field_check.vcf | awk -F'\t' '$8 ~ /LV=0/ && $8 ~ /CH=0/' | wc -l | tr -d " ") 1 "LV/CH present and zero for the top-level site"
 rm -f field_check.gref.pg field_check.vcf
 
 # Test 4: Multiple reference traversals with nesting (should reduce to one)
 nvg paths --compute-gref --min-gref-len 0 -x nesting/cyclic_ref_nested.gfa -Q x > cyclic_ref_nested.gref.pg
 nvg deconstruct cyclic_ref_nested.gref.pg -P gref_x -a > cyclic_ref_nested.vcf
-is $(grep -v ^# cyclic_ref_nested.vcf | wc -l) 1 "cyclic reference with nesting produces single variant"
+is $(grep -v ^# cyclic_ref_nested.vcf | wc -l | tr -d " ") 1 "cyclic reference with nesting produces single variant"
 rm -f cyclic_ref_nested.gref.pg cyclic_ref_nested.vcf
 
 # Test 5: Cyclic reference outputs multiple variants (one per reference traversal)
 # Reference x visits the snarl twice (via node 2 then 3), alt a visits twice (via node 3 then 4)
 # With -c 0 to disable context-jaccard (which doesn't work well on tiny graphs), we should get 2 variants
 nvg deconstruct nesting/cyclic_ref_multiple_variants.gfa -p x -a -c 0 > cyclic_ref_multi.vcf
-is $(grep -v ^# cyclic_ref_multi.vcf | wc -l) 2 "cyclic reference with -a outputs variant for each reference traversal"
+is $(grep -v ^# cyclic_ref_multi.vcf | wc -l | tr -d " ") 2 "cyclic reference with -a outputs variant for each reference traversal"
 # Both records share the snarl ID, because the ID names the snarl and not the traversal of
 # it.  Each must still report its own reference interval; a name-keyed lookup used to hand
 # both of them whichever one was written last.
@@ -433,7 +434,7 @@ rm -f base_and_gref.pg base_ref.vcf gref_ref.vcf
 nvg paths --compute-gref --min-gref-len 1 -x nesting/subranged_ref.gfa -Q GRCh38 > subranged.pg
 nvg deconstruct subranged.pg -P GRCh38 -a | grep -v "^#" | cut -f2,4,5 > subranged_base.tsv
 nvg deconstruct subranged.pg -P gref_GRCh38 -a | grep -v "^#" | cut -f2,4,5 > subranged_gref.tsv
-is $(cat subranged_gref.tsv | wc -l) 2 "every subpath of a subranged reference is deconstructed in the gref vcf"
+is $(cat subranged_gref.tsv | wc -l | tr -d " ") 2 "every subpath of a subranged reference is deconstructed in the gref vcf"
 diff subranged_base.tsv subranged_gref.tsv
 is $? 0 "gref vcf keeps the subrange offsets, so positions match the base vcf"
 
