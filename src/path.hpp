@@ -251,6 +251,9 @@ Path& increment_node_mapping_ids(Path& p, id_t inc);
 /// mappings or simplifying. Modifies and returns a reference to the first
 /// path.
 Path& append_path(Path& a, const Path& b);
+/// Append the mappings of b to a, taking them from b instead of copying them.
+/// Leaves b with no mappings.
+Path& append_path(Path& a, Path&& b);
 const Paths paths_from_graph(Graph& g);
 int path_to_length(const Path& path);
 int path_from_length(const Path& path);

@@ -286,6 +286,24 @@ Path& append_path(Path& a, const Path& b) {
     return a;
 }
 
+Path& append_path(Path& a, Path&& b) {
+    if (a.GetArena() != b.GetArena()) {
+        // Mappings can only change owner within one arena, or between two
+        // paths that are both on the heap.
+        append_path(a, (const Path&) b);
+        b.clear_mapping();
+        return a;
+    }
+    // Hand each Mapping object of b over to a.
+    std::vector<Mapping*> taken(b.mapping_size());
+    b.mutable_mapping()->UnsafeArenaExtractSubrange(0, taken.size(), taken.data());
+    a.mutable_mapping()->Reserve(a.mapping_size() + taken.size());
+    for (Mapping* mapping : taken) {
+        a.mutable_mapping()->UnsafeArenaAddAllocated(mapping);
+    }
+    return a;
+}
+
 bool Paths::has_mapping(const string& name, int32_t rank) {
     auto iter = mappings_by_rank.find(name);
     if (iter != mappings_by_rank.end()) {
