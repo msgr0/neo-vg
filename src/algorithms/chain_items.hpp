@@ -297,10 +297,14 @@ struct transition_info {
     size_t to_anchor;
     // Forced indel size, i.e. abs(read - graph)
     size_t indel_size;
+    // The read start of the destination anchor. The transitions are sorted by
+    // it. We keep a copy here so the sort compares transitions without looking
+    // up their anchors.
+    size_t to_read_start;
     
     /// Build transition info from loose values
-    inline transition_info(size_t from, size_t to, size_t indel_size)
-        : from_anchor(from), to_anchor(to), indel_size(indel_size) {}
+    inline transition_info(size_t from, size_t to, size_t indel_size, size_t to_read_start)
+        : from_anchor(from), to_anchor(to), indel_size(indel_size), to_read_start(to_read_start) {}
 };
 
 

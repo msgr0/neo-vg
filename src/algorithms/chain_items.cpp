@@ -142,9 +142,9 @@ transition_iterator zip_tree_transition_iterator(const std::vector<SnarlDistance
 
         // Sort the transitions so we handle them in an allowed order for dynamic programming.
         std::sort(all_transitions.begin(), all_transitions.end(), 
-            [&](const transition_info& a, const transition_info& b) {
+            [](const transition_info& a, const transition_info& b) {
             // Return true if a's destination seed is before b's in the read, and false otherwise.
-            return to_chain[a.to_anchor].read_start() < to_chain[b.to_anchor].read_start();
+            return a.to_read_start < b.to_read_start;
         });
 
         for (auto& transition : all_transitions) {
@@ -348,7 +348,7 @@ void add_transition_if_legal(vector<transition_info>& transitions, const VectorV
         return;
     } 
 
-    transitions.emplace_back(from_anchor, to_anchor, indel_size);
+    transitions.emplace_back(from_anchor, to_anchor, indel_size, dest_anchor.read_start());
 }
 
 /// Compute a gap score like minimap2.
